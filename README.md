@@ -46,6 +46,9 @@ allowed email domains. On success the server sets an 8-hour httpOnly session coo
 domain must be added to the OAuth client's authorized JavaScript origins in Google
 Cloud Console.
 
+For local development you can skip login entirely by setting `AUTH_DISABLED=true`
+in `.env.local`. Never set it in production.
+
 ## Docker
 
 ```bash
