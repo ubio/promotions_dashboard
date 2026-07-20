@@ -1,0 +1,34 @@
+name: CD
+
+on:
+  workflow_dispatch:
+  push:
+    tags:
+      - "*"
+
+jobs:
+  build:
+    uses: ubio/github-actions/.github/workflows/ci-build.yaml@master
+    with:
+      name: promotions-dashboard
+      image: eu.gcr.io/automation-cloud-registry/promotions-dashboard
+      ref: ${{ github.ref }}
+      file: Dockerfile
+    secrets:
+      REGISTRY_SECRET: ${{ secrets.GCP_REGISTRY_ACCESS }}
+      SLACK_TOKEN: ${{ secrets.SLACK_TOKEN }}
+      SLACK_CHANNEL: ${{ secrets.SLACK_CHANNEL }}
+
+  deploy-production:
+    needs: build
+    uses: ubio/github-actions/.github/workflows/cd-dispatch-deploy.yaml@master
+    with:
+      gh_user: ubio
+      gh_repo: infrastructure
+      image_name: promotions-dashboard
+      env_name: production
+      app_path: automation-cloud/promotions-dashboard
+      auto_merge: true
+      pr_assignees: ${{ github.actor }}
+    secrets:
+      ACCESS_TOKEN: ${{ secrets.ACCESS_TOKEN }}
