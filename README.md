@@ -1,36 +1,43 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Promotions Dashboard
 
-## Getting Started
+Internal read-only dashboard for the UBIO promotions vertical. Browses the execution
+records of the promotions pipeline (extraction and validation jobs), the promotions
+themselves, and the evidence (screenshots, reasoning, fail codes) stored in MongoDB.
 
-First, run the development server:
+## Data source
+
+Reads the `Promotions` database on the `ubio-shopping` MongoDB cluster:
+
+| Collection       | Role                                                                      |
+| ---------------- | ------------------------------------------------------------------------- |
+| `validationLogs` | Validation job runs — result, fail codes, reasoning, screenshot, LLM cost |
+| `extractionLogs` | Extraction/discovery job runs — visited URLs, promotions found            |
+| `promotions`     | Promotion entities — conditions, benefits, validity status                |
+| `merchants`      | Merchant records with aggregated validation stats                         |
+
+Relationships: `validationLogs.promotionId → promotions._id`,
+`promotions.extractionLogId → extractionLogs._id`, `promotions.merchantId → merchants._id`.
+
+## Setup
 
 ```bash
+npm install
+echo 'MONGODB_URI=<connection string>' > .env.local
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+MongoDB is accessed only from the server (React Server Components) with
+`readPreference: secondaryPreferred`. The app never writes to the database.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Pages
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+- `/jobs` — job list with Validation/Extraction tabs, search, filters (client,
+  report type, success, fail code) and pagination
+- `/jobs/validation/[id]` — full validation job: result, reasoning, promotion under
+  validation, screenshot/video evidence, LLM costs, raw JSON
+- `/jobs/extraction/[id]` — full extraction job: visited URLs, promotions found, raw JSON
+- `/promotions` — promotion list with search and validity/client filters
+- `/promotions/[id]` — promotion details: conditions, benefits, applicability,
+  full validation history, raw JSON
 
-## Learn More
-
-To learn more about Next.js, take a look at the following resources:
-
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+Every detail page has a collapsible raw JSON view so nothing in the document is hidden.
