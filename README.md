@@ -22,12 +22,29 @@ Relationships: `validationLogs.promotionId → promotions._id`,
 
 ```bash
 npm install
-echo 'MONGODB_URI=<connection string>' > .env.local
+cp .env.example .env.local   # then fill in the values
 npm run dev
 ```
 
+Required environment variables:
+
+| Variable                 | Purpose                                                          |
+| ------------------------ | ---------------------------------------------------------------- |
+| `MONGODB_URI`            | Connection string for the `ubio-shopping` cluster                |
+| `GOOGLE_OAUTH_CLIENT_ID` | Google OAuth client id used for the sign-in button               |
+| `ALLOWED_EMAIL_DOMAINS`  | Comma-separated email domains allowed to sign in                 |
+| `JWT_SECRET`             | Random secret for signing session cookies (`openssl rand -hex 32`) |
+
 MongoDB is accessed only from the server (React Server Components) with
 `readPreference: secondaryPreferred`. The app never writes to the database.
+
+## Auth
+
+Same model as SignalFlow: Google Sign-In, verified server-side, restricted to the
+allowed email domains. On success the server sets an 8-hour httpOnly session cookie
+(JWT). `proxy.ts` redirects every unauthenticated request to `/login`. The deployed
+domain must be added to the OAuth client's authorized JavaScript origins in Google
+Cloud Console.
 
 ## Pages
 
