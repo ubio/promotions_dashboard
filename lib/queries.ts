@@ -140,6 +140,83 @@ export async function getMerchant(merchantId: string) {
   return coll("merchants").findOne({ _id: merchantId });
 }
 
+export interface DailyStat {
+  date: string;
+  success: number;
+  failed: number;
+  validationCost: number;
+  extractionCost: number;
+  extractions: number;
+  promotionsFound: number;
+}
+
+export async function getDailyStats(days: number): Promise<DailyStat[]> {
+  const since = Date.now() - days * 86400000;
+  const dateExpr = {
+    $dateToString: { format: "%Y-%m-%d", date: { $toDate: "$createdAt" } },
+  };
+
+  const [validation, extraction] = await Promise.all([
+    coll("validationLogs")
+      .aggregate([
+        { $match: { createdAt: { $gte: since } } },
+        {
+          $group: {
+            _id: dateExpr,
+            success: { $sum: { $cond: ["$success", 1, 0] } },
+            failed: { $sum: { $cond: ["$success", 0, 1] } },
+            cost: { $sum: { $sum: "$llmCosts.totalCost" } },
+          },
+        },
+      ])
+      .toArray(),
+    coll("extractionLogs")
+      .aggregate([
+        { $match: { createdAt: { $gte: since } } },
+        {
+          $group: {
+            _id: dateExpr,
+            extractions: { $sum: 1 },
+            promotionsFound: { $sum: { $size: { $ifNull: ["$promotionsFound", []] } } },
+            cost: { $sum: { $ifNull: ["$llmCost.totalCost", 0] } },
+          },
+        },
+      ])
+      .toArray(),
+  ]);
+
+  const byDate = new Map<string, DailyStat>();
+  const blank = (date: string): DailyStat => ({
+    date,
+    success: 0,
+    failed: 0,
+    validationCost: 0,
+    extractionCost: 0,
+    extractions: 0,
+    promotionsFound: 0,
+  });
+  // Fill every day in range so the charts have a continuous axis.
+  for (let i = days - 1; i >= 0; i--) {
+    const d = new Date(Date.now() - i * 86400000).toISOString().slice(0, 10);
+    byDate.set(d, blank(d));
+  }
+  for (const r of validation) {
+    const e = byDate.get(r._id) ?? blank(r._id);
+    e.success = r.success;
+    e.failed = r.failed;
+    e.validationCost = r.cost ?? 0;
+    byDate.set(r._id, e);
+  }
+  for (const r of extraction) {
+    const e = byDate.get(r._id) ?? blank(r._id);
+    e.extractions = r.extractions;
+    e.promotionsFound = r.promotionsFound;
+    e.extractionCost = r.cost ?? 0;
+    byDate.set(r._id, e);
+  }
+  return [...byDate.values()].sort((a, b) => a.date.localeCompare(b.date));
+}
+
 export interface MerchantFilters {
   q?: string;
   page?: number;

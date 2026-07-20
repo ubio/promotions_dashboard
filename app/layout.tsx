@@ -34,6 +34,9 @@ export default async function RootLayout({
               UBIO <span className="text-sky-400">Promotions</span>
             </Link>
             <nav className="flex gap-5 text-sm text-slate-300">
+              <Link href="/stats" className="hover:text-white">
+                Stats
+              </Link>
               <Link href="/jobs" className="hover:text-white">
                 Jobs
               </Link>

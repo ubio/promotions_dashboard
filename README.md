@@ -65,6 +65,8 @@ into the image.
 
 ## Pages
 
+- `/stats` — KPI tiles and daily charts: validations per day (success/failed),
+  success rate, and LLM cost, over a selectable 7/30/60/90-day window
 - `/jobs` — job list with Validation/Extraction tabs, search, filters (client,
   report type, success, fail code) and pagination
 - `/jobs/validation/[id]` — full validation job: result, reasoning, promotion under
