@@ -4,9 +4,12 @@ import { SignJWT, jwtVerify } from "jose";
 export const SESSION_COOKIE = "session";
 export const SESSION_MAX_AGE_SECONDS = 8 * 60 * 60;
 
-const secret = process.env.JWT_SECRET;
-if (!secret) throw new Error("JWT_SECRET is not set");
-const key = new TextEncoder().encode(secret);
+// Lazy so `next build` (no env) can import this module; fails at first use instead.
+function getKey(): Uint8Array {
+  const secret = process.env.JWT_SECRET;
+  if (!secret) throw new Error("JWT_SECRET is not set");
+  return new TextEncoder().encode(secret);
+}
 
 export interface SessionUser {
   email: string;
@@ -19,12 +22,12 @@ export async function signSession(user: SessionUser): Promise<string> {
     .setProtectedHeader({ alg: "HS256" })
     .setIssuedAt()
     .setExpirationTime(`${SESSION_MAX_AGE_SECONDS}s`)
-    .sign(key);
+    .sign(getKey());
 }
 
 export async function verifySession(token: string): Promise<SessionUser | null> {
   try {
-    const { payload } = await jwtVerify(token, key);
+    const { payload } = await jwtVerify(token, getKey());
     if (typeof payload.email !== "string") return null;
     return {
       email: payload.email,

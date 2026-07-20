@@ -1,20 +1,20 @@
 import { MongoClient } from "mongodb";
 
-const uri = process.env.MONGODB_URI;
-if (!uri) throw new Error("MONGODB_URI is not set");
-
-// Reuse a single client across hot reloads / route renders.
+// Lazy so `next build` (no env) can import this module; fails at first use instead.
 const globalForMongo = globalThis as unknown as { _mongoClient?: MongoClient };
 
-export const mongo =
-  globalForMongo._mongoClient ??
-  new MongoClient(uri, {
-    readPreference: "secondaryPreferred",
-    serverSelectionTimeoutMS: 10000,
-  });
-
-if (!globalForMongo._mongoClient) globalForMongo._mongoClient = mongo;
+function getClient(): MongoClient {
+  if (!globalForMongo._mongoClient) {
+    const uri = process.env.MONGODB_URI;
+    if (!uri) throw new Error("MONGODB_URI is not set");
+    globalForMongo._mongoClient = new MongoClient(uri, {
+      readPreference: "secondaryPreferred",
+      serverSelectionTimeoutMS: 10000,
+    });
+  }
+  return globalForMongo._mongoClient;
+}
 
 export function db() {
-  return mongo.db("Promotions");
+  return getClient().db("Promotions");
 }

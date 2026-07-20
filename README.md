@@ -46,6 +46,20 @@ allowed email domains. On success the server sets an 8-hour httpOnly session coo
 domain must be added to the OAuth client's authorized JavaScript origins in Google
 Cloud Console.
 
+## Docker
+
+```bash
+docker build -t promotions-dashboard .
+docker run -p 3000:3000 \
+  -e MONGODB_URI=... -e GOOGLE_OAUTH_CLIENT_ID=... \
+  -e ALLOWED_EMAIL_DOMAINS=... -e JWT_SECRET=... \
+  promotions-dashboard
+```
+
+Multi-stage build on `node:22-alpine` using Next.js standalone output; runs as a
+non-root user on port 3000. All configuration is runtime env — nothing is baked
+into the image.
+
 ## Pages
 
 - `/jobs` — job list with Validation/Extraction tabs, search, filters (client,
