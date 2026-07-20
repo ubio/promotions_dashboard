@@ -71,6 +71,8 @@ into the image.
   validation, screenshot/video evidence, LLM costs, raw JSON
 - `/jobs/extraction/[id]` — full extraction job: visited URLs, promotions found, raw JSON
 - `/promotions` — promotion list with search and validity/client filters
+- `/merchants` — per-merchant validation stats joined with LLM costs aggregated
+  from that merchant's jobs
 - `/promotions/[id]` — promotion details: conditions, benefits, applicability,
   full validation history, raw JSON
 

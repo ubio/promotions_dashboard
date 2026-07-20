@@ -8,7 +8,7 @@ import {
   getFailCodes,
   getFailedDiscoveryCodes,
 } from "@/lib/queries";
-import { formatDate, formatDuration, truncate } from "@/lib/format";
+import { formatCost, formatDate, formatDuration, sumLlmCosts, truncate } from "@/lib/format";
 
 export const dynamic = "force-dynamic";
 
@@ -146,6 +146,7 @@ async function ValidationJobs(props: {
               <th className="px-3 py-2">Fail codes</th>
               <th className="px-3 py-2">Reasoning</th>
               <th className="px-3 py-2">Duration</th>
+              <th className="px-3 py-2">Cost</th>
               <th className="px-3 py-2">Evidence</th>
             </tr>
           </thead>
@@ -180,6 +181,7 @@ async function ValidationJobs(props: {
                   {truncate(job.reasoning, 140)}
                 </td>
                 <td className="whitespace-nowrap px-3 py-2 text-slate-600">{formatDuration(job.time)}</td>
+                <td className="whitespace-nowrap px-3 py-2 text-slate-600">{formatCost(sumLlmCosts(job.llmCosts))}</td>
                 <td className="whitespace-nowrap px-3 py-2 text-xs">
                   {job.screenshot ? (
                     <a href={job.screenshot} target="_blank" className="text-sky-700 hover:underline">
@@ -193,7 +195,7 @@ async function ValidationJobs(props: {
             ))}
             {result.items.length === 0 && (
               <tr>
-                <td colSpan={8} className="px-3 py-8 text-center text-slate-400">
+                <td colSpan={9} className="px-3 py-8 text-center text-slate-400">
                   No validation jobs match these filters.
                 </td>
               </tr>
@@ -252,6 +254,7 @@ async function ExtractionJobs(props: { q?: string; failedDiscoveryCode?: string;
               <th className="px-3 py-2">Discovery failures</th>
               <th className="px-3 py-2">Reasoning</th>
               <th className="px-3 py-2">Duration</th>
+              <th className="px-3 py-2">Cost</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-slate-100">
@@ -279,11 +282,12 @@ async function ExtractionJobs(props: { q?: string; failedDiscoveryCode?: string;
                 </td>
                 <td className="min-w-80 max-w-md px-3 py-2 text-xs text-slate-600">{truncate(job.reasoning, 140)}</td>
                 <td className="whitespace-nowrap px-3 py-2 text-slate-600">{formatDuration(job.time)}</td>
+                <td className="whitespace-nowrap px-3 py-2 text-slate-600">{formatCost(job.llmCost?.totalCost)}</td>
               </tr>
             ))}
             {result.items.length === 0 && (
               <tr>
-                <td colSpan={6} className="px-3 py-8 text-center text-slate-400">
+                <td colSpan={7} className="px-3 py-8 text-center text-slate-400">
                   No extraction jobs match these filters.
                 </td>
               </tr>

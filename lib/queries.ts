@@ -140,6 +140,52 @@ export async function getMerchant(merchantId: string) {
   return coll("merchants").findOne({ _id: merchantId });
 }
 
+export interface MerchantFilters {
+  q?: string;
+  page?: number;
+}
+
+export async function getMerchants(f: MerchantFilters) {
+  const filter: Filter<PromoDoc> = {};
+  if (f.q) {
+    const rx = { $regex: escapeRegex(f.q), $options: "i" };
+    filter.$or = [{ domain: rx }, { _id: f.q }];
+  }
+  return paginate("merchants", filter, f.page ?? 1, {
+    "stats.validationsStats.totalValidationsCount": -1,
+    _id: 1,
+  });
+}
+
+// Costs live only on the job logs, so aggregate them per domain here.
+export async function getCostsByDomain(): Promise<
+  Map<string, { validationCost: number; extractionCost: number }>
+> {
+  const [validation, extraction] = await Promise.all([
+    coll("validationLogs")
+      .aggregate([
+        { $unwind: "$llmCosts" },
+        { $group: { _id: "$domain", cost: { $sum: "$llmCosts.totalCost" } } },
+      ])
+      .toArray(),
+    coll("extractionLogs")
+      .aggregate([{ $group: { _id: "$domain", cost: { $sum: "$llmCost.totalCost" } } }])
+      .toArray(),
+  ]);
+  const out = new Map<string, { validationCost: number; extractionCost: number }>();
+  for (const r of validation) {
+    if (!r._id) continue;
+    out.set(r._id, { validationCost: r.cost ?? 0, extractionCost: 0 });
+  }
+  for (const r of extraction) {
+    if (!r._id) continue;
+    const entry = out.get(r._id) ?? { validationCost: 0, extractionCost: 0 };
+    entry.extractionCost = r.cost ?? 0;
+    out.set(r._id, entry);
+  }
+  return out;
+}
+
 export async function getClientIds(): Promise<string[]> {
   return (await coll("validationLogs").distinct("clientId")).filter(Boolean) as string[];
 }

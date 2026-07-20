@@ -40,6 +40,9 @@ export default async function RootLayout({
               <Link href="/promotions" className="hover:text-white">
                 Promotions
               </Link>
+              <Link href="/merchants" className="hover:text-white">
+                Merchants
+              </Link>
             </nav>
             <div className="ml-auto flex items-center gap-3 text-xs text-slate-400">
               <span className="text-slate-500">read-only</span>
