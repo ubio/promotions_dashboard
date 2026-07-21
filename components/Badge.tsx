@@ -19,11 +19,18 @@ export default function Badge({
   variant?: string;
 }) {
   const style = STYLES[variant] ?? STYLES.unknown;
-  // Fail codes can be very long identifiers, so only they are allowed to wrap.
-  const wrap = variant === "code" ? "max-w-full [overflow-wrap:anywhere]" : "whitespace-nowrap";
+  // Fail codes are long identifiers: insert zero-width spaces after underscores
+  // so they wrap at segment boundaries instead of mid-word or overflowing.
+  const isCode = variant === "code";
+  const content =
+    isCode && typeof children === "string" ? children.replaceAll("_", "_​") : children;
   return (
-    <span className={`inline-block rounded-full px-2 py-0.5 text-xs font-medium ${wrap} ${style}`}>
-      {children}
+    <span
+      className={`inline-block rounded-full px-2 py-0.5 text-xs font-medium ${
+        isCode ? "max-w-full" : "whitespace-nowrap"
+      } ${style}`}
+    >
+      {content}
     </span>
   );
 }

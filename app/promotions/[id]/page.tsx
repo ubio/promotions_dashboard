@@ -153,7 +153,7 @@ export default async function PromotionPage({ params }: { params: Promise<{ id: 
                       </div>
                     </td>
                     <td className="py-1.5 pr-4">
-                      <div className="flex max-w-44 flex-wrap gap-1">
+                      <div className="flex min-w-36 max-w-52 flex-wrap gap-1">
                         {(v.failCodes ?? []).map((c: string) => (
                           <Badge key={c} variant="code">
                             {c}

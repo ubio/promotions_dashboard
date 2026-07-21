@@ -169,7 +169,7 @@ async function ValidationJobs(props: {
                   </div>
                 </td>
                 <td className="px-3 py-2">
-                  <div className="flex max-w-48 flex-wrap gap-1">
+                  <div className="flex min-w-36 max-w-52 flex-wrap gap-1">
                     {(job.failCodes ?? []).map((c: string) => (
                       <Badge key={c} variant="code">
                         {c}
