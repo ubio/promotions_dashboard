@@ -19,10 +19,10 @@ export default function Badge({
   variant?: string;
 }) {
   const style = STYLES[variant] ?? STYLES.unknown;
+  // Fail codes can be very long identifiers, so only they are allowed to wrap.
+  const wrap = variant === "code" ? "max-w-full [overflow-wrap:anywhere]" : "whitespace-nowrap";
   return (
-    <span
-      className={`inline-block rounded-full px-2 py-0.5 text-xs font-medium whitespace-nowrap ${style}`}
-    >
+    <span className={`inline-block rounded-full px-2 py-0.5 text-xs font-medium ${wrap} ${style}`}>
       {children}
     </span>
   );
