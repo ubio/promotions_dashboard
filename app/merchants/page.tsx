@@ -27,12 +27,12 @@ export default async function MerchantsPage({ searchParams }: { searchParams: Pr
       </p>
 
       <form className="flex flex-wrap items-end gap-3 rounded-lg border border-slate-200 bg-white p-3 text-sm">
-        <label className="flex flex-col gap-1">
+        <label className="flex max-w-full flex-col gap-1">
           <span className="text-xs text-slate-500">Search (domain)</span>
           <input
             name="q"
             defaultValue={q ?? ""}
-            className="w-64 rounded border border-slate-300 px-2 py-1.5"
+            className="w-64 max-w-full rounded border border-slate-300 px-2 py-1.5"
             placeholder="e.g. etsy.com"
           />
         </label>

@@ -8,6 +8,8 @@ const INK = {
 };
 const GOOD = "#0ca30c";
 const CRITICAL = "#d03b3b";
+const WARNING = "#eda100";
+const NEUTRAL = "#898781";
 const BLUE = "#2a78d6";
 
 const W = 720;
@@ -86,59 +88,111 @@ function XTicks({ dates }: { dates: string[] }) {
   );
 }
 
+function Legend({ entries }: { entries: { label: string; color: string }[] }) {
+  return (
+    <div className="mb-2 flex flex-wrap gap-4 text-xs" style={{ color: INK.secondary }}>
+      {entries.map((e) => (
+        <span key={e.label} className="flex items-center gap-1.5">
+          <span className="inline-block h-2.5 w-2.5 rounded-sm" style={{ background: e.color }} />
+          {e.label}
+        </span>
+      ))}
+    </div>
+  );
+}
+
 export function StackedOutcomeChart({
   data,
 }: {
-  data: { date: string; success: number; failed: number }[];
+  data: { date: string; success: number; failed: number; errors: number }[];
 }) {
-  const max = niceMax(Math.max(...data.map((d) => d.success + d.failed), 1));
+  const max = niceMax(Math.max(...data.map((d) => d.success + d.failed + d.errors), 1));
   const slot = PLOT_W / data.length;
   const bw = Math.max(2, slot - 2);
   const scale = (v: number) => (v / max) * PLOT_H;
 
   return (
     <div>
-      <div className="mb-2 flex gap-4 text-xs" style={{ color: INK.secondary }}>
-        <span className="flex items-center gap-1.5">
-          <span className="inline-block h-2.5 w-2.5 rounded-sm" style={{ background: GOOD }} />
-          Success
-        </span>
-        <span className="flex items-center gap-1.5">
-          <span className="inline-block h-2.5 w-2.5 rounded-sm" style={{ background: CRITICAL }} />
-          Failed
-        </span>
-      </div>
-      <svg viewBox={`0 0 ${W} ${H}`} className="w-full" role="img" aria-label="Validations per day, success vs failed">
+      <Legend
+        entries={[
+          { label: "Success", color: GOOD },
+          { label: "Failed (concluded invalid)", color: CRITICAL },
+          { label: "Error (run broke)", color: WARNING },
+        ]}
+      />
+      <svg
+        viewBox={`0 0 ${W} ${H}`}
+        className="w-full"
+        role="img"
+        aria-label="Validations per day: success, failed and errored runs"
+      >
         <Grid max={max} format={(v) => String(Math.round(v))} />
         {data.map((d, i) => {
           const x = PAD.left + slot * i + (slot - bw) / 2;
-          const hSuccess = scale(d.success);
-          const hFailed = scale(d.failed);
           const baseline = PAD.top + PLOT_H;
-          const gap = hSuccess > 0 && hFailed > 0 ? 2 : 0;
+          const segments = [
+            { v: d.success, color: GOOD },
+            { v: d.failed, color: CRITICAL },
+            { v: d.errors, color: WARNING },
+          ].filter((seg) => seg.v > 0);
+          let y = baseline;
           return (
             <g key={d.date}>
-              {hSuccess > 0 && (
-                hFailed > 0 ? (
-                  <rect x={x} y={baseline - hSuccess} width={bw} height={hSuccess} fill={GOOD} />
+              {segments.map((seg, j) => {
+                const h = scale(seg.v);
+                const isTop = j === segments.length - 1;
+                const gap = j > 0 ? 2 : 0;
+                y -= h + gap;
+                return isTop ? (
+                  <path key={j} d={roundedTopRect(x, y, bw, h, 3)} fill={seg.color} />
                 ) : (
-                  <path d={roundedTopRect(x, baseline - hSuccess, bw, hSuccess, 3)} fill={GOOD} />
-                )
-              )}
-              {hFailed > 0 && (
-                <path
-                  d={roundedTopRect(x, baseline - hSuccess - gap - hFailed, bw, hFailed, 3)}
-                  fill={CRITICAL}
-                />
-              )}
+                  <rect key={j} x={x} y={y} width={bw} height={h} fill={seg.color} />
+                );
+              })}
               <rect x={PAD.left + slot * i} y={PAD.top} width={slot} height={PLOT_H} fill="transparent">
-                <title>{`${shortDate(d.date)} — ${d.success + d.failed} validations: ${d.success} success, ${d.failed} failed`}</title>
+                <title>{`${shortDate(d.date)} — ${d.success + d.failed + d.errors} runs: ${d.success} success, ${d.failed} failed, ${d.errors} errors`}</title>
               </rect>
             </g>
           );
         })}
         <XTicks dates={data.map((d) => d.date)} />
       </svg>
+    </div>
+  );
+}
+
+export function ValidityBar({
+  counts,
+}: {
+  counts: { label: string; value: number }[];
+}) {
+  const COLORS: Record<string, string> = {
+    valid: GOOD,
+    invalid: CRITICAL,
+    cannot_validate: WARNING,
+    insufficient_validations: NEUTRAL,
+  };
+  const total = counts.reduce((s, c) => s + c.value, 0);
+  if (total === 0) return <p className="text-sm text-slate-400">No promotions.</p>;
+  return (
+    <div>
+      <Legend
+        entries={counts.map((c) => ({
+          label: `${c.label.replaceAll("_", " ")} — ${c.value.toLocaleString()} (${Math.round((c.value / total) * 100)}%)`,
+          color: COLORS[c.label] ?? NEUTRAL,
+        }))}
+      />
+      <div className="flex h-6 w-full gap-0.5 overflow-hidden rounded" role="img" aria-label="Promotions by validity status">
+        {counts
+          .filter((c) => c.value > 0)
+          .map((c) => (
+            <div
+              key={c.label}
+              style={{ width: `${(c.value / total) * 100}%`, background: COLORS[c.label] ?? NEUTRAL }}
+              title={`${c.label.replaceAll("_", " ")}: ${c.value.toLocaleString()}`}
+            />
+          ))}
+      </div>
     </div>
   );
 }

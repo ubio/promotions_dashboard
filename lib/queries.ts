@@ -144,6 +144,7 @@ export interface DailyStat {
   date: string;
   success: number;
   failed: number;
+  errors: number;
   validationCost: number;
   extractionCost: number;
   extractions: number;
@@ -164,7 +165,14 @@ export async function getDailyStats(days: number): Promise<DailyStat[]> {
           $group: {
             _id: dateExpr,
             success: { $sum: { $cond: ["$success", 1, 0] } },
-            failed: { $sum: { $cond: ["$success", 0, 1] } },
+            // failed = a completed run that concluded the promotion doesn't work;
+            // errors = the run itself broke (reportType "error")
+            failed: {
+              $sum: {
+                $cond: [{ $and: [{ $eq: ["$success", false] }, { $ne: ["$reportType", "error"] }] }, 1, 0],
+              },
+            },
+            errors: { $sum: { $cond: [{ $eq: ["$reportType", "error"] }, 1, 0] } },
             cost: { $sum: { $sum: "$llmCosts.totalCost" } },
           },
         },
@@ -190,6 +198,7 @@ export async function getDailyStats(days: number): Promise<DailyStat[]> {
     date,
     success: 0,
     failed: 0,
+    errors: 0,
     validationCost: 0,
     extractionCost: 0,
     extractions: 0,
@@ -204,6 +213,7 @@ export async function getDailyStats(days: number): Promise<DailyStat[]> {
     const e = byDate.get(r._id) ?? blank(r._id);
     e.success = r.success;
     e.failed = r.failed;
+    e.errors = r.errors;
     e.validationCost = r.cost ?? 0;
     byDate.set(r._id, e);
   }
@@ -215,6 +225,13 @@ export async function getDailyStats(days: number): Promise<DailyStat[]> {
     byDate.set(r._id, e);
   }
   return [...byDate.values()].sort((a, b) => a.date.localeCompare(b.date));
+}
+
+export async function getValidityBreakdown(): Promise<Map<string, number>> {
+  const rows = await coll("promotions")
+    .aggregate([{ $group: { _id: "$validityStatus", n: { $sum: 1 } } }])
+    .toArray();
+  return new Map(rows.map((r) => [r._id ?? "unknown", r.n]));
 }
 
 export interface MerchantFilters {

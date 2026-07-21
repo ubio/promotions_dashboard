@@ -31,30 +31,30 @@ export default async function PromotionsPage({ searchParams }: { searchParams: P
       <h1 className="text-xl font-semibold">Promotions</h1>
 
       <form className="flex flex-wrap items-end gap-3 rounded-lg border border-slate-200 bg-white p-3 text-sm">
-        <label className="flex flex-col gap-1">
+        <label className="flex max-w-full flex-col gap-1">
           <span className="text-xs text-slate-500">Search (domain, description, code, id)</span>
           <input
             name="q"
             defaultValue={q ?? ""}
-            className="w-72 rounded border border-slate-300 px-2 py-1.5"
+            className="w-72 max-w-full rounded border border-slate-300 px-2 py-1.5"
             placeholder="e.g. aloyoga.com or SAVE25"
           />
         </label>
-        <label className="flex flex-col gap-1">
+        <label className="flex max-w-full flex-col gap-1">
           <span className="text-xs text-slate-500">Client</span>
-          <select name="clientId" defaultValue={clientId ?? ""} className="rounded border border-slate-300 px-2 py-1.5">
+          <select name="clientId" defaultValue={clientId ?? ""} className="max-w-full rounded border border-slate-300 px-2 py-1.5">
             <option value="">All</option>
             {clientIds.map((c) => (
               <option key={c}>{c}</option>
             ))}
           </select>
         </label>
-        <label className="flex flex-col gap-1">
+        <label className="flex max-w-full flex-col gap-1">
           <span className="text-xs text-slate-500">Validity</span>
           <select
             name="validityStatus"
             defaultValue={validityStatus ?? ""}
-            className="rounded border border-slate-300 px-2 py-1.5"
+            className="max-w-full rounded border border-slate-300 px-2 py-1.5"
           >
             <option value="">All</option>
             {VALIDITY_STATUSES.map((s) => (

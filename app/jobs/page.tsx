@@ -86,43 +86,43 @@ async function ValidationJobs(props: {
   return (
     <>
       <form className="flex flex-wrap items-end gap-3 rounded-lg border border-slate-200 bg-white p-3 text-sm">
-        <label className="flex flex-col gap-1">
+        <label className="flex max-w-full flex-col gap-1">
           <span className="text-xs text-slate-500">Search (domain, URL, promotion id)</span>
           <input
             name="q"
             defaultValue={props.q ?? ""}
-            className="w-64 rounded border border-slate-300 px-2 py-1.5"
+            className="w-64 max-w-full rounded border border-slate-300 px-2 py-1.5"
             placeholder="e.g. bestbuy.com"
           />
         </label>
-        <label className="flex flex-col gap-1">
+        <label className="flex max-w-full flex-col gap-1">
           <span className="text-xs text-slate-500">Client</span>
-          <select name="clientId" defaultValue={props.clientId ?? ""} className="rounded border border-slate-300 px-2 py-1.5">
+          <select name="clientId" defaultValue={props.clientId ?? ""} className="max-w-full rounded border border-slate-300 px-2 py-1.5">
             <option value="">All</option>
             {clientIds.map((c) => (
               <option key={c}>{c}</option>
             ))}
           </select>
         </label>
-        <label className="flex flex-col gap-1">
+        <label className="flex max-w-full flex-col gap-1">
           <span className="text-xs text-slate-500">Report type</span>
-          <select name="reportType" defaultValue={props.reportType ?? ""} className="rounded border border-slate-300 px-2 py-1.5">
+          <select name="reportType" defaultValue={props.reportType ?? ""} className="max-w-full rounded border border-slate-300 px-2 py-1.5">
             <option value="">All</option>
             <option value="conclusion">conclusion</option>
             <option value="error">error</option>
           </select>
         </label>
-        <label className="flex flex-col gap-1">
+        <label className="flex max-w-full flex-col gap-1">
           <span className="text-xs text-slate-500">Success</span>
-          <select name="success" defaultValue={props.success ?? ""} className="rounded border border-slate-300 px-2 py-1.5">
+          <select name="success" defaultValue={props.success ?? ""} className="max-w-full rounded border border-slate-300 px-2 py-1.5">
             <option value="">All</option>
             <option value="true">success</option>
             <option value="false">failed</option>
           </select>
         </label>
-        <label className="flex flex-col gap-1">
+        <label className="flex max-w-full flex-col gap-1">
           <span className="text-xs text-slate-500">Fail code</span>
-          <select name="failCode" defaultValue={props.failCode ?? ""} className="rounded border border-slate-300 px-2 py-1.5">
+          <select name="failCode" defaultValue={props.failCode ?? ""} className="max-w-full rounded border border-slate-300 px-2 py-1.5">
             <option value="">All</option>
             {failCodes.map((c) => (
               <option key={c}>{c}</option>
@@ -216,21 +216,21 @@ async function ExtractionJobs(props: { q?: string; failedDiscoveryCode?: string;
     <>
       <form className="flex flex-wrap items-end gap-3 rounded-lg border border-slate-200 bg-white p-3 text-sm">
         <input type="hidden" name="type" value="extraction" />
-        <label className="flex flex-col gap-1">
+        <label className="flex max-w-full flex-col gap-1">
           <span className="text-xs text-slate-500">Search (domain, URL)</span>
           <input
             name="q"
             defaultValue={props.q ?? ""}
-            className="w-64 rounded border border-slate-300 px-2 py-1.5"
+            className="w-64 max-w-full rounded border border-slate-300 px-2 py-1.5"
             placeholder="e.g. dominos.com"
           />
         </label>
-        <label className="flex flex-col gap-1">
+        <label className="flex max-w-full flex-col gap-1">
           <span className="text-xs text-slate-500">Discovery failure</span>
           <select
             name="failedDiscoveryCode"
             defaultValue={props.failedDiscoveryCode ?? ""}
-            className="rounded border border-slate-300 px-2 py-1.5"
+            className="max-w-full rounded border border-slate-300 px-2 py-1.5"
           >
             <option value="">All</option>
             {codes.map((c) => (

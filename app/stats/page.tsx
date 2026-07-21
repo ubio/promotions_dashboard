@@ -1,8 +1,8 @@
 import Link from "next/link";
 import { Section } from "@/components/Section";
-import { StackedOutcomeChart, RateLineChart, CostBarChart } from "@/components/charts";
-import { getDailyStats } from "@/lib/queries";
-import { formatCost } from "@/lib/format";
+import { StackedOutcomeChart, RateLineChart, CostBarChart, ValidityBar } from "@/components/charts";
+import { getDailyStats, getValidityBreakdown } from "@/lib/queries";
+import { formatCost, normalizeValidity, VALIDITY_STATUSES } from "@/lib/format";
 
 export const dynamic = "force-dynamic";
 
@@ -28,20 +28,30 @@ export default async function StatsPage({
     ? Number(sp.days)
     : 30;
 
-  const daily = await getDailyStats(days);
+  const [daily, validityRaw] = await Promise.all([getDailyStats(days), getValidityBreakdown()]);
+
+  // Merge the snake_case/camelCase status variants into one count per status.
+  const validityCounts = VALIDITY_STATUSES.map((label) => ({
+    label,
+    value: [...validityRaw.entries()]
+      .filter(([k]) => normalizeValidity(k) === label)
+      .reduce((s, [, n]) => s + n, 0),
+  }));
 
   const totals = daily.reduce(
     (acc, d) => ({
       success: acc.success + d.success,
       failed: acc.failed + d.failed,
+      errors: acc.errors + d.errors,
       cost: acc.cost + d.validationCost + d.extractionCost,
       promotionsFound: acc.promotionsFound + d.promotionsFound,
     }),
-    { success: 0, failed: 0, cost: 0, promotionsFound: 0 }
+    { success: 0, failed: 0, errors: 0, cost: 0, promotionsFound: 0 }
   );
-  const totalValidations = totals.success + totals.failed;
+  const totalValidations = totals.success + totals.failed + totals.errors;
   const successRate = totalValidations > 0 ? totals.success / totalValidations : null;
 
+  // Rate counts only completed runs — errored runs say nothing about the promotion.
   const rateSeries = daily.map((d) => ({
     date: d.date,
     rate: d.success + d.failed > 0 ? d.success / (d.success + d.failed) : null,
@@ -89,6 +99,10 @@ export default async function StatsPage({
         <StackedOutcomeChart data={daily} />
       </Section>
 
+      <Section title="Promotions by validity status (all time)">
+        <ValidityBar counts={validityCounts} />
+      </Section>
+
       <Section title="Success rate per day">
         <RateLineChart data={rateSeries} />
       </Section>
@@ -108,6 +122,7 @@ export default async function StatsPage({
                 <th className="py-1 pr-4">Date</th>
                 <th className="py-1 pr-4">Success</th>
                 <th className="py-1 pr-4">Failed</th>
+                <th className="py-1 pr-4">Errors</th>
                 <th className="py-1 pr-4">Rate</th>
                 <th className="py-1 pr-4">Extractions</th>
                 <th className="py-1 pr-4">Promotions found</th>
@@ -116,13 +131,14 @@ export default async function StatsPage({
             </thead>
             <tbody className="divide-y divide-slate-100">
               {daily.map((d) => {
-                const total = d.success + d.failed;
+                const completed = d.success + d.failed;
                 return (
                   <tr key={d.date}>
                     <td className="py-1 pr-4">{d.date}</td>
                     <td className="py-1 pr-4">{d.success}</td>
                     <td className="py-1 pr-4">{d.failed}</td>
-                    <td className="py-1 pr-4">{total > 0 ? `${Math.round((d.success / total) * 100)}%` : "—"}</td>
+                    <td className="py-1 pr-4">{d.errors}</td>
+                    <td className="py-1 pr-4">{completed > 0 ? `${Math.round((d.success / completed) * 100)}%` : "—"}</td>
                     <td className="py-1 pr-4">{d.extractions}</td>
                     <td className="py-1 pr-4">{d.promotionsFound}</td>
                     <td className="py-1 pr-4">{formatCost(d.validationCost + d.extractionCost)}</td>

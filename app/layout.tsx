@@ -29,11 +29,11 @@ export default async function RootLayout({
     <html lang="en" className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}>
       <body className="min-h-full flex flex-col font-sans">
         <header className="bg-slate-900 text-white">
-          <div className="mx-auto max-w-7xl px-4 py-3 flex items-center gap-8">
-            <Link href="/" className="font-semibold tracking-tight">
+          <div className="mx-auto max-w-7xl px-4 py-3 flex flex-wrap items-center gap-x-6 gap-y-1.5">
+            <Link href="/" className="font-semibold tracking-tight whitespace-nowrap">
               UBIO <span className="text-sky-400">Promotions</span>
             </Link>
-            <nav className="flex gap-5 text-sm text-slate-300">
+            <nav className="flex flex-wrap gap-x-4 gap-y-1 text-sm text-slate-300">
               <Link href="/stats" className="hover:text-white">
                 Stats
               </Link>
@@ -48,7 +48,7 @@ export default async function RootLayout({
               </Link>
             </nav>
             <div className="ml-auto flex items-center gap-3 text-xs text-slate-400">
-              <span className="text-slate-500">read-only</span>
+              <span className="hidden sm:inline text-slate-500">read-only</span>
               {user && (
                 <>
                   <span className="hidden sm:inline text-slate-300">{user.email}</span>
