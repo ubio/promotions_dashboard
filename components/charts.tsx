@@ -103,10 +103,15 @@ function Legend({ entries }: { entries: { label: string; color: string }[] }) {
 
 export function StackedOutcomeChart({
   data,
+  showErrors = true,
 }: {
   data: { date: string; success: number; failed: number; errors: number }[];
+  // Client portal hides errored runs — they are internal noise, not outcomes.
+  showErrors?: boolean;
 }) {
-  const max = niceMax(Math.max(...data.map((d) => d.success + d.failed + d.errors), 1));
+  const total = (d: { success: number; failed: number; errors: number }) =>
+    d.success + d.failed + (showErrors ? d.errors : 0);
+  const max = niceMax(Math.max(...data.map(total), 1));
   const slot = PLOT_W / data.length;
   const bw = Math.max(2, slot - 2);
   const scale = (v: number) => (v / max) * PLOT_H;
@@ -117,7 +122,7 @@ export function StackedOutcomeChart({
         entries={[
           { label: "Success", color: GOOD },
           { label: "Failed (concluded invalid)", color: CRITICAL },
-          { label: "Error (run broke)", color: WARNING },
+          ...(showErrors ? [{ label: "Error (run broke)", color: WARNING }] : []),
         ]}
       />
       <svg
@@ -133,7 +138,7 @@ export function StackedOutcomeChart({
           const segments = [
             { v: d.success, color: GOOD },
             { v: d.failed, color: CRITICAL },
-            { v: d.errors, color: WARNING },
+            ...(showErrors ? [{ v: d.errors, color: WARNING }] : []),
           ].filter((seg) => seg.v > 0);
           let y = baseline;
           return (
@@ -150,7 +155,7 @@ export function StackedOutcomeChart({
                 );
               })}
               <rect x={PAD.left + slot * i} y={PAD.top} width={slot} height={PLOT_H} fill="transparent">
-                <title>{`${shortDate(d.date)} — ${d.success + d.failed + d.errors} runs: ${d.success} success, ${d.failed} failed, ${d.errors} errors`}</title>
+                <title>{`${shortDate(d.date)} — ${total(d)} runs: ${d.success} success, ${d.failed} failed${showErrors ? `, ${d.errors} errors` : ""}`}</title>
               </rect>
             </g>
           );

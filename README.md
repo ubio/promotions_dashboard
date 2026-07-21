@@ -34,6 +34,7 @@ Required environment variables:
 | `GOOGLE_OAUTH_CLIENT_ID` | Google OAuth client id used for the sign-in button               |
 | `ALLOWED_EMAIL_DOMAINS`  | Comma-separated email domains allowed to sign in                 |
 | `JWT_SECRET`             | Random secret for signing session cookies (`openssl rand -hex 32`) |
+| `CLIENT_EMAIL_DOMAINS`   | Optional: `domain:ClientId` pairs granting client-portal access  |
 
 MongoDB is accessed only from the server (React Server Components) with
 `readPreference: secondaryPreferred`. The app never writes to the database.
@@ -48,6 +49,22 @@ Cloud Console.
 
 For local development you can skip login entirely by setting `AUTH_DISABLED=true`
 in `.env.local`. Never set it in production.
+
+## Client portal
+
+Users whose email domain appears in `CLIENT_EMAIL_DOMAINS` (e.g.
+`ziffdavis.com:ZiffDavis`) sign in with the same Google button but get a
+`client` role scoped to that clientId. They are fenced into `/portal`:
+
+- `/portal` — overview KPIs, validations-per-day and validity breakdown, scoped
+  to their promotions only
+- `/portal/promotions` (+ detail) — their promotions with validation history,
+  reason codes, reasoning and screenshot evidence
+
+The portal hides internal surfaces entirely: LLM costs, merchants, raw JSON,
+errored runs and other clients' data. Every portal query filters by the
+session's clientId server-side, and promotion detail pages 404 on any
+cross-client id.
 
 ## Docker
 

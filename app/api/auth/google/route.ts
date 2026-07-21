@@ -1,12 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
 import { OAuth2Client } from "google-auth-library";
 import { SESSION_COOKIE, SESSION_MAX_AGE_SECONDS, signSession } from "@/lib/session";
+import { resolveAccess } from "@/lib/clients";
 
 const client = new OAuth2Client(process.env.GOOGLE_OAUTH_CLIENT_ID);
-const ALLOWED_DOMAINS = (process.env.ALLOWED_EMAIL_DOMAINS ?? "")
-  .split(",")
-  .map((d) => d.trim())
-  .filter(Boolean);
 
 export async function POST(req: NextRequest) {
   const { credential } = await req.json().catch(() => ({}));
@@ -25,9 +22,10 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Invalid Google token" }, { status: 401 });
     }
 
-    if (ALLOWED_DOMAINS.length && !ALLOWED_DOMAINS.some((d) => payload.email!.endsWith(`@${d}`))) {
+    const access = resolveAccess(payload.email);
+    if (!access) {
       return NextResponse.json(
-        { error: "Access restricted to company accounts" },
+        { error: "This account does not have access. Contact your UBIO representative." },
         { status: 403 }
       );
     }
@@ -36,9 +34,11 @@ export async function POST(req: NextRequest) {
       email: payload.email,
       name: payload.name ?? payload.email,
       picture: payload.picture ?? "",
+      role: access.role,
+      clientId: access.role === "client" ? access.clientId : undefined,
     });
 
-    const res = NextResponse.json({ ok: true });
+    const res = NextResponse.json({ ok: true, role: access.role });
     res.cookies.set(SESSION_COOKIE, token, {
       httpOnly: true,
       secure: process.env.NODE_ENV === "production",

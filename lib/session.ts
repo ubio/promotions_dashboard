@@ -11,10 +11,15 @@ function getKey(): Uint8Array {
   return new TextEncoder().encode(secret);
 }
 
+export type Role = "internal" | "client";
+
 export interface SessionUser {
   email: string;
   name: string;
   picture: string;
+  role: Role;
+  // Set only for role "client" — the clientId whose data this user may see.
+  clientId?: string;
 }
 
 export async function signSession(user: SessionUser): Promise<string> {
@@ -29,10 +34,14 @@ export async function verifySession(token: string): Promise<SessionUser | null> 
   try {
     const { payload } = await jwtVerify(token, getKey());
     if (typeof payload.email !== "string") return null;
+    const role: Role = payload.role === "client" ? "client" : "internal";
+    if (role === "client" && typeof payload.clientId !== "string") return null;
     return {
       email: payload.email,
       name: typeof payload.name === "string" ? payload.name : payload.email,
       picture: typeof payload.picture === "string" ? payload.picture : "",
+      role,
+      clientId: role === "client" ? (payload.clientId as string) : undefined,
     };
   } catch {
     return null;

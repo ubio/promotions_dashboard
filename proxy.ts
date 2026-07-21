@@ -15,6 +15,17 @@ export default async function proxy(req: NextRequest) {
     return NextResponse.redirect(login);
   }
 
+  const path = req.nextUrl.pathname;
+
+  // Client users are fenced into the portal; internal users stay out of it
+  // (the portal would have no clientId to scope by).
+  if (user.role === "client" && !path.startsWith("/portal")) {
+    return NextResponse.redirect(new URL("/portal", req.url));
+  }
+  if (user.role === "internal" && path.startsWith("/portal")) {
+    return NextResponse.redirect(new URL("/", req.url));
+  }
+
   return NextResponse.next();
 }
 

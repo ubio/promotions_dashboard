@@ -124,11 +124,15 @@ export async function getPromotionByUniqId(uniqId: string) {
   return coll("promotions").findOne({ uniqId });
 }
 
-export async function getValidationsForPromotion(promotionId: string, uniqId?: string) {
+export async function getValidationsForPromotion(
+  promotionId: string,
+  uniqId?: string,
+  opts: { conclusionsOnly?: boolean } = {}
+) {
   const or: Filter<PromoDoc>[] = [{ promotionId }];
   if (uniqId) or.push({ promotionUniqId: uniqId });
   return coll("validationLogs")
-    .find({ $or: or })
+    .find({ $or: or, ...(opts.conclusionsOnly ? { reportType: "conclusion" } : {}) })
     .sort({ createdAt: -1 })
     .limit(100)
     .toArray();
@@ -151,7 +155,7 @@ export interface DailyStat {
   promotionsFound: number;
 }
 
-export async function getDailyStats(days: number): Promise<DailyStat[]> {
+export async function getDailyStats(days: number, clientId?: string): Promise<DailyStat[]> {
   const since = Date.now() - days * 86400000;
   const dateExpr = {
     $dateToString: { format: "%Y-%m-%d", date: { $toDate: "$createdAt" } },
@@ -160,7 +164,7 @@ export async function getDailyStats(days: number): Promise<DailyStat[]> {
   const [validation, extraction] = await Promise.all([
     coll("validationLogs")
       .aggregate([
-        { $match: { createdAt: { $gte: since } } },
+        { $match: { createdAt: { $gte: since }, ...(clientId ? { clientId } : {}) } },
         {
           $group: {
             _id: dateExpr,
@@ -178,19 +182,21 @@ export async function getDailyStats(days: number): Promise<DailyStat[]> {
         },
       ])
       .toArray(),
-    coll("extractionLogs")
-      .aggregate([
-        { $match: { createdAt: { $gte: since } } },
+    clientId
+      ? Promise.resolve([])
+      : coll("extractionLogs")
+          .aggregate([
+            { $match: { createdAt: { $gte: since } } },
         {
           $group: {
             _id: dateExpr,
             extractions: { $sum: 1 },
             promotionsFound: { $sum: { $size: { $ifNull: ["$promotionsFound", []] } } },
             cost: { $sum: { $ifNull: ["$llmCost.totalCost", 0] } },
-          },
-        },
-      ])
-      .toArray(),
+              },
+            },
+          ])
+          .toArray(),
   ]);
 
   const byDate = new Map<string, DailyStat>();
@@ -227,9 +233,12 @@ export async function getDailyStats(days: number): Promise<DailyStat[]> {
   return [...byDate.values()].sort((a, b) => a.date.localeCompare(b.date));
 }
 
-export async function getValidityBreakdown(): Promise<Map<string, number>> {
+export async function getValidityBreakdown(clientId?: string): Promise<Map<string, number>> {
   const rows = await coll("promotions")
-    .aggregate([{ $group: { _id: "$validityStatus", n: { $sum: 1 } } }])
+    .aggregate([
+      ...(clientId ? [{ $match: { clientId } }] : []),
+      { $group: { _id: "$validityStatus", n: { $sum: 1 } } },
+    ])
     .toArray();
   return new Map(rows.map((r) => [r._id ?? "unknown", r.n]));
 }
