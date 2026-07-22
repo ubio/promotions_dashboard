@@ -2,7 +2,7 @@ import Link from "next/link";
 import Badge from "@/components/Badge";
 import Pagination from "@/components/Pagination";
 import { getPromotions, getPromotionClientIds } from "@/lib/queries";
-import { normalizeValidity, truncate, VALIDITY_STATUSES } from "@/lib/format";
+import { formatDate, normalizeValidity, truncate, VALIDITY_STATUSES } from "@/lib/format";
 
 export const dynamic = "force-dynamic";
 
@@ -72,6 +72,7 @@ export default async function PromotionsPage({ searchParams }: { searchParams: P
         <table className="min-w-full text-sm">
           <thead className="bg-slate-50 text-left text-xs uppercase tracking-wide text-slate-500">
             <tr>
+              <th className="px-3 py-2">Created</th>
               <th className="px-3 py-2">Client</th>
               <th className="px-3 py-2">Domain</th>
               <th className="px-3 py-2">Description</th>
@@ -87,6 +88,9 @@ export default async function PromotionsPage({ searchParams }: { searchParams: P
               const status = normalizeValidity(p.validityStatus);
               return (
                 <tr key={String(p._id)} className="hover:bg-sky-50/50">
+                  <td className="whitespace-nowrap px-3 py-2 text-slate-600">
+                    {p.systemMeta?.createdAt ? formatDate(p.systemMeta.createdAt) : "—"}
+                  </td>
                   <td className="whitespace-nowrap px-3 py-2">{p.clientId ?? "—"}</td>
                   <td className="px-3 py-2 font-mono text-xs">{p.domain ?? "—"}</td>
                   <td className="min-w-72 max-w-md px-3 py-2">
@@ -131,7 +135,7 @@ export default async function PromotionsPage({ searchParams }: { searchParams: P
             })}
             {result.items.length === 0 && (
               <tr>
-                <td colSpan={8} className="px-3 py-8 text-center text-slate-400">
+                <td colSpan={9} className="px-3 py-8 text-center text-slate-400">
                   No promotions match these filters.
                 </td>
               </tr>

@@ -105,7 +105,9 @@ export async function getPromotions(f: PromotionFilters) {
       { _id: f.q },
     ];
   }
-  return paginate("promotions", filter, f.page ?? 1, { _id: -1 });
+  // Promotion _ids are random nanoids, so sort by creation time instead;
+  // docs missing systemMeta.createdAt (~5%) sort last, _id as a stable tiebreak.
+  return paginate("promotions", filter, f.page ?? 1, { "systemMeta.createdAt": -1, _id: -1 });
 }
 
 export async function getValidationJob(id: string) {
