@@ -77,7 +77,7 @@ export default async function PromotionsPage({ searchParams }: { searchParams: P
               <th className="px-3 py-2">Description</th>
               <th className="px-3 py-2">Code</th>
               <th className="px-3 py-2">Validity</th>
-              <th className="px-3 py-2">Last run</th>
+              <th className="px-3 py-2">Error codes</th>
               <th className="px-3 py-2">Reasoning</th>
               <th className="px-3 py-2">Evidence</th>
             </tr>
@@ -101,17 +101,14 @@ export default async function PromotionsPage({ searchParams }: { searchParams: P
                     <Badge variant={status}>{status}</Badge>
                   </td>
                   <td className="px-3 py-2">
-                    {p.latestValidation ? (
-                      p.latestValidation.reportType === "error" ? (
-                        <Badge variant="error">error</Badge>
-                      ) : (
-                        <Badge variant={p.latestValidation.success ? "valid" : "invalid"}>
-                          {p.latestValidation.success ? "valid" : "invalid"}
+                    <div className="flex min-w-36 max-w-52 flex-wrap gap-1">
+                      {(p.latestValidation?.failCodes ?? []).map((c: string) => (
+                        <Badge key={c} variant="code">
+                          {c}
                         </Badge>
-                      )
-                    ) : (
-                      "—"
-                    )}
+                      ))}
+                      {(p.latestValidation?.failCodes ?? []).length === 0 && "—"}
+                    </div>
                   </td>
                   <td className="min-w-72 max-w-md px-3 py-2 text-xs text-slate-600">
                     {truncate(p.latestValidation?.reasoning, 140) || "—"}
