@@ -77,7 +77,9 @@ export default async function PromotionsPage({ searchParams }: { searchParams: P
               <th className="px-3 py-2">Description</th>
               <th className="px-3 py-2">Code</th>
               <th className="px-3 py-2">Validity</th>
-              <th className="px-3 py-2">Last validation</th>
+              <th className="px-3 py-2">Last run</th>
+              <th className="px-3 py-2">Reasoning</th>
+              <th className="px-3 py-2">Evidence</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-slate-100">
@@ -100,9 +102,29 @@ export default async function PromotionsPage({ searchParams }: { searchParams: P
                   </td>
                   <td className="px-3 py-2">
                     {p.latestValidation ? (
-                      <Badge variant={p.latestValidation.success ? "success" : "fail"}>
-                        {p.latestValidation.success ? "success" : "failed"}
-                      </Badge>
+                      p.latestValidation.reportType === "error" ? (
+                        <Badge variant="error">error</Badge>
+                      ) : (
+                        <Badge variant={p.latestValidation.success ? "valid" : "invalid"}>
+                          {p.latestValidation.success ? "valid" : "invalid"}
+                        </Badge>
+                      )
+                    ) : (
+                      "—"
+                    )}
+                  </td>
+                  <td className="min-w-72 max-w-md px-3 py-2 text-xs text-slate-600">
+                    {truncate(p.latestValidation?.reasoning, 140) || "—"}
+                  </td>
+                  <td className="whitespace-nowrap px-3 py-2 text-xs">
+                    {p.latestValidation?.screenshot ? (
+                      <a
+                        href={p.latestValidation.screenshot}
+                        target="_blank"
+                        className="text-sky-700 hover:underline"
+                      >
+                        screenshot
+                      </a>
                     ) : (
                       "—"
                     )}
@@ -112,7 +134,7 @@ export default async function PromotionsPage({ searchParams }: { searchParams: P
             })}
             {result.items.length === 0 && (
               <tr>
-                <td colSpan={6} className="px-3 py-8 text-center text-slate-400">
+                <td colSpan={8} className="px-3 py-8 text-center text-slate-400">
                   No promotions match these filters.
                 </td>
               </tr>
