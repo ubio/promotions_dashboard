@@ -12,6 +12,14 @@ const WARNING = "#eda100";
 const NEUTRAL = "#898781";
 const BLUE = "#2a78d6";
 
+export const CHART_COLORS = {
+  good: GOOD,
+  critical: CRITICAL,
+  warning: WARNING,
+  neutral: NEUTRAL,
+  blue: BLUE,
+};
+
 const W = 720;
 const H = 210;
 const PAD = { top: 10, right: 8, bottom: 24, left: 40 };
@@ -244,6 +252,97 @@ export function CostBarChart({ data }: { data: { date: string; cost: number }[] 
             {h > 0 && <path d={roundedTopRect(x, PAD.top + PLOT_H - h, bw, h, 3)} fill={BLUE} />}
             <rect x={PAD.left + slot * i} y={PAD.top} width={slot} height={PLOT_H} fill="transparent">
               <title>{`${shortDate(d.date)} — $${d.cost.toFixed(2)} LLM cost`}</title>
+            </rect>
+          </g>
+        );
+      })}
+      <XTicks dates={data.map((d) => d.date)} />
+    </svg>
+  );
+}
+
+export function StackedSeriesChart({
+  data,
+  series,
+  ariaLabel,
+}: {
+  data: { date: string; values: number[] }[];
+  series: { label: string; color: string }[];
+  ariaLabel: string;
+}) {
+  if (data.length === 0) return <p className="text-sm text-slate-400">No daily data in the last 30 days.</p>;
+  const total = (values: number[]) => values.reduce((sum, n) => sum + n, 0);
+  const max = niceMax(Math.max(...data.map((d) => total(d.values)), 1));
+  const slot = PLOT_W / data.length;
+  const bw = Math.max(2, slot - 2);
+  const scale = (v: number) => (v / max) * PLOT_H;
+
+  return (
+    <div>
+      <Legend entries={series.map((s) => ({ label: s.label, color: s.color }))} />
+      <svg viewBox={`0 0 ${W} ${H}`} className="w-full" role="img" aria-label={ariaLabel}>
+        <Grid max={max} format={(v) => String(Math.round(v))} />
+        {data.map((d, i) => {
+          const x = PAD.left + slot * i + (slot - bw) / 2;
+          const baseline = PAD.top + PLOT_H;
+          const segments = series
+            .map((s, j) => ({ v: d.values[j] ?? 0, color: s.color, label: s.label }))
+            .filter((seg) => seg.v > 0);
+          let y = baseline;
+          return (
+            <g key={d.date}>
+              {segments.map((seg, j) => {
+                const h = scale(seg.v);
+                const isTop = j === segments.length - 1;
+                const gap = j > 0 ? 2 : 0;
+                y -= h + gap;
+                return isTop ? (
+                  <path key={seg.label} d={roundedTopRect(x, y, bw, h, 3)} fill={seg.color} />
+                ) : (
+                  <rect key={seg.label} x={x} y={y} width={bw} height={h} fill={seg.color} />
+                );
+              })}
+              <rect x={PAD.left + slot * i} y={PAD.top} width={slot} height={PLOT_H} fill="transparent">
+                <title>
+                  {`${shortDate(d.date)} — ${series
+                    .map((s, j) => `${s.label}: ${d.values[j] ?? 0}`)
+                    .join(", ")}`}
+                </title>
+              </rect>
+            </g>
+          );
+        })}
+        <XTicks dates={data.map((d) => d.date)} />
+      </svg>
+    </div>
+  );
+}
+
+export function CountBarChart({
+  data,
+  ariaLabel,
+  formatValue = (v) => String(Math.round(v)),
+}: {
+  data: { date: string; value: number }[];
+  ariaLabel: string;
+  formatValue?: (v: number) => string;
+}) {
+  if (data.length === 0) return <p className="text-sm text-slate-400">No daily data in the last 30 days.</p>;
+  const max = niceMax(Math.max(...data.map((d) => d.value), 1));
+  const slot = PLOT_W / data.length;
+  const bw = Math.max(2, slot - 2);
+
+  return (
+    <svg viewBox={`0 0 ${W} ${H}`} className="w-full" role="img" aria-label={ariaLabel}>
+      <Grid max={max} format={(v) => formatValue(v)} />
+      {data.map((d, i) => {
+        const x = PAD.left + slot * i + (slot - bw) / 2;
+        const h = (d.value / max) * PLOT_H;
+        return (
+          <g key={d.date}>
+            {h > 0 && <path d={roundedTopRect(x, PAD.top + PLOT_H - h, bw, h, 3)} fill={BLUE} />}
+            <rect x={PAD.left + slot * i} y={PAD.top} width={slot} height={PLOT_H} fill="transparent">
+              <title>{`${shortDate(d.date)} — ${formatValue(d.value)}`}</title>
             </rect>
           </g>
         );

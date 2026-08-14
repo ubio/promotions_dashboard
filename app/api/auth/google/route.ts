@@ -1,20 +1,28 @@
 import { NextRequest, NextResponse } from "next/server";
 import { OAuth2Client } from "google-auth-library";
-import { SESSION_COOKIE, SESSION_MAX_AGE_SECONDS, signSession } from "@/lib/session";
 import { resolveAccess } from "@/lib/clients";
-
-const client = new OAuth2Client(process.env.GOOGLE_OAUTH_CLIENT_ID);
+import { isAuthDisabled, SESSION_COOKIE, SESSION_MAX_AGE_SECONDS, signSession } from "@/lib/session";
 
 export async function POST(req: NextRequest) {
+  if (isAuthDisabled()) {
+    return NextResponse.json({ error: "Auth is disabled" }, { status: 404 });
+  }
+
+  const clientId = process.env.GOOGLE_OAUTH_CLIENT_ID;
+  if (!clientId) {
+    return NextResponse.json({ error: "GOOGLE_OAUTH_CLIENT_ID is not configured" }, { status: 500 });
+  }
+
   const { credential } = await req.json().catch(() => ({}));
   if (!credential) {
     return NextResponse.json({ error: "credential is required" }, { status: 400 });
   }
 
   try {
+    const client = new OAuth2Client(clientId);
     const ticket = await client.verifyIdToken({
       idToken: credential,
-      audience: process.env.GOOGLE_OAUTH_CLIENT_ID,
+      audience: clientId,
     });
 
     const payload = ticket.getPayload();

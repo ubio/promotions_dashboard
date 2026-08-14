@@ -1,4 +1,6 @@
+import { redirect } from "next/navigation";
 import GoogleSignIn from "@/components/GoogleSignIn";
+import { isAuthDisabled } from "@/lib/session";
 
 export const dynamic = "force-dynamic";
 
@@ -8,9 +10,11 @@ export default async function LoginPage({
   searchParams: Promise<{ next?: string }>;
 }) {
   const { next } = await searchParams;
-  const clientId = process.env.GOOGLE_OAUTH_CLIENT_ID;
   // Only allow internal redirect targets.
   const target = next && next.startsWith("/") && !next.startsWith("//") ? next : "/";
+  if (isAuthDisabled()) redirect(target);
+
+  const clientId = process.env.GOOGLE_OAUTH_CLIENT_ID;
 
   return (
     <div className="flex flex-1 items-center justify-center py-24">
