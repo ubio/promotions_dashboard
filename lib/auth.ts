@@ -1,10 +1,11 @@
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
-import { SESSION_COOKIE, verifySession, type SessionUser } from "./session";
+import { isAuthDisabled, LOCAL_DEV_USER, SESSION_COOKIE, verifySession, type SessionUser } from "./session";
 
 export type { SessionUser };
 
 export async function getSessionUser(): Promise<SessionUser | null> {
+  if (isAuthDisabled()) return LOCAL_DEV_USER;
   const token = (await cookies()).get(SESSION_COOKIE)?.value;
   if (!token) return null;
   return verifySession(token);

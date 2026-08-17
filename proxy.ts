@@ -1,9 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
-import { SESSION_COOKIE, verifySession } from "./lib/session";
+import { isAuthDisabled, SESSION_COOKIE, verifySession } from "./lib/session";
 
 export default async function proxy(req: NextRequest) {
   // Local development escape hatch — never set this in production.
-  if (process.env.AUTH_DISABLED === "true") return NextResponse.next();
+  if (isAuthDisabled()) return NextResponse.next();
 
   const token = req.cookies.get(SESSION_COOKIE)?.value;
   const user = token ? await verifySession(token) : null;

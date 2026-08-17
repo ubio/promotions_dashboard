@@ -56,6 +56,28 @@ export function formatCost(v: number | null | undefined): string {
   return `$${v >= 0.1 ? v.toFixed(2) : v.toFixed(4)}`;
 }
 
+export function formatCount(n: number | null | undefined): string {
+  if (n == null) return "—";
+  return n.toLocaleString();
+}
+
+export function formatUtcDay(iso: string): string {
+  return new Date(`${iso}T00:00:00Z`).toLocaleDateString("en-GB", {
+    day: "numeric",
+    month: "short",
+    year: "numeric",
+    timeZone: "UTC",
+  });
+}
+
+export function formatUtcMonth(yearMonth: string): string {
+  return new Date(`${yearMonth}-01T00:00:00Z`).toLocaleDateString("en-GB", {
+    month: "long",
+    year: "numeric",
+    timeZone: "UTC",
+  });
+}
+
 export function sumLlmCosts(costs: unknown): number {
   if (!Array.isArray(costs)) return 0;
   return costs.reduce((s, c) => s + (Number((c as { totalCost?: number })?.totalCost) || 0), 0);

@@ -4,6 +4,10 @@ import { SignJWT, jwtVerify } from "jose";
 export const SESSION_COOKIE = "session";
 export const SESSION_MAX_AGE_SECONDS = 8 * 60 * 60;
 
+export function isAuthDisabled(): boolean {
+  return process.env.AUTH_DISABLED?.trim().toLowerCase() === "true";
+}
+
 // Lazy so `next build` (no env) can import this module; fails at first use instead.
 function getKey(): Uint8Array {
   const secret = process.env.JWT_SECRET;
@@ -21,6 +25,13 @@ export interface SessionUser {
   // Set only for role "client" — the clientId whose data this user may see.
   clientId?: string;
 }
+
+export const LOCAL_DEV_USER: SessionUser = {
+  email: "local-dev",
+  name: "Local",
+  picture: "",
+  role: "internal",
+};
 
 export async function signSession(user: SessionUser): Promise<string> {
   return new SignJWT({ ...user })

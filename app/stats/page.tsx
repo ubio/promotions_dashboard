@@ -64,7 +64,7 @@ export default async function StatsPage({
   return (
     <div className="space-y-4">
       <div className="flex flex-wrap items-center gap-4">
-        <h1 className="text-xl font-semibold">Stats</h1>
+        <h1 className="text-xl font-semibold">Pipeline</h1>
         <div className="flex rounded-lg border border-slate-300 bg-white p-0.5 text-sm">
           {RANGES.map((r) => (
             <Link
@@ -79,6 +79,10 @@ export default async function StatsPage({
           ))}
         </div>
       </div>
+      <p className="text-sm text-slate-500">
+        Aggregated from validation and extraction job logs. Client and merchant counters from the
+        stats collection are under Clients and Merchants.
+      </p>
 
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
         <StatTile label="Validations" value={totalValidations.toLocaleString()} sub={`last ${days} days`} />

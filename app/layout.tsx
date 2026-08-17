@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import Link from "next/link";
 import { getSessionUser } from "@/lib/auth";
+import { isAuthDisabled } from "@/lib/session";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -66,15 +67,19 @@ export default async function RootLayout({
               ) : (
                 <span className="hidden sm:inline text-slate-500">read-only</span>
               )}
-              {user && (
-                <>
-                  <span className="hidden sm:inline text-slate-300">{user.email}</span>
-                  <form action="/api/auth/logout" method="post">
-                    <button className="rounded border border-slate-700 px-2 py-1 hover:bg-slate-800 hover:text-white">
-                      Sign out
-                    </button>
-                  </form>
-                </>
+              {isAuthDisabled() ? (
+                <span className="rounded bg-amber-900/60 px-2 py-0.5 text-amber-200">auth disabled</span>
+              ) : (
+                user && (
+                  <>
+                    <span className="hidden sm:inline text-slate-300">{user.email}</span>
+                    <form action="/api/auth/logout" method="post">
+                      <button className="rounded border border-slate-700 px-2 py-1 hover:bg-slate-800 hover:text-white">
+                        Sign out
+                      </button>
+                    </form>
+                  </>
+                )
               )}
             </div>
           </div>
