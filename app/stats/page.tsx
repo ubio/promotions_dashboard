@@ -1,20 +1,99 @@
 import Link from "next/link";
 import { CollapsibleGroup, CollapsibleSection } from "@/components/CollapsibleSection";
-import { StackedOutcomeChart, RateLineChart, CostBarChart, ValidityBar } from "@/components/charts";
-import { getDailyStats, getValidityBreakdown } from "@/lib/queries";
-import { formatCost, normalizeValidity, VALIDITY_STATUSES } from "@/lib/format";
+import { CHART_COLORS, CostBarChart, RateLineChart, StackedSeriesChart, ValidityBar } from "@/components/charts";
+import {
+  counterGroupThClass,
+  counterThClass,
+  counterValidationsDividerClass,
+} from "@/components/stats/CountersTable";
+import { formatCost, formatCount, normalizeValidity, VALIDITY_STATUSES } from "@/lib/format";
+import { getDailyStats, getValidityBreakdown, type DailyStat } from "@/lib/queries";
 
 export const dynamic = "force-dynamic";
 
 const RANGES = [7, 30, 60, 90] as const;
 
-function StatTile({ label, value, sub }: { label: string; value: string; sub?: string }) {
+function pipelineDays(value: string | undefined): number {
+  const n = Number(value);
+  for (const range of RANGES) {
+    if (range === n) return range;
+  }
+  return 30;
+}
+
+function validationsCount(d: DailyStat): number {
+  return d.success + d.failed + d.errors;
+}
+
+function conclusionsCount(d: DailyStat): number {
+  return d.success + d.failed;
+}
+
+function conclusionsRate(d: DailyStat): number | null {
+  const total = validationsCount(d);
+  return total > 0 ? conclusionsCount(d) / total : null;
+}
+
+function formatRate(rate: number | null): string {
+  return rate == null ? "—" : `${Math.round(rate * 100)}%`;
+}
+
+function PipelineTableHead() {
   return (
-    <div className="rounded-lg border border-slate-200 bg-white px-4 py-3">
-      <p className="text-xs uppercase tracking-wide text-slate-400">{label}</p>
-      <p className="mt-1 text-2xl font-semibold text-slate-900">{value}</p>
-      {sub && <p className="text-xs text-slate-500">{sub}</p>}
-    </div>
+    <thead className="bg-slate-50 text-left text-xs uppercase tracking-wide text-slate-500">
+      <tr>
+        <th rowSpan={2} className={counterThClass}>
+          Date
+        </th>
+        <th colSpan={4} className={`${counterGroupThClass} ${counterValidationsDividerClass}`}>
+          Validations
+        </th>
+        <th colSpan={2} className={`${counterGroupThClass} ${counterValidationsDividerClass}`}>
+          Extractions
+        </th>
+        <th rowSpan={2} className={`${counterThClass} ${counterValidationsDividerClass}`}>
+          Cost
+        </th>
+      </tr>
+      <tr>
+        <th className={`${counterThClass} ${counterValidationsDividerClass}`}>Count</th>
+        <th className={counterThClass}>Conclusions</th>
+        <th className={counterThClass}>Errors</th>
+        <th className={counterThClass}>Conclusions rate</th>
+        <th className={`${counterThClass} ${counterValidationsDividerClass}`}>Extractions</th>
+        <th className={counterThClass}>Promotions found</th>
+      </tr>
+    </thead>
+  );
+}
+
+function PipelineMetricCells({
+  validations,
+  conclusions,
+  errors,
+  rate,
+  extractions,
+  promotionsFound,
+  cost,
+}: {
+  validations: number;
+  conclusions: number;
+  errors: number;
+  rate: number | null;
+  extractions: number;
+  promotionsFound: number;
+  cost: number;
+}) {
+  return (
+    <>
+      <td className={`px-3 py-2 ${counterValidationsDividerClass}`}>{formatCount(validations)}</td>
+      <td className="px-3 py-2">{formatCount(conclusions)}</td>
+      <td className="px-3 py-2">{formatCount(errors)}</td>
+      <td className="px-3 py-2">{formatRate(rate)}</td>
+      <td className={`px-3 py-2 ${counterValidationsDividerClass}`}>{formatCount(extractions)}</td>
+      <td className="px-3 py-2">{formatCount(promotionsFound)}</td>
+      <td className={`whitespace-nowrap px-3 py-2 ${counterValidationsDividerClass}`}>{formatCost(cost)}</td>
+    </>
   );
 }
 
@@ -24,13 +103,10 @@ export default async function StatsPage({
   searchParams: Promise<{ days?: string }>;
 }) {
   const sp = await searchParams;
-  const days = RANGES.includes(Number(sp.days) as (typeof RANGES)[number])
-    ? Number(sp.days)
-    : 30;
+  const days = pipelineDays(sp.days);
 
   const [daily, validityRaw] = await Promise.all([getDailyStats(days), getValidityBreakdown()]);
 
-  // Merge the snake_case/camelCase status variants into one count per status.
   const validityCounts = VALIDITY_STATUSES.map((label) => ({
     label,
     value: [...validityRaw.entries()]
@@ -40,21 +116,20 @@ export default async function StatsPage({
 
   const totals = daily.reduce(
     (acc, d) => ({
-      success: acc.success + d.success,
-      failed: acc.failed + d.failed,
+      validations: acc.validations + validationsCount(d),
+      conclusions: acc.conclusions + conclusionsCount(d),
       errors: acc.errors + d.errors,
-      cost: acc.cost + d.validationCost + d.extractionCost,
+      extractions: acc.extractions + d.extractions,
       promotionsFound: acc.promotionsFound + d.promotionsFound,
+      cost: acc.cost + d.validationCost + d.extractionCost,
     }),
-    { success: 0, failed: 0, errors: 0, cost: 0, promotionsFound: 0 }
+    { validations: 0, conclusions: 0, errors: 0, extractions: 0, promotionsFound: 0, cost: 0 }
   );
-  const totalValidations = totals.success + totals.failed + totals.errors;
-  const successRate = totalValidations > 0 ? totals.success / totalValidations : null;
+  const totalConclusionsRate = totals.validations > 0 ? totals.conclusions / totals.validations : null;
 
-  // Rate counts only completed runs — errored runs say nothing about the promotion.
   const rateSeries = daily.map((d) => ({
     date: d.date,
-    rate: d.success + d.failed > 0 ? d.success / (d.success + d.failed) : null,
+    rate: conclusionsRate(d),
   }));
   const costSeries = daily.map((d) => ({
     date: d.date,
@@ -80,35 +155,54 @@ export default async function StatsPage({
         </div>
       </div>
       <p className="text-sm text-slate-500">
-        Aggregated from validation and extraction job logs. Client and merchant counters from the
-        stats collection are under Clients and Merchants.
+        Aggregated from validation and extraction job logs. A successful validation is one that reached
+        a conclusion. Client and merchant counters from the stats collection are under Clients and
+        Merchants.
       </p>
 
-      <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-        <StatTile label="Validations" value={totalValidations.toLocaleString()} sub={`last ${days} days`} />
-        <StatTile
-          label="Success rate"
-          value={successRate == null ? "—" : `${Math.round(successRate * 100)}%`}
-          sub={`${totals.success.toLocaleString()} succeeded`}
-        />
-        <StatTile label="LLM cost" value={formatCost(totals.cost)} sub="validation + extraction" />
-        <StatTile
-          label="Promotions extracted"
-          value={totals.promotionsFound.toLocaleString()}
-          sub={`${daily.reduce((s, d) => s + d.extractions, 0)} extraction jobs`}
-        />
+      <div>
+        <h2 className="mb-2 text-sm font-semibold text-slate-700">Pipeline summary</h2>
+        <div className="overflow-x-auto rounded-lg border border-slate-200 bg-white">
+          <table className="min-w-full text-sm [font-variant-numeric:tabular-nums]">
+            <PipelineTableHead />
+            <tbody>
+              <tr>
+                <td className="whitespace-nowrap px-3 py-2">Last {days} days</td>
+                <PipelineMetricCells
+                  validations={totals.validations}
+                  conclusions={totals.conclusions}
+                  errors={totals.errors}
+                  rate={totalConclusionsRate}
+                  extractions={totals.extractions}
+                  promotionsFound={totals.promotionsFound}
+                  cost={totals.cost}
+                />
+              </tr>
+            </tbody>
+          </table>
+        </div>
       </div>
 
       <CollapsibleGroup>
         <CollapsibleSection title="Validations per day">
-          <StackedOutcomeChart data={daily} />
+          <StackedSeriesChart
+            ariaLabel="Validations per day: conclusions and errors"
+            series={[
+              { label: "Conclusions", color: CHART_COLORS.good },
+              { label: "Errors", color: CHART_COLORS.warning },
+            ]}
+            data={daily.map((d) => ({
+              date: d.date,
+              values: [conclusionsCount(d), d.errors],
+            }))}
+          />
         </CollapsibleSection>
 
         <CollapsibleSection title="Promotions by validity status (all time)">
           <ValidityBar counts={validityCounts} />
         </CollapsibleSection>
 
-        <CollapsibleSection title="Success rate per day">
+        <CollapsibleSection title="Conclusions rate per day">
           <RateLineChart data={rateSeries} />
         </CollapsibleSection>
 
@@ -117,44 +211,30 @@ export default async function StatsPage({
         </CollapsibleSection>
       </CollapsibleGroup>
 
-      <details className="rounded-lg border border-slate-200 bg-white">
-        <summary className="cursor-pointer select-none px-4 py-2.5 text-sm font-medium text-slate-700 hover:bg-slate-50">
-          Daily data table
-        </summary>
-        <div className="overflow-x-auto border-t border-slate-200 p-4">
+      <div>
+        <h2 className="mb-2 text-sm font-semibold text-slate-700">Daily data table</h2>
+        <div className="overflow-x-auto rounded-lg border border-slate-200 bg-white">
           <table className="min-w-full text-sm [font-variant-numeric:tabular-nums]">
-            <thead className="text-left text-xs uppercase text-slate-500">
-              <tr>
-                <th className="py-1 pr-4">Date</th>
-                <th className="py-1 pr-4">Success</th>
-                <th className="py-1 pr-4">Failed</th>
-                <th className="py-1 pr-4">Errors</th>
-                <th className="py-1 pr-4">Rate</th>
-                <th className="py-1 pr-4">Extractions</th>
-                <th className="py-1 pr-4">Promotions found</th>
-                <th className="py-1 pr-4">Cost</th>
-              </tr>
-            </thead>
+            <PipelineTableHead />
             <tbody className="divide-y divide-slate-100">
-              {daily.map((d) => {
-                const completed = d.success + d.failed;
-                return (
-                  <tr key={d.date}>
-                    <td className="py-1 pr-4">{d.date}</td>
-                    <td className="py-1 pr-4">{d.success}</td>
-                    <td className="py-1 pr-4">{d.failed}</td>
-                    <td className="py-1 pr-4">{d.errors}</td>
-                    <td className="py-1 pr-4">{completed > 0 ? `${Math.round((d.success / completed) * 100)}%` : "—"}</td>
-                    <td className="py-1 pr-4">{d.extractions}</td>
-                    <td className="py-1 pr-4">{d.promotionsFound}</td>
-                    <td className="py-1 pr-4">{formatCost(d.validationCost + d.extractionCost)}</td>
-                  </tr>
-                );
-              })}
+              {daily.map((d) => (
+                <tr key={d.date}>
+                  <td className="whitespace-nowrap px-3 py-2">{d.date}</td>
+                  <PipelineMetricCells
+                    validations={validationsCount(d)}
+                    conclusions={conclusionsCount(d)}
+                    errors={d.errors}
+                    rate={conclusionsRate(d)}
+                    extractions={d.extractions}
+                    promotionsFound={d.promotionsFound}
+                    cost={d.validationCost + d.extractionCost}
+                  />
+                </tr>
+              ))}
             </tbody>
           </table>
         </div>
-      </details>
+      </div>
     </div>
   );
 }

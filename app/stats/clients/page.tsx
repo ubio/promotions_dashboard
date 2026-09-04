@@ -1,9 +1,10 @@
 import Link from "next/link";
 import Pagination from "@/components/Pagination";
-import { CounterCells, CounterTableHead, COUNTER_COL_SPAN, counterThClass } from "@/components/stats/CountersTable";
+import { CounterCells, CounterTableHead, COUNTER_COL_SPAN, counterThClass, PeriodSummaryTable } from "@/components/stats/CountersTable";
 import { PeriodToolbar, periodHref } from "@/components/stats/PeriodToolbar";
+import { formatUtcDay, formatUtcMonth } from "@/lib/format";
 import { firstParam, periodFromSearch } from "@/lib/stats-model";
-import { getClientNames, getClientPeriodRows, getStatsClientIds, isDayFinalized } from "@/lib/stats-queries";
+import { getClientNames, getClientPeriodRows, getPeriodTotals, getStatsClientIds, isDayFinalized } from "@/lib/stats-queries";
 
 export const dynamic = "force-dynamic";
 
@@ -14,13 +15,16 @@ export default async function ClientStatsPage({ searchParams }: { searchParams: 
   const period = periodFromSearch(sp);
   const q = firstParam(sp.q);
   const page = Number(firstParam(sp.page) ?? "1") || 1;
-  const [result, names, clientIds, dayFinalized] = await Promise.all([
+  const [result, names, clientIds, dayFinalized, totals] = await Promise.all([
     getClientPeriodRows(period, { q, page }),
     getClientNames(),
     getStatsClientIds(),
     period.granularity === "day" ? isDayFinalized(period.date) : true,
+    getPeriodTotals(period, q ? { clientId: q } : {}),
   ]);
   const pendingPromotionOutcomes = period.granularity === "day" && !dayFinalized;
+  const periodLabel =
+    period.granularity === "day" ? formatUtcDay(period.date) : formatUtcMonth(period.yearMonth);
   const queryParams: Record<string, string | undefined> = {
     granularity: period.granularity,
     date: period.granularity === "day" ? period.date : undefined,
@@ -38,6 +42,13 @@ export default async function ClientStatsPage({ searchParams }: { searchParams: 
       </div>
 
       <PeriodToolbar basePath="/stats/clients" period={period} q={q ?? ""} clientIds={clientIds} />
+
+      <PeriodSummaryTable
+        label={periodLabel}
+        status={period.granularity === "day" ? (dayFinalized ? "finalized" : "open") : undefined}
+        stats={totals}
+        pendingPromotionOutcomes={pendingPromotionOutcomes}
+      />
 
       <div className="overflow-x-auto rounded-lg border border-slate-200 bg-white">
         <table className="min-w-full text-sm [font-variant-numeric:tabular-nums]">

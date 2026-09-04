@@ -67,7 +67,7 @@ export default async function ClientDayStatsPage({
             <div className="overflow-x-auto rounded-lg border border-slate-200 bg-white">
               <table className="min-w-full text-sm [font-variant-numeric:tabular-nums]">
                 <thead className="bg-slate-50 text-left text-xs uppercase tracking-wide text-slate-500">
-                  <CounterTableHead leading={<th rowSpan={2} className={counterThClass}>Merchant</th>} />
+                  <CounterTableHead leadingDivider leading={<th rowSpan={2} className={counterThClass}>Merchant</th>} />
                 </thead>
                 <tbody className="divide-y divide-slate-100">
                   {merchants.map((row) => (
@@ -80,7 +80,7 @@ export default async function ClientDayStatsPage({
                           {row.merchantDomain || row.merchantId}
                         </Link>
                       </td>
-                      <CounterCells stats={row} pendingPromotionOutcomes={pendingPromotionOutcomes} />
+                      <CounterCells stats={row} leadingDivider pendingPromotionOutcomes={pendingPromotionOutcomes} />
                     </tr>
                   ))}
                   {merchants.length === 0 && (

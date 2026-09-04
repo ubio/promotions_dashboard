@@ -190,6 +190,54 @@ export function DayCounters({
   );
 }
 
+export function PeriodSummaryTable({
+  label,
+  status,
+  stats,
+  pendingPromotionOutcomes,
+}: {
+  label: string;
+  status?: string;
+  stats: PeriodStatsCounters;
+  pendingPromotionOutcomes?: boolean;
+}) {
+  return (
+    <section className="space-y-2">
+      <h2 className="text-sm font-semibold text-slate-700">Period summary</h2>
+      <div className="overflow-x-auto rounded-lg border border-slate-200 bg-white">
+        <table className="min-w-full text-sm [font-variant-numeric:tabular-nums]">
+          <thead className="bg-slate-50 text-left text-xs uppercase tracking-wide text-slate-500">
+            <CounterTableHead
+              leadingDivider
+              leading={
+                <>
+                  <th rowSpan={2} className={counterThClass}>
+                    Date
+                  </th>
+                  <th rowSpan={2} className={counterThClass}>
+                    Status
+                  </th>
+                </>
+              }
+            />
+          </thead>
+          <tbody>
+            <tr>
+              <td className="whitespace-nowrap px-3 py-2">{label}</td>
+              <td className="px-3 py-2 text-xs text-slate-500">{status ?? "—"}</td>
+              <CounterCells
+                stats={stats}
+                leadingDivider
+                pendingPromotionOutcomes={pendingPromotionOutcomes}
+              />
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+  );
+}
+
 export function DailyRows({
   series,
   dayHref,
@@ -251,13 +299,13 @@ export function MonthlyRows({
     <div className="overflow-x-auto rounded-lg border border-slate-200 bg-white">
       <table className="min-w-full text-sm [font-variant-numeric:tabular-nums]">
         <thead className="bg-slate-50 text-left text-xs uppercase tracking-wide text-slate-500">
-          <CounterTableHead leading={<th rowSpan={2} className={counterThClass}>Month</th>} />
+          <CounterTableHead leadingDivider leading={<th rowSpan={2} className={counterThClass}>Month</th>} />
         </thead>
         <tbody className="divide-y divide-slate-100">
           {[...series].reverse().map((row) => (
             <tr key={row.yearMonth}>
               <td className="whitespace-nowrap px-3 py-2">{formatUtcMonth(row.yearMonth)}</td>
-              <CounterCells stats={row} />
+              <CounterCells stats={row} leadingDivider />
             </tr>
           ))}
         </tbody>

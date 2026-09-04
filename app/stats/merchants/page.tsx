@@ -41,6 +41,7 @@ export default async function MerchantStatsPage({ searchParams }: { searchParams
         <table className="min-w-full text-sm [font-variant-numeric:tabular-nums]">
           <thead className="bg-slate-50 text-left text-xs uppercase tracking-wide text-slate-500">
             <CounterTableHead
+              leadingDivider
               leading={
                 <>
                   <th rowSpan={2} className={counterThClass}>
@@ -68,7 +69,7 @@ export default async function MerchantStatsPage({ searchParams }: { searchParams
                   )}
                 </td>
                 <td className="px-3 py-2">{row.clientCount}</td>
-                <CounterCells stats={row} pendingPromotionOutcomes={pendingPromotionOutcomes} />
+                <CounterCells stats={row} leadingDivider pendingPromotionOutcomes={pendingPromotionOutcomes} />
               </tr>
             ))}
             {result.items.length === 0 && (

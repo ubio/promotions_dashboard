@@ -210,7 +210,13 @@ export function ValidityBar({
   );
 }
 
-export function RateLineChart({ data }: { data: { date: string; rate: number | null }[] }) {
+export function RateLineChart({
+  data,
+  ariaLabel = "Conclusions rate per day",
+}: {
+  data: { date: string; rate: number | null }[];
+  ariaLabel?: string;
+}) {
   const slot = PLOT_W / data.length;
   const y = (rate: number) => PAD.top + PLOT_H * (1 - rate);
   const points = data
@@ -220,14 +226,14 @@ export function RateLineChart({ data }: { data: { date: string; rate: number | n
   const showDots = points.length <= 45;
 
   return (
-    <svg viewBox={`0 0 ${W} ${H}`} className="w-full" role="img" aria-label="Validation success rate per day">
+    <svg viewBox={`0 0 ${W} ${H}`} className="w-full" role="img" aria-label={ariaLabel}>
       <Grid max={1} format={(v) => `${Math.round(v * 100)}%`} />
       {path && <path d={path} fill="none" stroke={BLUE} strokeWidth={2} strokeLinejoin="round" />}
       {points.map((p) => (
         <g key={p.d.date}>
           {showDots && <circle cx={p.x} cy={p.y} r={3} fill={BLUE} stroke="#ffffff" strokeWidth={2} />}
           <circle cx={p.x} cy={p.y} r={8} fill="transparent">
-            <title>{`${shortDate(p.d.date)} — ${Math.round((p.d.rate ?? 0) * 100)}% success`}</title>
+            <title>{`${shortDate(p.d.date)} — ${Math.round((p.d.rate ?? 0) * 100)}% conclusions`}</title>
           </circle>
         </g>
       ))}
