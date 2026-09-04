@@ -3,7 +3,7 @@ import Pagination from "@/components/Pagination";
 import { CounterCells, CounterTableHead, COUNTER_COL_SPAN, counterThClass } from "@/components/stats/CountersTable";
 import { PeriodToolbar, periodHref } from "@/components/stats/PeriodToolbar";
 import { firstParam, periodFromSearch } from "@/lib/stats-model";
-import { getClientNames, getClientPeriodRows, isDayFinalized } from "@/lib/stats-queries";
+import { getClientNames, getClientPeriodRows, getStatsClientIds, isDayFinalized } from "@/lib/stats-queries";
 
 export const dynamic = "force-dynamic";
 
@@ -14,9 +14,10 @@ export default async function ClientStatsPage({ searchParams }: { searchParams: 
   const period = periodFromSearch(sp);
   const q = firstParam(sp.q);
   const page = Number(firstParam(sp.page) ?? "1") || 1;
-  const [result, names, dayFinalized] = await Promise.all([
+  const [result, names, clientIds, dayFinalized] = await Promise.all([
     getClientPeriodRows(period, { q, page }),
     getClientNames(),
+    getStatsClientIds(),
     period.granularity === "day" ? isDayFinalized(period.date) : true,
   ]);
   const pendingPromotionOutcomes = period.granularity === "day" && !dayFinalized;
@@ -36,7 +37,7 @@ export default async function ClientStatsPage({ searchParams }: { searchParams: 
         </p>
       </div>
 
-      <PeriodToolbar basePath="/stats/clients" period={period} q={q ?? ""} />
+      <PeriodToolbar basePath="/stats/clients" period={period} q={q ?? ""} clientIds={clientIds} />
 
       <div className="overflow-x-auto rounded-lg border border-slate-200 bg-white">
         <table className="min-w-full text-sm [font-variant-numeric:tabular-nums]">

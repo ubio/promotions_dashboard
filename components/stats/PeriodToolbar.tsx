@@ -6,10 +6,12 @@ export function PeriodToolbar({
   basePath,
   period,
   q,
+  clientIds,
 }: {
   basePath: string;
   period: StatsPeriod;
   q?: string;
+  clientIds?: string[];
 }) {
   const dayHref = queryHref(basePath, { granularity: "day", date: period.date, q });
   const monthHref = queryHref(basePath, {
@@ -17,6 +19,8 @@ export function PeriodToolbar({
     yearMonth: period.yearMonth,
     q,
   });
+
+  const clientOptions = q && clientIds && !clientIds.includes(q) ? [q, ...clientIds] : clientIds;
 
   return (
     <form className="flex flex-wrap items-end gap-3 rounded-lg border border-slate-200 bg-white p-3 text-sm">
@@ -63,16 +67,34 @@ export function PeriodToolbar({
           />
         </label>
       )}
-      {q !== undefined && (
+      {clientIds ? (
         <label className="flex max-w-full flex-col gap-1">
-          <span className="text-xs text-slate-500">Search</span>
-          <input
+          <span className="text-xs text-slate-500">Client</span>
+          <select
             name="q"
-            defaultValue={q}
-            className="w-64 max-w-full rounded border border-slate-300 px-2 py-1.5"
-            placeholder={basePath.includes("merchant") ? "domain, name or id" : "client id"}
-          />
+            defaultValue={q ?? ""}
+            className="max-w-full rounded border border-slate-300 px-2 py-1.5"
+          >
+            <option value="">All</option>
+            {clientOptions?.map((id) => (
+              <option key={id} value={id}>
+                {id}
+              </option>
+            ))}
+          </select>
         </label>
+      ) : (
+        q !== undefined && (
+          <label className="flex max-w-full flex-col gap-1">
+            <span className="text-xs text-slate-500">Search</span>
+            <input
+              name="q"
+              defaultValue={q}
+              className="w-64 max-w-full rounded border border-slate-300 px-2 py-1.5"
+              placeholder="domain, name or id"
+            />
+          </label>
+        )
       )}
       <button className="rounded bg-slate-900 px-4 py-1.5 text-white hover:bg-slate-700">Apply</button>
       <Link href={basePath} className="py-1.5 text-slate-500 hover:text-slate-700">

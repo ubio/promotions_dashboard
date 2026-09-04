@@ -248,6 +248,7 @@ export async function getValidityBreakdown(clientId?: string): Promise<Map<strin
 export interface MerchantFilters {
   q?: string;
   page?: number;
+  status?: "onboarded" | "bot-detected";
 }
 
 export async function getMerchants(f: MerchantFilters) {
@@ -255,6 +256,13 @@ export async function getMerchants(f: MerchantFilters) {
   if (f.q) {
     const rx = { $regex: escapeRegex(f.q), $options: "i" };
     filter.$or = [{ domain: rx }, { _id: f.q }];
+  }
+  if (f.status === "bot-detected") {
+    filter.validationsAllowed = false;
+  } else if (f.status === "onboarded") {
+    filter.scriptGenerated = true;
+    filter.scriptReviewed = true;
+    filter.botDetection = false;
   }
   return paginate("merchants", filter, f.page ?? 1, {
     "stats.validationsStats.totalValidationsCount": -1,

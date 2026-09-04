@@ -227,7 +227,7 @@ export async function getClientPeriodRows(
 ): Promise<Paged<ClientPeriodRow>> {
   const page = opts.page ?? 1;
   const match: Filter<StatDoc> = {};
-  if (opts.q) match.clientId = { $regex: escapeRegex(opts.q), $options: "i" };
+  if (opts.q) match.clientId = opts.q;
   const pipeline = withIdentityMatch(match, [
     ...periodBuckets(period),
     {
@@ -450,6 +450,11 @@ export async function getStatMerchant(merchantId: string): Promise<{
     merchantDomain: doc.merchantDomain,
     merchantName: doc.merchantName,
   };
+}
+
+export async function getStatsClientIds(): Promise<string[]> {
+  const ids = await statsColl().distinct("clientId");
+  return ids.filter((id) => id !== "").sort((a, b) => a.localeCompare(b));
 }
 
 export async function getClientNames(): Promise<Map<string, string>> {

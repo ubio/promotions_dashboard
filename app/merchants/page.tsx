@@ -2,6 +2,12 @@ import Link from "next/link";
 import Pagination from "@/components/Pagination";
 import { getMerchants, getCostsByDomain } from "@/lib/queries";
 import { formatCost } from "@/lib/format";
+import {
+  merchantHighlight,
+  merchantHighlightClass,
+  merchantHighlightLabel,
+  parseMerchantStatus,
+} from "@/lib/merchant-status";
 
 export const dynamic = "force-dynamic";
 
@@ -14,9 +20,11 @@ function str(v: string | string[] | undefined): string | undefined {
 export default async function MerchantsPage({ searchParams }: { searchParams: Promise<Search> }) {
   const sp = await searchParams;
   const q = str(sp.q);
+  const status = parseMerchantStatus(str(sp.status));
   const page = Number(str(sp.page) ?? "1") || 1;
 
-  const [result, costs] = await Promise.all([getMerchants({ q, page }), getCostsByDomain()]);
+  const [result, costs] = await Promise.all([getMerchants({ q, page, status }), getCostsByDomain()]);
+  const params = { q, status };
 
   return (
     <div className="space-y-4">
@@ -36,6 +44,18 @@ export default async function MerchantsPage({ searchParams }: { searchParams: Pr
             placeholder="e.g. etsy.com"
           />
         </label>
+        <label className="flex max-w-full flex-col gap-1">
+          <span className="text-xs text-slate-500">Status</span>
+          <select
+            name="status"
+            defaultValue={status ?? ""}
+            className="max-w-full rounded border border-slate-300 px-2 py-1.5"
+          >
+            <option value="">All</option>
+            <option value="onboarded">Onboarded</option>
+            <option value="bot-detected">Bot-detected</option>
+          </select>
+        </label>
         <button className="rounded bg-slate-900 px-4 py-1.5 text-white hover:bg-slate-700">Apply</button>
         <Link href="/merchants" className="py-1.5 text-slate-500 hover:text-slate-700">
           Reset
@@ -47,6 +67,7 @@ export default async function MerchantsPage({ searchParams }: { searchParams: Pr
           <thead className="bg-slate-50 text-left text-xs uppercase tracking-wide text-slate-500">
             <tr>
               <th className="px-3 py-2">Domain</th>
+              <th className="px-3 py-2">Status</th>
               <th className="px-3 py-2">Clients</th>
               <th className="px-3 py-2">Promotions</th>
               <th className="px-3 py-2">Valid / Invalid</th>
@@ -64,13 +85,15 @@ export default async function MerchantsPage({ searchParams }: { searchParams: Pr
               const v = m.stats?.validationsStats ?? {};
               const cost = m.domain ? costs.get(m.domain) : undefined;
               const total = (cost?.validationCost ?? 0) + (cost?.extractionCost ?? 0);
+              const highlight = merchantHighlight(m);
               return (
-                <tr key={String(m._id)} className="hover:bg-sky-50/50">
+                <tr key={String(m._id)} className={merchantHighlightClass(highlight)}>
                   <td className="px-3 py-2 font-mono text-xs">
                     <Link href={`/jobs?q=${encodeURIComponent(m.domain ?? "")}`} className="text-sky-700 hover:underline">
                       {m.domain ?? String(m._id)}
                     </Link>
                   </td>
+                  <td className="px-3 py-2 text-xs text-slate-600">{merchantHighlightLabel(highlight)}</td>
                   <td className="px-3 py-2 text-xs">{(m.clientIds ?? []).join(", ") || "—"}</td>
                   <td className="px-3 py-2">{p.totalPromotionsCount ?? "—"}</td>
                   <td className="px-3 py-2">
@@ -89,7 +112,7 @@ export default async function MerchantsPage({ searchParams }: { searchParams: Pr
             })}
             {result.items.length === 0 && (
               <tr>
-                <td colSpan={10} className="px-3 py-8 text-center text-slate-400">
+                <td colSpan={11} className="px-3 py-8 text-center text-slate-400">
                   No merchants match this search.
                 </td>
               </tr>
@@ -97,7 +120,7 @@ export default async function MerchantsPage({ searchParams }: { searchParams: Pr
           </tbody>
         </table>
       </div>
-      <Pagination page={result.page} pages={result.pages} total={result.total} basePath="/merchants" params={{ q }} />
+      <Pagination page={result.page} pages={result.pages} total={result.total} basePath="/merchants" params={params} />
     </div>
   );
 }
