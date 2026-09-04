@@ -9,3 +9,55 @@ body {
   background: #f8fafc;
   color: #0f172a;
 }
+
+.pending-promotion-outcome {
+  position: relative;
+  cursor: help;
+  background-image: repeating-linear-gradient(
+    -45deg,
+    transparent 0,
+    transparent 6px,
+    #f7f7f7 6px,
+    #f7f7f7 12px
+  );
+  background-clip: padding-box;
+}
+
+td.pending-promotion-outcome {
+  border-bottom: 1px solid #f1f5f9;
+}
+
+.pending-promotion-outcome:hover,
+.pending-promotion-outcome:focus,
+.pending-promotion-outcome:focus-visible {
+  z-index: 40;
+}
+
+tr:has(.pending-promotion-outcome:hover),
+tr:has(.pending-promotion-outcome:focus),
+tr:has(.pending-promotion-outcome:focus-visible) {
+  position: relative;
+  z-index: 40;
+}
+
+.pending-promotion-outcome[data-hint]:hover::after,
+.pending-promotion-outcome[data-hint]:focus::after,
+.pending-promotion-outcome[data-hint]:focus-visible::after {
+  content: attr(data-hint);
+  position: absolute;
+  left: 50%;
+  bottom: calc(100% + 6px);
+  z-index: 50;
+  width: max-content;
+  max-width: 16rem;
+  transform: translateX(-50%);
+  border-radius: 0.375rem;
+  background: #0f172a;
+  padding: 0.25rem 0.5rem;
+  font-size: 0.75rem;
+  font-weight: 500;
+  line-height: 1.25;
+  color: #fff;
+  box-shadow: 0 4px 12px rgb(15 23 42 / 0.18);
+  pointer-events: none;
+}

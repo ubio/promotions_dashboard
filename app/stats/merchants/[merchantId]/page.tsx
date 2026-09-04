@@ -2,11 +2,11 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { DailyCharts } from "@/components/stats/DailyCharts";
 import { CounterTiles } from "@/components/stats/CounterTiles";
-import { CounterCells, CounterHeadings, COUNTER_COL_SPAN, DailyRows, MonthlyRows } from "@/components/stats/CountersTable";
+import { CounterCells, CounterTableHead, COUNTER_COL_SPAN, counterThClass, DailyRows, MonthlyRows } from "@/components/stats/CountersTable";
 import { PeriodToolbar, periodHref } from "@/components/stats/PeriodToolbar";
 import { formatUtcDay, formatUtcMonth } from "@/lib/format";
 import { getClientNames, getDailySeries, getMerchantClientBreakdown, getMonthlySeries, getPeriodTotals, getStatMerchant } from "@/lib/stats-queries";
-import { isZeroPeriodStats, periodFromSearch } from "@/lib/stats-model";
+import { isZeroPeriodStats, periodFromSearch, periodPromotionOutcomesPending } from "@/lib/stats-model";
 
 export const dynamic = "force-dynamic";
 
@@ -33,6 +33,7 @@ export default async function MerchantStatsDetailPage({
     getMerchantClientBreakdown(merchantId, period),
     getClientNames(),
   ]);
+  const pendingPromotionOutcomes = periodPromotionOutcomesPending(period, daily);
   const periodLabel =
     period.granularity === "day" ? formatUtcDay(period.date) : formatUtcMonth(period.yearMonth);
   const dayDetailHref =
@@ -68,7 +69,7 @@ export default async function MerchantStatsDetailPage({
           No activity for this period.
         </p>
       ) : (
-        <CounterTiles stats={totals} />
+        <CounterTiles stats={totals} pendingPromotionOutcomes={pendingPromotionOutcomes} />
       )}
 
       <DailyCharts series={daily} />
@@ -91,10 +92,7 @@ export default async function MerchantStatsDetailPage({
         <div className="overflow-x-auto rounded-lg border border-slate-200 bg-white">
           <table className="min-w-full text-sm [font-variant-numeric:tabular-nums]">
             <thead className="bg-slate-50 text-left text-xs uppercase tracking-wide text-slate-500">
-              <tr>
-                <th className="px-3 py-2">Client</th>
-                <CounterHeadings />
-              </tr>
+              <CounterTableHead leading={<th rowSpan={2} className={counterThClass}>Client</th>} />
             </thead>
             <tbody className="divide-y divide-slate-100">
               {clients.map((row) => (
@@ -110,7 +108,7 @@ export default async function MerchantStatsDetailPage({
                       <div className="text-xs text-slate-500">{names.get(row.clientId)}</div>
                     )}
                   </td>
-                  <CounterCells stats={row} />
+                  <CounterCells stats={row} pendingPromotionOutcomes={pendingPromotionOutcomes} />
                 </tr>
               ))}
               {clients.length === 0 && (

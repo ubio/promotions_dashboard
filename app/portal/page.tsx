@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Section } from "@/components/Section";
+import { CollapsibleGroup, CollapsibleSection } from "@/components/CollapsibleSection";
 import { StackedOutcomeChart, ValidityBar } from "@/components/charts";
 import { requireClientSession } from "@/lib/auth";
 import { getDailyStats, getValidityBreakdown } from "@/lib/queries";
@@ -82,13 +82,15 @@ export default async function PortalPage({
         />
       </div>
 
-      <Section title="Validations per day">
-        <StackedOutcomeChart data={daily} showErrors={false} />
-      </Section>
+      <CollapsibleGroup>
+        <CollapsibleSection title="Validations per day">
+          <StackedOutcomeChart data={daily} showErrors={false} />
+        </CollapsibleSection>
 
-      <Section title="Promotions by validity status (all time)">
-        <ValidityBar counts={validityCounts} />
-      </Section>
+        <CollapsibleSection title="Promotions by validity status (all time)">
+          <ValidityBar counts={validityCounts} />
+        </CollapsibleSection>
+      </CollapsibleGroup>
     </div>
   );
 }

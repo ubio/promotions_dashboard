@@ -461,6 +461,28 @@ export async function getClientNames(): Promise<Map<string, string>> {
   return new Map(rows.filter((row) => row.clientId).map((row) => [row.clientId, row.name]));
 }
 
+export async function isDayFinalized(
+  date: string,
+  match: Filter<StatDoc> = {}
+): Promise<boolean> {
+  const pipeline: Document[] = [
+    ...(Object.keys(match).length ? [{ $match: match }] : []),
+    { $unwind: "$last30Days" },
+    { $match: { "last30Days.date": date } },
+    {
+      $group: {
+        _id: null,
+        finalized: { $min: { $cond: [{ $eq: ["$last30Days.finalized", true] }, 1, 0] } },
+        count: { $sum: 1 },
+      },
+    },
+  ];
+  const [row] = await statsColl()
+    .aggregate<{ finalized: number; count: number }>(pipeline)
+    .toArray();
+  return row != null && row.count > 0 && row.finalized === 1;
+}
+
 export async function clientHasStats(clientId: string): Promise<boolean> {
   const doc = await statsColl().findOne({ clientId }, { projection: { _id: 1 } });
   return doc != null;

@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Section } from "@/components/Section";
+import { CollapsibleGroup, CollapsibleSection } from "@/components/CollapsibleSection";
 import { StackedOutcomeChart, RateLineChart, CostBarChart, ValidityBar } from "@/components/charts";
 import { getDailyStats, getValidityBreakdown } from "@/lib/queries";
 import { formatCost, normalizeValidity, VALIDITY_STATUSES } from "@/lib/format";
@@ -99,21 +99,23 @@ export default async function StatsPage({
         />
       </div>
 
-      <Section title="Validations per day">
-        <StackedOutcomeChart data={daily} />
-      </Section>
+      <CollapsibleGroup>
+        <CollapsibleSection title="Validations per day">
+          <StackedOutcomeChart data={daily} />
+        </CollapsibleSection>
 
-      <Section title="Promotions by validity status (all time)">
-        <ValidityBar counts={validityCounts} />
-      </Section>
+        <CollapsibleSection title="Promotions by validity status (all time)">
+          <ValidityBar counts={validityCounts} />
+        </CollapsibleSection>
 
-      <Section title="Success rate per day">
-        <RateLineChart data={rateSeries} />
-      </Section>
+        <CollapsibleSection title="Success rate per day">
+          <RateLineChart data={rateSeries} />
+        </CollapsibleSection>
 
-      <Section title="LLM cost per day">
-        <CostBarChart data={costSeries} />
-      </Section>
+        <CollapsibleSection title="LLM cost per day">
+          <CostBarChart data={costSeries} />
+        </CollapsibleSection>
+      </CollapsibleGroup>
 
       <details className="rounded-lg border border-slate-200 bg-white">
         <summary className="cursor-pointer select-none px-4 py-2.5 text-sm font-medium text-slate-700 hover:bg-slate-50">

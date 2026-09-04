@@ -1,36 +1,123 @@
 import Link from "next/link";
 import { KVGrid } from "@/components/Section";
 import { formatCost, formatCount, formatUtcDay, formatUtcMonth } from "@/lib/format";
-import type { PeriodStatsCounters } from "@/lib/stats-model";
+import {
+  PROMOTION_OUTCOMES_PENDING_HINT,
+  isPromotionOutcomesPending,
+  type PeriodStatsCounters,
+} from "@/lib/stats-model";
 
-export function CounterHeadings() {
+export const counterThClass = "px-3 py-2";
+export const counterGroupThClass =
+  "border-b border-slate-200 px-3 py-2 text-center normal-case tracking-normal";
+export const counterValidationsDividerClass = "border-l border-slate-200";
+
+export const PROMOTIONS_COL_SPAN = 5;
+export const VALIDATIONS_COL_SPAN = 5;
+export const COUNTER_COL_SPAN = PROMOTIONS_COL_SPAN + VALIDATIONS_COL_SPAN;
+
+function CounterSubHeadings({ leadingDivider }: { leadingDivider?: boolean }) {
   return (
     <>
-      <th className="px-3 py-2">Received</th>
-      <th className="px-3 py-2">Exported</th>
-      <th className="px-3 py-2">Client-facing</th>
-      <th className="px-3 py-2">Debug</th>
-      <th className="px-3 py-2">Cannot validate</th>
-      <th className="px-3 py-2">Validations</th>
-      <th className="px-3 py-2">Conclusions</th>
-      <th className="px-3 py-2">Errors</th>
-      <th className="px-3 py-2">Bot detection</th>
-      <th className="px-3 py-2">Cost</th>
+      <th className={leadingDivider ? `${counterThClass} ${counterValidationsDividerClass}` : counterThClass}>
+        Received
+      </th>
+      <th className={counterThClass}>Exported</th>
+      <th className={counterThClass}>Client-facing</th>
+      <th className={counterThClass}>Debug</th>
+      <th className={counterThClass}>Cannot validate</th>
+      <th className={`${counterThClass} ${counterValidationsDividerClass}`}>Validations</th>
+      <th className={counterThClass}>Conclusions</th>
+      <th className={counterThClass}>Errors</th>
+      <th className={counterThClass}>Bot detection</th>
+      <th className={counterThClass}>Cost</th>
     </>
   );
 }
 
-export function CounterCells({ stats }: { stats: PeriodStatsCounters }) {
+export function CounterTableHead({
+  leading,
+  leadingDivider,
+}: {
+  leading?: React.ReactNode;
+  leadingDivider?: boolean;
+}) {
+  const promotionsGroupClass = leadingDivider
+    ? `${counterGroupThClass} ${counterValidationsDividerClass}`
+    : counterGroupThClass;
+
+  return (
+    <>
+      <tr>
+        {leading}
+        <th colSpan={PROMOTIONS_COL_SPAN} className={promotionsGroupClass}>
+          Promotions
+        </th>
+        <th colSpan={VALIDATIONS_COL_SPAN} className={`${counterGroupThClass} ${counterValidationsDividerClass}`}>
+          Validations
+        </th>
+      </tr>
+      <tr>
+        <CounterSubHeadings leadingDivider={leadingDivider} />
+      </tr>
+    </>
+  );
+}
+
+function pendingCellClass(className: string, pending?: boolean): string {
+  return pending ? `${className} pending-promotion-outcome` : className;
+}
+
+function PendingCount({
+  value,
+  pending,
+  toneClass,
+}: {
+  value: string;
+  pending?: boolean;
+  toneClass: string;
+}) {
+  const pendingHint = pending ? PROMOTION_OUTCOMES_PENDING_HINT : undefined;
+  return (
+    <td
+      className={pendingCellClass(`px-3 py-2 ${toneClass}`, pending)}
+      data-hint={pendingHint}
+      tabIndex={pending ? 0 : undefined}
+    >
+      {value}
+    </td>
+  );
+}
+
+export function CounterCells({
+  stats,
+  leadingDivider,
+  pendingPromotionOutcomes,
+}: {
+  stats: PeriodStatsCounters;
+  leadingDivider?: boolean;
+  pendingPromotionOutcomes?: boolean;
+}) {
   const p = stats.promotionsStats;
   const v = stats.validationsStats;
   return (
     <>
-      <td className="px-3 py-2">{formatCount(p.receivedPromotions)}</td>
+      <td className={leadingDivider ? `px-3 py-2 ${counterValidationsDividerClass}` : "px-3 py-2"}>
+        {formatCount(p.receivedPromotions)}
+      </td>
       <td className="px-3 py-2">{formatCount(p.promotionsExportedToCsv)}</td>
-      <td className="px-3 py-2 text-green-700">{formatCount(p.clientFacingCount)}</td>
-      <td className="px-3 py-2 text-red-600">{formatCount(p.leftForDebugCount)}</td>
+      <PendingCount
+        value={formatCount(p.clientFacingCount)}
+        pending={pendingPromotionOutcomes}
+        toneClass="text-green-700"
+      />
+      <PendingCount
+        value={formatCount(p.leftForDebugCount)}
+        pending={pendingPromotionOutcomes}
+        toneClass="text-red-600"
+      />
       <td className="px-3 py-2">{formatCount(p.cannotValidateCount)}</td>
-      <td className="px-3 py-2">{formatCount(v.totalValidationsCount)}</td>
+      <td className={`px-3 py-2 ${counterValidationsDividerClass}`}>{formatCount(v.totalValidationsCount)}</td>
       <td className="px-3 py-2">{formatCount(v.conclusionsCount)}</td>
       <td className="px-3 py-2">{formatCount(v.errorsCount)}</td>
       <td className="px-3 py-2">{formatCount(v.botDetectionValidationCount)}</td>
@@ -39,9 +126,16 @@ export function CounterCells({ stats }: { stats: PeriodStatsCounters }) {
   );
 }
 
-export function DayCounters({ stats }: { stats: PeriodStatsCounters }) {
+export function DayCounters({
+  stats,
+  pendingPromotionOutcomes,
+}: {
+  stats: PeriodStatsCounters;
+  pendingPromotionOutcomes?: boolean;
+}) {
   const p = stats.promotionsStats;
   const v = stats.validationsStats;
+  const pendingHint = pendingPromotionOutcomes ? PROMOTION_OUTCOMES_PENDING_HINT : undefined;
   return (
     <div className="grid gap-4 lg:grid-cols-2">
       <div className="rounded-lg border border-slate-200 bg-white p-4">
@@ -51,8 +145,26 @@ export function DayCounters({ stats }: { stats: PeriodStatsCounters }) {
             ["Received", formatCount(p.receivedPromotions)],
             ["Exported to CSV", formatCount(p.promotionsExportedToCsv)],
             ["Total (finalized outcomes)", formatCount(p.totalPromotionsCount)],
-            ["Client-facing", formatCount(p.clientFacingCount)],
-            ["Left for debug", formatCount(p.leftForDebugCount)],
+            [
+              "Client-facing",
+              pendingPromotionOutcomes ? (
+                <span className="pending-promotion-outcome rounded px-1" data-hint={pendingHint} tabIndex={0}>
+                  {formatCount(p.clientFacingCount)}
+                </span>
+              ) : (
+                formatCount(p.clientFacingCount)
+              ),
+            ],
+            [
+              "Left for debug",
+              pendingPromotionOutcomes ? (
+                <span className="pending-promotion-outcome rounded px-1" data-hint={pendingHint} tabIndex={0}>
+                  {formatCount(p.leftForDebugCount)}
+                </span>
+              ) : (
+                formatCount(p.leftForDebugCount)
+              ),
+            ],
             ["Cannot validate", formatCount(p.cannotValidateCount)],
             ["Merchant automation issues", formatCount(p.merchantAutomationIssuesCount)],
           ]}
@@ -78,8 +190,6 @@ export function DayCounters({ stats }: { stats: PeriodStatsCounters }) {
   );
 }
 
-export const COUNTER_COL_SPAN = 10;
-
 export function DailyRows({
   series,
   dayHref,
@@ -91,11 +201,19 @@ export function DailyRows({
     <div className="overflow-x-auto rounded-lg border border-slate-200 bg-white">
       <table className="min-w-full text-sm [font-variant-numeric:tabular-nums]">
         <thead className="bg-slate-50 text-left text-xs uppercase tracking-wide text-slate-500">
-          <tr>
-            <th className="px-3 py-2">Date</th>
-            <th className="px-3 py-2">Status</th>
-            <CounterHeadings />
-          </tr>
+          <CounterTableHead
+            leadingDivider
+            leading={
+              <>
+                <th rowSpan={2} className={counterThClass}>
+                  Date
+                </th>
+                <th rowSpan={2} className={counterThClass}>
+                  Status
+                </th>
+              </>
+            }
+          />
         </thead>
         <tbody className="divide-y divide-slate-100">
           {[...series].reverse().map((row) => (
@@ -108,7 +226,11 @@ export function DailyRows({
               <td className="px-3 py-2 text-xs text-slate-500">
                 {row.finalized ? "finalized" : "open"}
               </td>
-              <CounterCells stats={row} />
+              <CounterCells
+                stats={row}
+                leadingDivider
+                pendingPromotionOutcomes={isPromotionOutcomesPending(row.finalized)}
+              />
             </tr>
           ))}
         </tbody>
@@ -129,10 +251,7 @@ export function MonthlyRows({
     <div className="overflow-x-auto rounded-lg border border-slate-200 bg-white">
       <table className="min-w-full text-sm [font-variant-numeric:tabular-nums]">
         <thead className="bg-slate-50 text-left text-xs uppercase tracking-wide text-slate-500">
-          <tr>
-            <th className="px-3 py-2">Month</th>
-            <CounterHeadings />
-          </tr>
+          <CounterTableHead leading={<th rowSpan={2} className={counterThClass}>Month</th>} />
         </thead>
         <tbody className="divide-y divide-slate-100">
           {[...series].reverse().map((row) => (

@@ -1,18 +1,18 @@
-import { Section } from "@/components/Section";
+import { CollapsibleGroup, CollapsibleSection } from "@/components/CollapsibleSection";
 import { CHART_COLORS, CountBarChart, StackedSeriesChart } from "@/components/charts";
 import { formatCost } from "@/lib/format";
 import type { DatedPeriodRow } from "@/lib/stats-queries";
 
 export function DailyCharts({ series }: { series: DatedPeriodRow[] }) {
   return (
-    <>
-      <Section title="Promotions received per day">
+    <CollapsibleGroup>
+      <CollapsibleSection title="Promotions received per day">
         <CountBarChart
           data={series.map((d) => ({ date: d.date, value: d.promotionsStats.receivedPromotions }))}
           ariaLabel="Promotions received per day"
         />
-      </Section>
-      <Section title="Promotion outcomes per day">
+      </CollapsibleSection>
+      <CollapsibleSection title="Promotion outcomes per day">
         <StackedSeriesChart
           ariaLabel="Promotion outcomes per day: client-facing, debug, cannot validate, automation issues"
           series={[
@@ -31,8 +31,8 @@ export function DailyCharts({ series }: { series: DatedPeriodRow[] }) {
             ],
           }))}
         />
-      </Section>
-      <Section title="Validations per day">
+      </CollapsibleSection>
+      <CollapsibleSection title="Validations per day">
         <StackedSeriesChart
           ariaLabel="Validations per day: client-facing conclusions, debug conclusions, errors"
           series={[
@@ -49,14 +49,14 @@ export function DailyCharts({ series }: { series: DatedPeriodRow[] }) {
             ],
           }))}
         />
-      </Section>
-      <Section title="Validation cost per day">
+      </CollapsibleSection>
+      <CollapsibleSection title="Validation cost per day">
         <CountBarChart
           data={series.map((d) => ({ date: d.date, value: d.validationsStats.totalValidationsCost }))}
           ariaLabel="Validation LLM cost per day"
           formatValue={(v) => formatCost(v) === "—" ? "$0" : formatCost(v)}
         />
-      </Section>
-    </>
+      </CollapsibleSection>
+    </CollapsibleGroup>
   );
 }

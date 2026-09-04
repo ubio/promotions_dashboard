@@ -230,6 +230,22 @@ export function periodFromSearch(sp: {
   });
 }
 
+export const PROMOTION_OUTCOMES_PENDING_HINT =
+  "Will be updated when day stats finalized";
+
+export function isPromotionOutcomesPending(finalized?: boolean): boolean {
+  return finalized !== true;
+}
+
+export function periodPromotionOutcomesPending(
+  period: StatsPeriod,
+  daily: Array<{ date: string; finalized?: boolean }>
+): boolean {
+  if (period.granularity !== "day") return false;
+  const row = daily.find((day) => day.date === period.date);
+  return isPromotionOutcomesPending(row?.finalized);
+}
+
 export function periodQuery(period: StatsPeriod): Record<string, string> {
   if (period.granularity === "month") {
     return { granularity: "month", yearMonth: period.yearMonth };

@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { CounterTiles } from "@/components/stats/CounterTiles";
-import { CounterCells, CounterHeadings, COUNTER_COL_SPAN, DayCounters } from "@/components/stats/CountersTable";
+import { CounterCells, CounterTableHead, COUNTER_COL_SPAN, counterThClass, DayCounters } from "@/components/stats/CountersTable";
 import { formatUtcDay } from "@/lib/format";
 import { isIsoDate, last30DateRange, type StatsPeriod } from "@/lib/stats-model";
 import {
@@ -9,6 +9,7 @@ import {
   getMerchantClientBreakdown,
   getPeriodTotals,
   getStatMerchant,
+  isDayFinalized,
 } from "@/lib/stats-queries";
 
 export const dynamic = "force-dynamic";
@@ -26,13 +27,15 @@ export default async function MerchantDayStatsPage({
   const { from, to } = last30DateRange();
   const inWindow = date >= from && date <= to;
   const period: StatsPeriod = { granularity: "day", date, yearMonth: date.slice(0, 7) };
-  const [totals, clients, names] = inWindow
+  const [totals, clients, names, dayFinalized] = inWindow
     ? await Promise.all([
         getPeriodTotals(period, { merchantId }),
         getMerchantClientBreakdown(merchantId, period),
         getClientNames(),
+        isDayFinalized(date, { merchantId }),
       ])
-    : [null, [], await getClientNames()];
+    : [null, [], await getClientNames(), false];
+  const pendingPromotionOutcomes = !dayFinalized;
   const title = merchant.merchantDomain || merchantId;
 
   return (
@@ -58,17 +61,14 @@ export default async function MerchantDayStatsPage({
         </p>
       ) : (
         <>
-          <CounterTiles stats={totals} />
-          <DayCounters stats={totals} />
+          <CounterTiles stats={totals} pendingPromotionOutcomes={pendingPromotionOutcomes} />
+          <DayCounters stats={totals} pendingPromotionOutcomes={pendingPromotionOutcomes} />
           <section className="space-y-2">
             <h2 className="text-sm font-semibold text-slate-700">Clients</h2>
             <div className="overflow-x-auto rounded-lg border border-slate-200 bg-white">
               <table className="min-w-full text-sm [font-variant-numeric:tabular-nums]">
                 <thead className="bg-slate-50 text-left text-xs uppercase tracking-wide text-slate-500">
-                  <tr>
-                    <th className="px-3 py-2">Client</th>
-                    <CounterHeadings />
-                  </tr>
+                  <CounterTableHead leading={<th rowSpan={2} className={counterThClass}>Client</th>} />
                 </thead>
                 <tbody className="divide-y divide-slate-100">
                   {clients.map((row) => (
@@ -84,7 +84,7 @@ export default async function MerchantDayStatsPage({
                           <div className="text-xs text-slate-500">{names.get(row.clientId)}</div>
                         )}
                       </td>
-                      <CounterCells stats={row} />
+                      <CounterCells stats={row} pendingPromotionOutcomes={pendingPromotionOutcomes} />
                     </tr>
                   ))}
                   {clients.length === 0 && (

@@ -1,9 +1,9 @@
 import Link from "next/link";
 import Pagination from "@/components/Pagination";
-import { CounterCells, CounterHeadings, COUNTER_COL_SPAN } from "@/components/stats/CountersTable";
+import { CounterCells, CounterTableHead, COUNTER_COL_SPAN, counterThClass } from "@/components/stats/CountersTable";
 import { PeriodToolbar, periodHref } from "@/components/stats/PeriodToolbar";
 import { firstParam, periodFromSearch } from "@/lib/stats-model";
-import { getMerchantPeriodRows } from "@/lib/stats-queries";
+import { getMerchantPeriodRows, isDayFinalized } from "@/lib/stats-queries";
 
 export const dynamic = "force-dynamic";
 
@@ -14,7 +14,11 @@ export default async function MerchantStatsPage({ searchParams }: { searchParams
   const period = periodFromSearch(sp);
   const q = firstParam(sp.q);
   const page = Number(firstParam(sp.page) ?? "1") || 1;
-  const result = await getMerchantPeriodRows(period, { q, page });
+  const [result, dayFinalized] = await Promise.all([
+    getMerchantPeriodRows(period, { q, page }),
+    period.granularity === "day" ? isDayFinalized(period.date) : true,
+  ]);
+  const pendingPromotionOutcomes = period.granularity === "day" && !dayFinalized;
   const queryParams: Record<string, string | undefined> = {
     granularity: period.granularity,
     date: period.granularity === "day" ? period.date : undefined,
@@ -36,11 +40,18 @@ export default async function MerchantStatsPage({ searchParams }: { searchParams
       <div className="overflow-x-auto rounded-lg border border-slate-200 bg-white">
         <table className="min-w-full text-sm [font-variant-numeric:tabular-nums]">
           <thead className="bg-slate-50 text-left text-xs uppercase tracking-wide text-slate-500">
-            <tr>
-              <th className="px-3 py-2">Merchant</th>
-              <th className="px-3 py-2">Clients</th>
-              <CounterHeadings />
-            </tr>
+            <CounterTableHead
+              leading={
+                <>
+                  <th rowSpan={2} className={counterThClass}>
+                    Merchant
+                  </th>
+                  <th rowSpan={2} className={counterThClass}>
+                    Clients
+                  </th>
+                </>
+              }
+            />
           </thead>
           <tbody className="divide-y divide-slate-100">
             {result.items.map((row) => (
@@ -57,7 +68,7 @@ export default async function MerchantStatsPage({ searchParams }: { searchParams
                   )}
                 </td>
                 <td className="px-3 py-2">{row.clientCount}</td>
-                <CounterCells stats={row} />
+                <CounterCells stats={row} pendingPromotionOutcomes={pendingPromotionOutcomes} />
               </tr>
             ))}
             {result.items.length === 0 && (
