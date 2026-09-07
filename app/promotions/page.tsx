@@ -1,6 +1,7 @@
+import { redirect } from "next/navigation";
 import Link from "next/link";
 import BrowseTabs, { browseTabMeta, parseBrowseTab } from "@/components/BrowseTabs";
-import { ValidationJobs, ExtractionJobs } from "@/app/jobs/page";
+import { ExtractionJobs } from "@/app/jobs/page";
 import { BotDetectionEvents, CsvEvents } from "@/app/events/page";
 import Badge from "@/components/Badge";
 import Pagination from "@/components/Pagination";
@@ -156,6 +157,15 @@ export default async function PromotionsHub({
   searchParams: Promise<Search>;
 }) {
   const sp = await searchParams;
+  // Validations moved under Reports, which owns the single runs list.
+  if (str(sp.tab) === "validations") {
+    const params = new URLSearchParams();
+    for (const [k, v] of Object.entries(sp)) {
+      if (k === "tab" || v == null) continue;
+      params.set(k, Array.isArray(v) ? v[0] : v);
+    }
+    redirect(`/reports/runs${params.size ? `?${params.toString()}` : ""}`);
+  }
   const tab = parseBrowseTab(sp.tab);
   const meta = browseTabMeta(tab);
   const page = Number(str(sp.page) ?? "1") || 1;
@@ -170,17 +180,6 @@ export default async function PromotionsHub({
       </div>
 
       {tab === "promotions" && <PromotionsList sp={sp} />}
-      {tab === "validations" && (
-        <ValidationJobs
-          tab={tab}
-          q={str(sp.q)}
-          clientId={str(sp.clientId)}
-          reportType={str(sp.reportType)}
-          success={str(sp.success)}
-          failCode={str(sp.failCode)}
-          page={page}
-        />
-      )}
       {tab === "discovery" && (
         <ExtractionJobs
           tab={tab}

@@ -501,3 +501,22 @@ export async function getValidityForPeriod(f: ReportFilters): Promise<ValidityCo
     .filter(([, value]) => value > 0)
     .map(([label, value]) => ({ label, value }));
 }
+
+
+export async function getDailySeriesForOverview(
+  f: ReportFilters
+): Promise<{ date: string; success: number; failed: number; errors: number }[]> {
+  const { rows } = await getReport({ ...f, groupBy: "day" });
+  const byDate = new Map(rows.map((r) => [r.key, r]));
+  const out: { date: string; success: number; failed: number; errors: number }[] = [];
+  for (let d = f.from; d <= f.to; d = shiftDate(d, 1)) {
+    const r = byDate.get(d);
+    out.push({
+      date: d,
+      success: r?.passed ?? 0,
+      failed: r?.failed ?? 0,
+      errors: r?.errors ?? 0,
+    });
+  }
+  return out;
+}

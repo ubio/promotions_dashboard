@@ -82,6 +82,22 @@ Multi-stage build on `node:22-alpine` using Next.js standalone output; runs as a
 non-root user on port 3000. All configuration is runtime env — nothing is baked
 into the image.
 
+## Structure
+
+The dashboard follows one journey — *how are we doing → slice it → see the rows
+→ see the evidence*:
+
+| Section | Route | Purpose |
+| --- | --- | --- |
+| Overview | `/` | Headline health for the last 30 days, with every figure linking onward |
+| Reports | `/reports` | The single analysis surface: filters, breakdowns, comparison, downloads |
+| Records | `/promotions` | Offers, Discovery, Bot detection, Client files |
+| Michael's page | `/stats` | The original pipeline/clients/merchants stats views, unchanged |
+
+Validation runs have a single home (`/reports/runs`); the old duplicate list
+under Records forwards there. Detail pages accept a `?back=` parameter so a
+drill-down returns to wherever it was opened from rather than a fixed section.
+
 ## Pages
 
 - `/promotions` — one browsing hub with flat tabs: Offers, Validations,

@@ -27,8 +27,11 @@ export default async function JobsPage({ searchParams }: { searchParams: Promise
     if (k === "type" || v == null) continue;
     params.set(k, Array.isArray(v) ? v[0] : v);
   }
-  params.set("tab", str(sp.type) === "extraction" ? "discovery" : "validations");
-  redirect(`/promotions?${params.toString()}`);
+  if (str(sp.type) === "extraction") {
+    params.set("tab", "discovery");
+    redirect(`/promotions?${params.toString()}`);
+  }
+  redirect(`/reports/runs${params.size ? `?${params.toString()}` : ""}`);
 }
 
 export async function ValidationJobs(props: {

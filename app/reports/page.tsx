@@ -11,6 +11,7 @@ import {
   reportQueryString,
   daysBetween,
   type ReportRow,
+  type ReportFilters,
   type ReportTotals,
   type Outcome,
 } from "@/lib/reports";
@@ -84,6 +85,34 @@ function DrillCell({
       </Link>
     </td>
   );
+}
+
+// A row label leads to the most useful next view for that dimension.
+function rowHref(row: ReportRow, filters: ReportFilters): string | null {
+  switch (filters.groupBy) {
+    case "client":
+      return `/stats/clients/${encodeURIComponent(row.key)}`;
+    case "merchant":
+      return `/stats/merchants/${encodeURIComponent(row.key)}`;
+    case "day":
+      return `/reports?${reportQueryString({ ...filters, from: row.key, to: row.key, groupBy: "client" })}`;
+    case "month":
+    case "year":
+      return `/reports/runs?${reportQueryString({ ...filters, ...monthOrYearRange(row.key) })}`;
+    case "batch":
+      return row.key ? `/reports/runs?${reportQueryString(filters)}` : null;
+    default:
+      return null;
+  }
+}
+
+function monthOrYearRange(key: string): { from: string; to: string } {
+  if (/^\d{4}$/.test(key)) return { from: `${key}-01-01`, to: `${key}-12-31` };
+  const [y, m] = key.split("-").map(Number);
+  return {
+    from: `${key}-01`,
+    to: new Date(Date.UTC(y, m, 0)).toISOString().slice(0, 10),
+  };
 }
 
 function rowLabel(row: ReportRow, groupBy: string, names: Map<string, string>): string {
@@ -241,7 +270,13 @@ export default async function ReportsPage({ searchParams }: { searchParams: Prom
             {current.rows.map((row) => (
               <tr key={row.key} className="hover:bg-sky-50/50">
                 <td className="whitespace-nowrap px-3 py-2 font-medium">
-                  {rowLabel(row, filters.groupBy, names)}
+                  {rowHref(row, filters) ? (
+                    <Link href={rowHref(row, filters)!} className="text-sky-700 hover:underline">
+                      {rowLabel(row, filters.groupBy, names)}
+                    </Link>
+                  ) : (
+                    rowLabel(row, filters.groupBy, names)
+                  )}
                 </td>
                 {isBatch &&
                   (() => {

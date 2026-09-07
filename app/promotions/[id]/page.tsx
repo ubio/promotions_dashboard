@@ -142,7 +142,10 @@ export default async function PromotionPage({ params }: { params: Promise<{ id: 
                 {validations.map((v) => (
                   <tr key={String(v._id)}>
                     <td className="whitespace-nowrap py-1.5 pr-4">
-                      <Link href={`/jobs/validation/${v._id}`} className="text-sky-700 hover:underline">
+                      <Link
+                        href={`/jobs/validation/${v._id}?back=${encodeURIComponent(`/promotions/${promotion._id}`)}`}
+                        className="text-sky-700 hover:underline"
+                      >
                         {formatDate(v.createdAt)}
                       </Link>
                     </td>

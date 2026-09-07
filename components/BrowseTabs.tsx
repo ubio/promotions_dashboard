@@ -5,7 +5,6 @@ import Link from "next/link";
 // "extraction", "CSV") that confused non-technical users.
 export const BROWSE_TABS = [
   { key: "promotions", label: "Offers", hint: "The promotional offers and codes we validate" },
-  { key: "validations", label: "Validations", hint: "Each check we ran against a promotion" },
   { key: "discovery", label: "Discovery", hint: "Runs that look for new promotions on merchant sites" },
   { key: "bot-detection", label: "Bot detection", hint: "Merchants that blocked our automation" },
   { key: "client-files", label: "Client files", hint: "Files received from and sent to clients" },

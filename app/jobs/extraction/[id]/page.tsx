@@ -8,8 +8,24 @@ import { formatDate, formatDuration, truncate } from "@/lib/format";
 
 export const dynamic = "force-dynamic";
 
-export default async function ExtractionJobPage({ params }: { params: Promise<{ id: string }> }) {
+function backTarget(back?: string): { href: string; label: string } {
+  // Only internal paths, so a crafted ?back= cannot bounce users off-site.
+  if (back && back.startsWith("/") && !back.startsWith("//")) {
+    if (back.startsWith("/reports/runs")) return { href: back, label: "validations" };
+    if (back.startsWith("/reports")) return { href: back, label: "report" };
+    if (back.startsWith("/promotions/")) return { href: back, label: "offer" };
+    if (back.startsWith("/promotions")) return { href: back, label: "records" };
+    return { href: back, label: "back" };
+  }
+  return { href: "/promotions?tab=discovery", label: "discovery" };
+}
+
+export default async function ExtractionJobPage({ params, searchParams }: {
+  params: Promise<{ id: string }>;
+  searchParams: Promise<{ back?: string }>;
+}) {
   const { id } = await params;
+  const back = backTarget((await searchParams).back);
   const job = await getExtractionJob(id);
   if (!job) notFound();
 
@@ -20,8 +36,8 @@ export default async function ExtractionJobPage({ params }: { params: Promise<{ 
   return (
     <div className="space-y-4">
       <div>
-        <Link href="/promotions?tab=discovery" className="text-sm text-sky-700 hover:underline">
-          ← Back to discovery
+        <Link href={back.href} className="text-sm text-sky-700 hover:underline">
+          ← Back to {back.label}
         </Link>
         <div className="mt-1 flex flex-wrap items-center gap-3">
           <h1 className="text-xl font-semibold">Discovery run</h1>

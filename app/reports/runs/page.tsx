@@ -1,7 +1,10 @@
 import Link from "next/link";
 import Badge from "@/components/Badge";
+import ReportsFilterBar from "@/components/reports/ReportsFilterBar";
 import {
   getFailCodeBreakdown,
+  getReportClientIds,
+  getReportDomains,
   getRuns,
   parseReportSearch,
   reportQueryString,
@@ -29,10 +32,13 @@ export default async function RunsPage({ searchParams }: { searchParams: Promise
   const filters = parseReportSearch(sp);
   const page = Number(typeof sp.page === "string" ? sp.page : "1") || 1;
 
-  const [{ items, total, pages, page: current }, failCodes] = await Promise.all([
-    getRuns(filters, page),
-    getFailCodeBreakdown(filters),
-  ]);
+  const [{ items, total, pages, page: current }, failCodes, clientIds, domains] =
+    await Promise.all([
+      getRuns(filters, page),
+      getFailCodeBreakdown(filters),
+      getReportClientIds(),
+      getReportDomains(),
+    ]);
 
   const qs = reportQueryString(filters);
   // Same filters minus the fail-code, for the "clear" chip and the code links.
@@ -76,6 +82,18 @@ export default async function RunsPage({ searchParams }: { searchParams: Promise
           ↓ Download these (CSV)
         </a>
       </div>
+
+      <ReportsFilterBar
+        action="/reports/runs"
+        clientIds={clientIds}
+        domains={domains}
+        from={filters.from}
+        to={filters.to}
+        groupBy={filters.groupBy}
+        outcomes={filters.outcomes ?? []}
+        selectedClients={filters.clientIds ?? []}
+        selectedDomains={filters.domains ?? []}
+      />
 
       {failCodes.length > 0 && (
         <div className="rounded-lg border border-slate-200 bg-white p-3">
@@ -123,7 +141,10 @@ export default async function RunsPage({ searchParams }: { searchParams: Promise
               return (
                 <tr key={id} className="hover:bg-sky-50/50">
                   <td className="whitespace-nowrap px-3 py-2">
-                    <Link href={`/jobs/validation/${id}`} className="text-sky-700 hover:underline">
+                    <Link
+                      href={`/jobs/validation/${id}?back=${encodeURIComponent(`/reports/runs?${qs}`)}`}
+                      className="text-sky-700 hover:underline"
+                    >
                       {formatDate(r.createdAt)}
                     </Link>
                   </td>

@@ -14,6 +14,7 @@ const OUTCOMES = [
 ];
 
 export default function ReportsFilterBar({
+  action = "/reports",
   clientIds,
   domains,
   from,
@@ -23,6 +24,7 @@ export default function ReportsFilterBar({
   selectedClients,
   selectedDomains,
 }: {
+  action?: string;
   clientIds: string[];
   domains: string[];
   from: string;
@@ -43,7 +45,7 @@ export default function ReportsFilterBar({
   }
 
   return (
-    <form className="flex flex-wrap items-center gap-2 rounded-lg border border-slate-200 bg-white p-2.5">
+    <form action={action} className="flex flex-wrap items-center gap-2 rounded-lg border border-slate-200 bg-white p-2.5">
       <select
         value={periodKey}
         onChange={(e) => onPeriodChange(e.target.value)}
@@ -119,7 +121,7 @@ export default function ReportsFilterBar({
       <button className="rounded bg-slate-900 px-4 py-1.5 text-sm text-white hover:bg-slate-700">
         Apply
       </button>
-      <a href="/reports" className="px-1 text-sm text-slate-500 hover:text-slate-700">
+      <a href={action} className="px-1 text-sm text-slate-500 hover:text-slate-700">
         Reset
       </a>
     </form>
