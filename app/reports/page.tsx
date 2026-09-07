@@ -174,6 +174,25 @@ export default async function ReportsPage({ searchParams }: { searchParams: Prom
         />
       </div>
 
+      <div className="flex flex-wrap items-center gap-2">
+        <span className="text-xs text-slate-500">Break down by</span>
+        <div className="flex rounded-lg border border-slate-300 bg-white p-0.5 text-sm w-fit">
+          {GROUPS.map((g) => (
+            <Link
+              key={g.value}
+              href={`/reports?${reportQueryString({ ...filters, groupBy: g.value as typeof filters.groupBy })}`}
+              className={`rounded-md px-3 py-1 ${
+                filters.groupBy === g.value
+                  ? "bg-slate-900 text-white"
+                  : "text-slate-600 hover:bg-slate-100"
+              }`}
+            >
+              {g.label}
+            </Link>
+          ))}
+        </div>
+      </div>
+
       <div className="overflow-x-auto rounded-lg border border-slate-200 bg-white">
         <table className="min-w-full text-sm [font-variant-numeric:tabular-nums]">
           <thead className="bg-slate-50 text-left text-xs uppercase tracking-wide text-slate-500">

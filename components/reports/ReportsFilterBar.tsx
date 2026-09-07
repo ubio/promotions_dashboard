@@ -7,13 +7,6 @@ import { periodPresets, matchPreset } from "./PeriodPresets";
 const CONTROL =
   "rounded border border-slate-300 bg-white px-2 py-1.5 text-sm text-slate-800 hover:bg-slate-50";
 
-const GROUPS = [
-  { value: "client", label: "Customer" },
-  { value: "merchant", label: "Merchant" },
-  { value: "day", label: "Day" },
-  { value: "month", label: "Month" },
-];
-
 const OUTCOMES = [
   { value: "passed", label: "Passed" },
   { value: "failed", label: "Failed" },
@@ -119,16 +112,9 @@ export default function ReportsFilterBar({
         noun="outcomes"
       />
 
-      <span className="flex items-center gap-1.5">
-        <span className="text-xs text-slate-500">by</span>
-        <select name="groupBy" defaultValue={groupBy} className={CONTROL} aria-label="Group by">
-          {GROUPS.map((g) => (
-            <option key={g.value} value={g.value}>
-              {g.label}
-            </option>
-          ))}
-        </select>
-      </span>
+      {/* Breakdown is a property of the table, not a filter — it lives above the
+          table. Carried here so applying filters keeps the current breakdown. */}
+      <input type="hidden" name="groupBy" value={groupBy} />
 
       <button className="rounded bg-slate-900 px-4 py-1.5 text-sm text-white hover:bg-slate-700">
         Apply
