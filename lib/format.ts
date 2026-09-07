@@ -11,8 +11,14 @@ export function formatDate(epochMs?: number | null): string {
   });
 }
 
+// Runs longer than this are not durations: some records (all errored, from
+// 2026-08-28) store a wall-clock timestamp in `time` instead of elapsed ms.
+// Rendering those as "29811772m" confuses readers, so show them as unknown.
+export const MAX_PLAUSIBLE_DURATION_MS = 86_400_000;
+
 export function formatDuration(ms?: number | null): string {
   if (ms == null) return "—";
+  if (ms >= MAX_PLAUSIBLE_DURATION_MS) return "—";
   if (ms < 1000) return `${ms}ms`;
   const totalSeconds = Math.round(ms / 1000);
   if (totalSeconds < 60) return `${(ms / 1000).toFixed(1)}s`;

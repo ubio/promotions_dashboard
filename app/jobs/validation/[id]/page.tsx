@@ -24,11 +24,11 @@ export default async function ValidationJobPage({ params }: { params: Promise<{ 
   return (
     <div className="space-y-4">
       <div>
-        <Link href="/jobs" className="text-sm text-sky-700 hover:underline">
-          ← Back to jobs
+        <Link href="/promotions?tab=validations" className="text-sm text-sky-700 hover:underline">
+          ← Back to validations
         </Link>
         <div className="mt-1 flex flex-wrap items-center gap-3">
-          <h1 className="text-xl font-semibold">Validation job</h1>
+          <h1 className="text-xl font-semibold">Validation</h1>
           <code className="rounded bg-slate-200 px-2 py-0.5 text-xs">{String(job._id)}</code>
           <Badge variant={job.success ? "success" : "fail"}>{job.success ? "success" : "failed"}</Badge>
           <Badge variant={job.reportType}>{job.reportType}</Badge>

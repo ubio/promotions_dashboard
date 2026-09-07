@@ -89,7 +89,7 @@ export default async function MerchantsPage({ searchParams }: { searchParams: Pr
               return (
                 <tr key={String(m._id)} className={merchantHighlightClass(highlight)}>
                   <td className="px-3 py-2 font-mono text-xs">
-                    <Link href={`/jobs?q=${encodeURIComponent(m.domain ?? "")}`} className="text-sky-700 hover:underline">
+                    <Link href={`/promotions?tab=validations&q=${encodeURIComponent(m.domain ?? "")}`} className="text-sky-700 hover:underline">
                       {m.domain ?? String(m._id)}
                     </Link>
                   </td>

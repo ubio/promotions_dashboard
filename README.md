@@ -84,6 +84,10 @@ into the image.
 
 ## Pages
 
+- `/promotions` — one browsing hub with flat tabs: Promotions, Validations,
+  Discovery, Bot detection, Client files. Replaces the separate Jobs, Events and
+  Promotions nav items and their nested sub-tabs; `/jobs` and `/events` still
+  resolve for old links
 - `/reports/runs` — the individual validations behind any number on the report:
   reason (fail-code) breakdown, LLM reasoning, screenshot evidence, and CSV
   download of exactly that selection
@@ -93,12 +97,9 @@ into the image.
   matching validation runs
 - `/stats` — KPI tiles and daily charts: validations per day (success/failed),
   success rate, and LLM cost, over a selectable 7/30/60/90-day window
-- `/jobs` — job list with Validation/Extraction tabs, search, filters (client,
-  report type, success, fail code) and pagination
 - `/jobs/validation/[id]` — full validation job: result, reasoning, promotion under
   validation, screenshot/video evidence, LLM costs, raw JSON
 - `/jobs/extraction/[id]` — full extraction job: visited URLs, promotions found, raw JSON
-- `/promotions` — promotion list with search and validity/client filters
 - `/merchants` — per-merchant validation stats joined with LLM costs aggregated
   from that merchant's jobs
 - `/promotions/[id]` — promotion details: conditions, benefits, applicability,

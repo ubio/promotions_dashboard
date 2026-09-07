@@ -1,4 +1,7 @@
 import Link from "next/link";
+import BrowseTabs, { browseTabMeta, parseBrowseTab } from "@/components/BrowseTabs";
+import { ValidationJobs, ExtractionJobs } from "@/app/jobs/page";
+import { BotDetectionEvents, CsvEvents } from "@/app/events/page";
 import Badge from "@/components/Badge";
 import Pagination from "@/components/Pagination";
 import { getPromotions, getPromotionClientIds } from "@/lib/queries";
@@ -12,8 +15,7 @@ function str(v: string | string[] | undefined): string | undefined {
   return typeof v === "string" && v !== "" ? v : undefined;
 }
 
-export default async function PromotionsPage({ searchParams }: { searchParams: Promise<Search> }) {
-  const sp = await searchParams;
+async function PromotionsList({ sp }: { sp: Search }) {
   const q = str(sp.q);
   const clientId = str(sp.clientId);
   const validityStatus = str(sp.validityStatus);
@@ -28,9 +30,8 @@ export default async function PromotionsPage({ searchParams }: { searchParams: P
 
   return (
     <div className="space-y-4">
-      <h1 className="text-xl font-semibold">Promotions</h1>
-
       <form className="flex flex-wrap items-end gap-3 rounded-lg border border-slate-200 bg-white p-3 text-sm">
+        <input type="hidden" name="tab" value="promotions" />
         <label className="flex max-w-full flex-col gap-1">
           <span className="text-xs text-slate-500">Search (domain, description, code, id)</span>
           <input
@@ -144,6 +145,70 @@ export default async function PromotionsPage({ searchParams }: { searchParams: P
         </table>
       </div>
       <Pagination page={result.page} pages={result.pages} total={result.total} basePath="/promotions" params={params} />
+    </div>
+  );
+}
+
+
+export default async function PromotionsHub({
+  searchParams,
+}: {
+  searchParams: Promise<Search>;
+}) {
+  const sp = await searchParams;
+  const tab = parseBrowseTab(sp.tab);
+  const meta = browseTabMeta(tab);
+  const page = Number(str(sp.page) ?? "1") || 1;
+
+  return (
+    <div className="space-y-4">
+      <div className="flex flex-wrap items-baseline gap-x-4 gap-y-1">
+        <h1 className="text-xl font-semibold">{meta.label}</h1>
+        <p className="text-xs text-slate-500">{meta.hint}</p>
+      </div>
+
+      <BrowseTabs active={tab} />
+
+      {tab === "promotions" && <PromotionsList sp={sp} />}
+      {tab === "validations" && (
+        <ValidationJobs
+          tab={tab}
+          q={str(sp.q)}
+          clientId={str(sp.clientId)}
+          reportType={str(sp.reportType)}
+          success={str(sp.success)}
+          failCode={str(sp.failCode)}
+          page={page}
+        />
+      )}
+      {tab === "discovery" && (
+        <ExtractionJobs
+          tab={tab}
+          q={str(sp.q)}
+          failedDiscoveryCode={str(sp.failedDiscoveryCode)}
+          page={page}
+        />
+      )}
+      {tab === "bot-detection" && (
+        <BotDetectionEvents
+          tab={tab}
+          q={str(sp.q)}
+          date={str(sp.date)}
+          clientId={str(sp.clientId)}
+          status={str(sp.status)}
+          page={page}
+        />
+      )}
+      {tab === "client-files" && (
+        <CsvEvents
+          tab={tab}
+          q={str(sp.q)}
+          date={str(sp.date)}
+          clientId={str(sp.clientId)}
+          eventType={str(sp.eventType)}
+          page={page}
+        />
+      )}
     </div>
   );
 }

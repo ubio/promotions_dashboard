@@ -68,12 +68,13 @@ export default async function EventsPage({ searchParams }: { searchParams: Promi
   );
 }
 
-async function BotDetectionEvents(props: {
+export async function BotDetectionEvents(props: {
   q?: string;
   date?: string;
   clientId?: string;
   status?: string;
   page: number;
+  tab?: string;
 }) {
   const [result, clientIds] = await Promise.all([
     getBotDetectionEvents(props),
@@ -95,6 +96,7 @@ async function BotDetectionEvents(props: {
       </p>
 
       <form className="flex flex-wrap items-end gap-3 rounded-lg border border-slate-200 bg-white p-3 text-sm">
+        {props.tab && <input type="hidden" name="tab" value={props.tab} />}
         <label className="flex max-w-full flex-col gap-1">
           <span className="text-xs text-slate-500">Search (domain, merchant id, promotion id)</span>
           <input
@@ -131,7 +133,7 @@ async function BotDetectionEvents(props: {
           </select>
         </label>
         <button className="rounded bg-slate-900 px-4 py-1.5 text-white hover:bg-slate-700">Apply</button>
-        <Link href="/events" className="py-1.5 text-slate-500 hover:text-slate-700">
+        <Link href={props.tab ? `/promotions?tab=${props.tab}` : "/events"} className="py-1.5 text-slate-500 hover:text-slate-700">
           Reset
         </Link>
       </form>
@@ -215,12 +217,13 @@ async function BotDetectionEvents(props: {
   );
 }
 
-async function CsvEvents(props: {
+export async function CsvEvents(props: {
   q?: string;
   date?: string;
   clientId?: string;
   eventType?: string;
   page: number;
+  tab?: string;
 }) {
   const [result, clientIds] = await Promise.all([getClientCsvEvents(props), getClientCsvClientIds()]);
 
@@ -239,6 +242,7 @@ async function CsvEvents(props: {
       </p>
 
       <form className="flex flex-wrap items-end gap-3 rounded-lg border border-slate-200 bg-white p-3 text-sm">
+        {props.tab && <input type="hidden" name="tab" value={props.tab} />}
         <input type="hidden" name="type" value="csv" />
         <label className="flex max-w-full flex-col gap-1">
           <span className="text-xs text-slate-500">Search (CSV name, bundle id)</span>
@@ -279,7 +283,7 @@ async function CsvEvents(props: {
           </select>
         </label>
         <button className="rounded bg-slate-900 px-4 py-1.5 text-white hover:bg-slate-700">Apply</button>
-        <Link href="/events?type=csv" className="py-1.5 text-slate-500 hover:text-slate-700">
+        <Link href={props.tab ? `/promotions?tab=${props.tab}` : "/events?type=csv"} className="py-1.5 text-slate-500 hover:text-slate-700">
           Reset
         </Link>
       </form>

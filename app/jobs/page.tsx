@@ -60,13 +60,14 @@ export default async function JobsPage({ searchParams }: { searchParams: Promise
   );
 }
 
-async function ValidationJobs(props: {
+export async function ValidationJobs(props: {
   q?: string;
   clientId?: string;
   reportType?: string;
   success?: string;
   failCode?: string;
   page: number;
+  tab?: string;
 }) {
   const [result, clientIds, failCodes] = await Promise.all([
     getValidationJobs(props),
@@ -86,6 +87,7 @@ async function ValidationJobs(props: {
   return (
     <>
       <form className="flex flex-wrap items-end gap-3 rounded-lg border border-slate-200 bg-white p-3 text-sm">
+        {props.tab && <input type="hidden" name="tab" value={props.tab} />}
         <label className="flex max-w-full flex-col gap-1">
           <span className="text-xs text-slate-500">Search (domain, URL, promotion id)</span>
           <input
@@ -130,7 +132,7 @@ async function ValidationJobs(props: {
           </select>
         </label>
         <button className="rounded bg-slate-900 px-4 py-1.5 text-white hover:bg-slate-700">Apply</button>
-        <Link href="/jobs" className="py-1.5 text-slate-500 hover:text-slate-700">
+        <Link href={props.tab ? `/promotions?tab=${props.tab}` : "/jobs"} className="py-1.5 text-slate-500 hover:text-slate-700">
           Reset
         </Link>
       </form>
@@ -208,13 +210,19 @@ async function ValidationJobs(props: {
   );
 }
 
-async function ExtractionJobs(props: { q?: string; failedDiscoveryCode?: string; page: number }) {
+export async function ExtractionJobs(props: {
+  q?: string;
+  failedDiscoveryCode?: string;
+  page: number;
+  tab?: string;
+}) {
   const [result, codes] = await Promise.all([getExtractionJobs(props), getFailedDiscoveryCodes()]);
   const params = { type: "extraction", q: props.q, failedDiscoveryCode: props.failedDiscoveryCode };
 
   return (
     <>
       <form className="flex flex-wrap items-end gap-3 rounded-lg border border-slate-200 bg-white p-3 text-sm">
+        {props.tab && <input type="hidden" name="tab" value={props.tab} />}
         <input type="hidden" name="type" value="extraction" />
         <label className="flex max-w-full flex-col gap-1">
           <span className="text-xs text-slate-500">Search (domain, URL)</span>
@@ -239,7 +247,7 @@ async function ExtractionJobs(props: { q?: string; failedDiscoveryCode?: string;
           </select>
         </label>
         <button className="rounded bg-slate-900 px-4 py-1.5 text-white hover:bg-slate-700">Apply</button>
-        <Link href="/jobs?type=extraction" className="py-1.5 text-slate-500 hover:text-slate-700">
+        <Link href={props.tab ? `/promotions?tab=${props.tab}` : "/jobs?type=extraction"} className="py-1.5 text-slate-500 hover:text-slate-700">
           Reset
         </Link>
       </form>

@@ -52,12 +52,6 @@ export default async function RootLayout({
                   <Link href="/reports" className="hover:text-white">
                     Reports
                   </Link>
-                  <Link href="/jobs" className="hover:text-white">
-                    Jobs
-                  </Link>
-                  <Link href="/events" className="hover:text-white">
-                    Events
-                  </Link>
                   <Link href="/promotions" className="hover:text-white">
                     Promotions
                   </Link>

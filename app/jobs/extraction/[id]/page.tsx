@@ -20,11 +20,11 @@ export default async function ExtractionJobPage({ params }: { params: Promise<{ 
   return (
     <div className="space-y-4">
       <div>
-        <Link href="/jobs?type=extraction" className="text-sm text-sky-700 hover:underline">
-          ← Back to extraction jobs
+        <Link href="/promotions?tab=discovery" className="text-sm text-sky-700 hover:underline">
+          ← Back to discovery
         </Link>
         <div className="mt-1 flex flex-wrap items-center gap-3">
-          <h1 className="text-xl font-semibold">Extraction job</h1>
+          <h1 className="text-xl font-semibold">Discovery run</h1>
           <code className="rounded bg-slate-200 px-2 py-0.5 text-xs">{String(job._id)}</code>
           <Badge variant={found.length > 0 ? "success" : "unknown"}>
             {found.length} promotion{found.length === 1 ? "" : "s"} found
