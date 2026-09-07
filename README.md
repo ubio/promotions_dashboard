@@ -35,6 +35,8 @@ Required environment variables:
 | `ALLOWED_EMAIL_DOMAINS`  | Comma-separated email domains allowed to sign in                 |
 | `JWT_SECRET`             | Random secret for signing session cookies (`openssl rand -hex 32`) |
 | `CLIENT_EMAIL_DOMAINS`   | Optional: `domain:ClientId` pairs granting client-portal access  |
+| `CLIENT_VALIDATION_RATES`| Optional: `ClientId:rate` pairs for the revenue estimate         |
+| `DEFAULT_VALIDATION_RATE`| Optional: fallback USD rate per successful validation           |
 
 MongoDB is accessed only from the server (React Server Components) with
 `readPreference: secondaryPreferred`. The app never writes to the database.
@@ -82,6 +84,10 @@ into the image.
 
 ## Pages
 
+- `/reports` — cross-period reporting: any date range, grouped by customer /
+  merchant / day / month, filtered by customer, merchant and outcome, with
+  period-on-period comparison and CSV download of both the report and the
+  matching validation runs
 - `/stats` — KPI tiles and daily charts: validations per day (success/failed),
   success rate, and LLM cost, over a selectable 7/30/60/90-day window
 - `/jobs` — job list with Validation/Extraction tabs, search, filters (client,
@@ -96,3 +102,21 @@ into the image.
   full validation history, raw JSON
 
 Every detail page has a collapsible raw JSON view so nothing in the document is hidden.
+
+## Reporting notes
+
+`/reports` aggregates `validationLogs` directly rather than the pre-aggregated
+`stats` collection, because `stats` keeps only a rolling 30 days of daily
+buckets plus monthly rollups while reports need arbitrary ranges back to the
+first run (2026-05-21).
+
+Two data caveats are handled in `lib/reports.ts`:
+
+- **Durations.** 314 runs (all errored, ZiffDavis, from 2026-08-28) store a
+  wall-clock timestamp in `time` instead of an elapsed duration — a bug in the
+  writing service. Values at or above `MAX_PLAUSIBLE_DURATION_MS` are excluded
+  from timing stats, and the UI reports how many runs were counted.
+- **Revenue** is `passed runs × per-client rate` from `CLIENT_VALIDATION_RATES`.
+  It is a crude estimate that ignores minimums, tiers and other contract terms.
+
+Year-on-year comparison is not yet possible: the database starts in May 2026.
