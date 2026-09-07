@@ -35,7 +35,7 @@ export interface ReportFilters {
   to: string; // YYYY-MM-DD inclusive
   clientIds?: string[];
   domains?: string[];
-  outcome?: Outcome;
+  outcomes?: Outcome[];
   failCode?: string;
   groupBy?: GroupBy;
 }
@@ -86,12 +86,16 @@ export function buildMatch(f: ReportFilters): Filter<LogDoc> {
   };
   if (f.clientIds?.length) match.clientId = { $in: f.clientIds };
   if (f.domains?.length) match.domain = { $in: f.domains };
-  if (f.outcome === "passed") match.success = true;
-  if (f.outcome === "failed") {
-    match.success = false;
-    match.reportType = { $ne: "error" };
+  // Each outcome is a different shape of predicate, so several selected
+  // outcomes become an $or rather than merged fields.
+  const clauses: Filter<LogDoc>[] = [];
+  for (const outcome of f.outcomes ?? []) {
+    if (outcome === "passed") clauses.push({ success: true });
+    if (outcome === "failed") clauses.push({ success: false, reportType: { $ne: "error" } });
+    if (outcome === "errored") clauses.push({ reportType: "error" });
   }
-  if (f.outcome === "errored") match.reportType = "error";
+  if (clauses.length === 1) Object.assign(match, clauses[0]);
+  else if (clauses.length > 1) match.$or = clauses;
   if (f.failCode) match.failCodes = f.failCode;
   return match;
 }
@@ -307,14 +311,14 @@ export function parseReportSearch(sp: {
   const to = isIsoDate(one(sp.to)) ? (one(sp.to) as string) : today;
   const from = isIsoDate(one(sp.from)) ? (one(sp.from) as string) : shiftDate(to, -29);
   const groupByRaw = one(sp.groupBy) as GroupBy | undefined;
-  const outcomeRaw = one(sp.outcome) as Outcome | undefined;
+  const outcomesRaw = (listParam(sp.outcomes) ?? listParam(sp.outcome) ?? []) as Outcome[];
   return {
     from: from <= to ? from : to,
     to,
     groupBy: groupByRaw && GROUP_BY_VALUES.includes(groupByRaw) ? groupByRaw : "client",
     clientIds: listParam(sp.clientIds),
     domains: listParam(sp.domains),
-    outcome: outcomeRaw && OUTCOME_VALUES.includes(outcomeRaw) ? outcomeRaw : undefined,
+    outcomes: outcomesRaw.filter((o) => OUTCOME_VALUES.includes(o)),
     failCode: one(sp.failCode),
   };
 }
@@ -326,7 +330,7 @@ export function reportQueryString(f: ReportFilters): string {
   if (f.groupBy) sp.set("groupBy", f.groupBy);
   if (f.clientIds?.length) sp.set("clientIds", f.clientIds.join(","));
   if (f.domains?.length) sp.set("domains", f.domains.join(","));
-  if (f.outcome) sp.set("outcome", f.outcome);
+  if (f.outcomes?.length) sp.set("outcomes", f.outcomes.join(","));
   if (f.failCode) sp.set("failCode", f.failCode);
   return sp.toString();
 }
@@ -377,7 +381,7 @@ export function drillFilters(
   rowKey: string,
   outcome?: Outcome
 ): ReportFilters {
-  const next: ReportFilters = { ...f, outcome: outcome ?? f.outcome };
+  const next: ReportFilters = { ...f, outcomes: outcome ? [outcome] : f.outcomes };
   switch (f.groupBy ?? "client") {
     case "client":
       next.clientIds = [rowKey];

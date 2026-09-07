@@ -136,9 +136,9 @@ export default async function ReportsPage({ searchParams }: { searchParams: Prom
         from={filters.from}
         to={filters.to}
         groupBy={filters.groupBy}
-        outcome={filters.outcome ?? ""}
+        outcomes={filters.outcomes ?? []}
         selectedClients={filters.clientIds ?? []}
-        domain={(filters.domains ?? []).join(",")}
+        selectedDomains={filters.domains ?? []}
       />
 
       <p className="text-xs text-slate-500">

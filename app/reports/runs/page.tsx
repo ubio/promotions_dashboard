@@ -40,13 +40,15 @@ export default async function RunsPage({ searchParams }: { searchParams: Promise
   const backQs = reportQueryString({
     ...filters,
     failCode: undefined,
-    outcome: undefined,
+    outcomes: undefined,
     clientIds: undefined,
     domains: undefined,
   });
 
   const context = [
-    filters.outcome ? OUTCOME_LABEL[filters.outcome] : "All outcomes",
+    filters.outcomes?.length
+      ? filters.outcomes.map((o) => OUTCOME_LABEL[o]).join(" + ")
+      : "All outcomes",
     filters.clientIds?.length ? filters.clientIds.join(", ") : null,
     filters.domains?.length ? filters.domains.join(", ") : null,
   ]

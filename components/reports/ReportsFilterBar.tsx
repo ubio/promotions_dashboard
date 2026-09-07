@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import MultiSelect from "./MultiSelect";
 import { periodPresets, matchPreset } from "./PeriodPresets";
 
 const CONTROL =
@@ -14,10 +15,9 @@ const GROUPS = [
 ];
 
 const OUTCOMES = [
-  { value: "", label: "All outcomes" },
-  { value: "passed", label: "Passed only" },
-  { value: "failed", label: "Failed only" },
-  { value: "errored", label: "Errored only" },
+  { value: "passed", label: "Passed" },
+  { value: "failed", label: "Failed" },
+  { value: "errored", label: "Errored" },
 ];
 
 export default function ReportsFilterBar({
@@ -26,25 +26,22 @@ export default function ReportsFilterBar({
   from,
   to,
   groupBy,
-  outcome,
+  outcomes,
   selectedClients,
-  domain,
+  selectedDomains,
 }: {
   clientIds: string[];
   domains: string[];
   from: string;
   to: string;
   groupBy: string;
-  outcome: string;
+  outcomes: string[];
   selectedClients: string[];
-  domain: string;
+  selectedDomains: string[];
 }) {
   const presets = periodPresets();
-  const initialPreset = matchPreset(from, to)?.key ?? "custom";
-
-  const [periodKey, setPeriodKey] = useState(initialPreset);
+  const [periodKey, setPeriodKey] = useState(matchPreset(from, to)?.key ?? "custom");
   const [range, setRange] = useState({ from, to });
-  const [clients, setClients] = useState<string[]>(selectedClients);
 
   function onPeriodChange(key: string) {
     setPeriodKey(key);
@@ -52,20 +49,8 @@ export default function ReportsFilterBar({
     if (preset) setRange({ from: preset.from, to: preset.to });
   }
 
-  function toggleClient(id: string) {
-    setClients((prev) => (prev.includes(id) ? prev.filter((c) => c !== id) : [...prev, id]));
-  }
-
-  const clientLabel =
-    clients.length === 0
-      ? "All customers"
-      : clients.length === 1
-        ? clients[0]
-        : `${clients.length} customers`;
-
   return (
     <form className="flex flex-wrap items-center gap-2 rounded-lg border border-slate-200 bg-white p-2.5">
-      {/* Period — presets collapse the old five-link row into one control */}
       <select
         value={periodKey}
         onChange={(e) => onPeriodChange(e.target.value)}
@@ -107,58 +92,32 @@ export default function ReportsFilterBar({
         </>
       )}
 
-      {/* Customers — checkbox dropdown, supports one, several or all */}
-      <details className="relative">
-        <summary className={`${CONTROL} cursor-pointer list-none select-none`}>
-          {clientLabel} <span className="text-slate-400">▾</span>
-        </summary>
-        <div className="absolute z-30 mt-1 min-w-48 rounded-lg border border-slate-200 bg-white p-2 shadow-lg">
-          <button
-            type="button"
-            onClick={() => setClients([])}
-            className="mb-1 w-full rounded px-2 py-1 text-left text-xs text-sky-700 hover:bg-slate-100"
-          >
-            All customers
-          </button>
-          {clientIds.map((id) => (
-            <label
-              key={id}
-              className="flex cursor-pointer items-center gap-2 rounded px-2 py-1 text-sm hover:bg-slate-100"
-            >
-              <input
-                type="checkbox"
-                checked={clients.includes(id)}
-                onChange={() => toggleClient(id)}
-              />
-              {id}
-            </label>
-          ))}
-        </div>
-      </details>
-      <input type="hidden" name="clientIds" value={clients.join(",")} />
-
-      {/* Merchant — type-ahead over every known domain */}
-      <input
-        name="domains"
-        list="report-domains"
-        defaultValue={domain}
-        placeholder="All merchants"
-        className={`${CONTROL} w-44`}
-        aria-label="Merchant"
+      <MultiSelect
+        name="clientIds"
+        options={clientIds.map((c) => ({ value: c, label: c }))}
+        selected={selectedClients}
+        allLabel="All customers"
+        noun="customers"
+        searchable={clientIds.length > 8}
       />
-      <datalist id="report-domains">
-        {domains.map((d) => (
-          <option key={d} value={d} />
-        ))}
-      </datalist>
 
-      <select name="outcome" defaultValue={outcome} className={CONTROL} aria-label="Outcome">
-        {OUTCOMES.map((o) => (
-          <option key={o.value} value={o.value}>
-            {o.label}
-          </option>
-        ))}
-      </select>
+      <MultiSelect
+        name="domains"
+        options={domains.map((d) => ({ value: d, label: d }))}
+        selected={selectedDomains}
+        allLabel="All merchants"
+        noun="merchants"
+        searchable
+        width="w-48"
+      />
+
+      <MultiSelect
+        name="outcomes"
+        options={OUTCOMES}
+        selected={outcomes}
+        allLabel="All outcomes"
+        noun="outcomes"
+      />
 
       <span className="flex items-center gap-1.5">
         <span className="text-xs text-slate-500">by</span>
