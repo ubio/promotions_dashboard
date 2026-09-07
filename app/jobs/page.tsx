@@ -1,3 +1,4 @@
+import { redirect } from "next/navigation";
 import Link from "next/link";
 import Badge from "@/components/Badge";
 import Pagination from "@/components/Pagination";
@@ -18,46 +19,16 @@ function str(v: string | string[] | undefined): string | undefined {
   return typeof v === "string" && v !== "" ? v : undefined;
 }
 
+// Superseded by the Promotions hub; kept so old links and bookmarks resolve.
 export default async function JobsPage({ searchParams }: { searchParams: Promise<Search> }) {
   const sp = await searchParams;
-  const type = str(sp.type) === "extraction" ? "extraction" : "validation";
-  const q = str(sp.q);
-  const page = Number(str(sp.page) ?? "1") || 1;
-
-  return (
-    <div className="space-y-4">
-      <div className="flex items-center gap-4">
-        <h1 className="text-xl font-semibold">Jobs</h1>
-        <div className="flex rounded-lg border border-slate-300 bg-white p-0.5 text-sm">
-          <Link
-            href="/jobs"
-            className={`rounded-md px-3 py-1 ${type === "validation" ? "bg-slate-900 text-white" : "text-slate-600 hover:bg-slate-100"}`}
-          >
-            Validation
-          </Link>
-          <Link
-            href="/jobs?type=extraction"
-            className={`rounded-md px-3 py-1 ${type === "extraction" ? "bg-slate-900 text-white" : "text-slate-600 hover:bg-slate-100"}`}
-          >
-            Extraction
-          </Link>
-        </div>
-      </div>
-
-      {type === "validation" ? (
-        <ValidationJobs
-          q={q}
-          clientId={str(sp.clientId)}
-          reportType={str(sp.reportType)}
-          success={str(sp.success)}
-          failCode={str(sp.failCode)}
-          page={page}
-        />
-      ) : (
-        <ExtractionJobs q={q} failedDiscoveryCode={str(sp.failedDiscoveryCode)} page={page} />
-      )}
-    </div>
-  );
+  const params = new URLSearchParams();
+  for (const [k, v] of Object.entries(sp)) {
+    if (k === "type" || v == null) continue;
+    params.set(k, Array.isArray(v) ? v[0] : v);
+  }
+  params.set("tab", str(sp.type) === "extraction" ? "discovery" : "validations");
+  redirect(`/promotions?${params.toString()}`);
 }
 
 export async function ValidationJobs(props: {

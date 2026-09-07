@@ -1,3 +1,4 @@
+import { redirect } from "next/navigation";
 import Link from "next/link";
 import Badge from "@/components/Badge";
 import Pagination from "@/components/Pagination";
@@ -22,50 +23,16 @@ function str(v: string | string[] | undefined): string | undefined {
   return typeof v === "string" && v !== "" ? v : undefined;
 }
 
+// Superseded by the Promotions hub; kept so old links and bookmarks resolve.
 export default async function EventsPage({ searchParams }: { searchParams: Promise<Search> }) {
   const sp = await searchParams;
-  const type = str(sp.type) === "csv" ? "csv" : "bot-detection";
-  const page = Number(str(sp.page) ?? "1") || 1;
-
-  return (
-    <div className="space-y-4">
-      <div className="flex items-center gap-4">
-        <h1 className="text-xl font-semibold">Events</h1>
-        <div className="flex rounded-lg border border-slate-300 bg-white p-0.5 text-sm">
-          <Link
-            href="/events"
-            className={`rounded-md px-3 py-1 ${type === "bot-detection" ? "bg-slate-900 text-white" : "text-slate-600 hover:bg-slate-100"}`}
-          >
-            Bot detection
-          </Link>
-          <Link
-            href="/events?type=csv"
-            className={`rounded-md px-3 py-1 ${type === "csv" ? "bg-slate-900 text-white" : "text-slate-600 hover:bg-slate-100"}`}
-          >
-            CSV
-          </Link>
-        </div>
-      </div>
-
-      {type === "bot-detection" ? (
-        <BotDetectionEvents
-          q={str(sp.q)}
-          date={str(sp.date)}
-          clientId={str(sp.clientId)}
-          status={str(sp.status)}
-          page={page}
-        />
-      ) : (
-        <CsvEvents
-          q={str(sp.q)}
-          date={str(sp.date)}
-          clientId={str(sp.clientId)}
-          eventType={str(sp.eventType)}
-          page={page}
-        />
-      )}
-    </div>
-  );
+  const params = new URLSearchParams();
+  for (const [k, v] of Object.entries(sp)) {
+    if (k === "type" || v == null) continue;
+    params.set(k, Array.isArray(v) ? v[0] : v);
+  }
+  params.set("tab", str(sp.type) === "csv" ? "client-files" : "bot-detection");
+  redirect(`/promotions?${params.toString()}`);
 }
 
 export async function BotDetectionEvents(props: {
