@@ -1,4 +1,6 @@
+import Link from "next/link";
 import {
+  drillFilters,
   getReport,
   getReportClientIds,
   getReportDomains,
@@ -8,6 +10,7 @@ import {
   daysBetween,
   type ReportRow,
   type ReportTotals,
+  type Outcome,
 } from "@/lib/reports";
 import ReportsFilterBar from "@/components/reports/ReportsFilterBar";
 import { ratesConfigured } from "@/lib/rates";
@@ -58,6 +61,26 @@ function Tile({
   );
 }
 
+// Numbers on the report are the navigation: each links to the runs behind it.
+function DrillCell({
+  href,
+  value,
+  className = "",
+}: {
+  href: string;
+  value: number;
+  className?: string;
+}) {
+  if (value === 0) return <td className={`px-3 py-2 text-slate-300 ${className}`}>0</td>;
+  return (
+    <td className={`px-3 py-2 ${className}`}>
+      <Link href={href} className="hover:underline">
+        {formatCount(value)}
+      </Link>
+    </td>
+  );
+}
+
 function rowLabel(row: ReportRow, groupBy: string, names: Map<string, string>): string {
   if (groupBy === "client") return names.get(row.key) ?? row.key;
   return row.key;
@@ -79,6 +102,9 @@ export default async function ReportsPage({ searchParams }: { searchParams: Prom
   const qs = reportQueryString(filters);
   const span = daysBetween(filters.from, filters.to);
   const showRevenue = ratesConfigured();
+
+  const drill = (rowKey: string, outcome?: Outcome) =>
+    `/reports/runs?${reportQueryString(drillFilters(filters, rowKey, outcome))}`;
 
   const t: ReportTotals = current.totals;
   const p: ReportTotals = comparison.totals;
@@ -172,11 +198,23 @@ export default async function ReportsPage({ searchParams }: { searchParams: Prom
                 <td className="whitespace-nowrap px-3 py-2 font-medium">
                   {rowLabel(row, filters.groupBy, names)}
                 </td>
-                <td className="px-3 py-2">{formatCount(row.runs)}</td>
+                <DrillCell href={drill(row.key)} value={row.runs} />
                 <td className="px-3 py-2">{formatCount(row.conclusions)}</td>
-                <td className="px-3 py-2 text-amber-700">{formatCount(row.errors)}</td>
-                <td className="px-3 py-2 text-green-700">{formatCount(row.passed)}</td>
-                <td className="px-3 py-2 text-red-600">{formatCount(row.failed)}</td>
+                <DrillCell
+                  href={drill(row.key, "errored")}
+                  value={row.errors}
+                  className="text-amber-700"
+                />
+                <DrillCell
+                  href={drill(row.key, "passed")}
+                  value={row.passed}
+                  className="text-green-700"
+                />
+                <DrillCell
+                  href={drill(row.key, "failed")}
+                  value={row.failed}
+                  className="text-red-600"
+                />
                 <td className="px-3 py-2">{formatCount(row.distinctCodes)}</td>
                 <td className="whitespace-nowrap px-3 py-2">
                   {row.timedRuns === 0 ? "—" : `${(row.avgTimeMs / 1000).toFixed(1)}s`}
@@ -226,7 +264,8 @@ export default async function ReportsPage({ searchParams }: { searchParams: Prom
       </div>
 
       <p className="text-xs text-slate-400">
-        Counts are validation runs from the job logs; “Codes” is distinct promotion codes touched in
+        Click any count to see the individual validations behind it, with reasons and
+        screenshots. Counts are validation runs from the job logs; “Codes” is distinct promotion codes touched in
         the period. Revenue is a crude estimate (passed runs × per-client rate) and ignores
         contractual terms. Average time covers only runs with a usable duration —
         {" "}

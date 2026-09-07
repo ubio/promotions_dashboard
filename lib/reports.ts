@@ -36,6 +36,7 @@ export interface ReportFilters {
   clientIds?: string[];
   domains?: string[];
   outcome?: Outcome;
+  failCode?: string;
   groupBy?: GroupBy;
 }
 
@@ -91,6 +92,7 @@ export function buildMatch(f: ReportFilters): Filter<LogDoc> {
     match.reportType = { $ne: "error" };
   }
   if (f.outcome === "errored") match.reportType = "error";
+  if (f.failCode) match.failCodes = f.failCode;
   return match;
 }
 
@@ -313,6 +315,7 @@ export function parseReportSearch(sp: {
     clientIds: listParam(sp.clientIds),
     domains: listParam(sp.domains),
     outcome: outcomeRaw && OUTCOME_VALUES.includes(outcomeRaw) ? outcomeRaw : undefined,
+    failCode: one(sp.failCode),
   };
 }
 
@@ -324,5 +327,76 @@ export function reportQueryString(f: ReportFilters): string {
   if (f.clientIds?.length) sp.set("clientIds", f.clientIds.join(","));
   if (f.domains?.length) sp.set("domains", f.domains.join(","));
   if (f.outcome) sp.set("outcome", f.outcome);
+  if (f.failCode) sp.set("failCode", f.failCode);
   return sp.toString();
+}
+
+
+export interface FailCodeCount {
+  code: string;
+  runs: number;
+}
+
+// Why did these runs end up the way they did — the reason breakdown behind a
+// Passed / Failed / Errored count.
+export async function getFailCodeBreakdown(f: ReportFilters): Promise<FailCodeCount[]> {
+  const rows = await logs()
+    .aggregate<{ _id: string; runs: number }>([
+      { $match: buildMatch(f) },
+      { $unwind: "$failCodes" },
+      { $group: { _id: "$failCodes", runs: { $sum: 1 } } },
+      { $sort: { runs: -1 } },
+    ])
+    .toArray();
+  return rows.filter((r) => r._id).map((r) => ({ code: r._id, runs: r.runs }));
+}
+
+export const RUNS_PAGE_SIZE = 50;
+
+export async function getRuns(
+  f: ReportFilters,
+  page: number
+): Promise<{ items: ValidationExportRow[]; total: number; page: number; pages: number }> {
+  const match = buildMatch(f);
+  const total = await logs().countDocuments(match);
+  const pages = Math.max(1, Math.ceil(total / RUNS_PAGE_SIZE));
+  const safePage = Math.min(Math.max(1, page), pages);
+  const items = (await logs()
+    .find(match)
+    .sort({ createdAt: -1 })
+    .skip((safePage - 1) * RUNS_PAGE_SIZE)
+    .limit(RUNS_PAGE_SIZE)
+    .toArray()) as unknown as ValidationExportRow[];
+  return { items, total, page: safePage, pages };
+}
+
+// Narrow the current report filters down to one table row, so a number on the
+// report links straight to the runs behind it.
+export function drillFilters(
+  f: ReportFilters,
+  rowKey: string,
+  outcome?: Outcome
+): ReportFilters {
+  const next: ReportFilters = { ...f, outcome: outcome ?? f.outcome };
+  switch (f.groupBy ?? "client") {
+    case "client":
+      next.clientIds = [rowKey];
+      break;
+    case "merchant":
+      next.domains = [rowKey];
+      break;
+    case "day":
+      next.from = rowKey;
+      next.to = rowKey;
+      break;
+    case "month": {
+      const start = `${rowKey}-01`;
+      const [y, m] = rowKey.split("-").map(Number);
+      const end = new Date(Date.UTC(y, m, 0)).toISOString().slice(0, 10);
+      next.from = f.from > start ? f.from : start;
+      next.to = f.to < end ? f.to : end;
+      break;
+    }
+  }
+  return next;
 }

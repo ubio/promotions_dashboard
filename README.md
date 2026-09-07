@@ -84,6 +84,9 @@ into the image.
 
 ## Pages
 
+- `/reports/runs` — the individual validations behind any number on the report:
+  reason (fail-code) breakdown, LLM reasoning, screenshot evidence, and CSV
+  download of exactly that selection
 - `/reports` — cross-period reporting: any date range, grouped by customer /
   merchant / day / month, filtered by customer, merchant and outcome, with
   period-on-period comparison and CSV download of both the report and the
