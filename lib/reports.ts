@@ -7,6 +7,7 @@
 import type { Document, Filter } from "mongodb";
 import { db } from "./mongo";
 import { rateFor, clientRates } from "./rates";
+import { normalizeValidity, VALIDITY_STATUSES } from "./format";
 
 type LogDoc = Document & { _id: string };
 
@@ -27,7 +28,7 @@ function logs() {
   return db().collection<LogDoc>("validationLogs");
 }
 
-export type GroupBy = "client" | "merchant" | "day" | "month";
+export type GroupBy = "client" | "merchant" | "day" | "month" | "year" | "batch";
 export type Outcome = "passed" | "failed" | "errored";
 
 export interface ReportFilters {
@@ -108,6 +109,10 @@ function groupKeyExpr(groupBy: GroupBy): Document | string {
       return { $dateToString: { format: "%Y-%m-%d", date: { $toDate: "$createdAt" } } };
     case "month":
       return { $dateToString: { format: "%Y-%m", date: { $toDate: "$createdAt" } } };
+    case "year":
+      return { $dateToString: { format: "%Y", date: { $toDate: "$createdAt" } } };
+    case "batch":
+      return { $ifNull: ["$importBundle", ""] };
     default:
       return "$clientId";
   }
@@ -223,9 +228,8 @@ export async function getReport(
 
   const rows = [...byKey.values()].map(finish);
   const groupBy = f.groupBy ?? "client";
-  rows.sort((a, b) =>
-    groupBy === "day" || groupBy === "month" ? a.key.localeCompare(b.key) : b.runs - a.runs
-  );
+  const chronological = groupBy === "day" || groupBy === "month" || groupBy === "year";
+  rows.sort((a, b) => (chronological ? a.key.localeCompare(b.key) : b.runs - a.runs));
 
   const totalRow = finish(totals);
   const totalRest: ReportTotals = { ...totalRow, key: undefined } as ReportTotals;
@@ -286,7 +290,7 @@ export async function getValidationsForExport(
     .toArray() as Promise<ValidationExportRow[]>;
 }
 
-export const GROUP_BY_VALUES: GroupBy[] = ["client", "merchant", "day", "month"];
+export const GROUP_BY_VALUES: GroupBy[] = ["client", "merchant", "day", "month", "year", "batch"];
 export const OUTCOME_VALUES: Outcome[] = ["passed", "failed", "errored"];
 
 function isIsoDate(v: string | undefined): v is string {
@@ -403,4 +407,97 @@ export function drillFilters(
     }
   }
   return next;
+}
+
+
+export interface BatchMeta {
+  bundleId: string;
+  clientId?: string;
+  receivedAt?: number;
+  deliveredAt?: number;
+  records: number;
+}
+
+// Batch timings come from the client CSV events (a batch is received as an
+// import file and delivered as an export file); the validation runs themselves
+// only carry the bundle id. Instrumentation started 2026-09-03, so older
+// batches have runs and cost but no turnaround.
+export async function getBatchMeta(bundleIds: string[]): Promise<Map<string, BatchMeta>> {
+  const ids = bundleIds.filter(Boolean);
+  if (ids.length === 0) return new Map();
+  const rows = await db()
+    .collection("clientCsvEvents")
+    .aggregate<{
+      _id: string;
+      clientId?: string;
+      received?: number | null;
+      delivered?: number | null;
+      records?: number;
+    }>([
+      { $match: { bundleId: { $in: ids } } },
+      {
+        $group: {
+          _id: "$bundleId",
+          clientId: { $first: "$clientId" },
+          received: {
+            $min: {
+              $cond: [{ $eq: ["$eventType", "client-record-import"] }, "$createdAt", null],
+            },
+          },
+          delivered: {
+            $max: {
+              $cond: [{ $eq: ["$eventType", "promotions-export"] }, "$createdAt", null],
+            },
+          },
+          records: { $sum: { $ifNull: ["$recordCount", 0] } },
+        },
+      },
+    ])
+    .toArray();
+  return new Map(
+    rows.map((r) => [
+      r._id,
+      {
+        bundleId: r._id,
+        clientId: r.clientId,
+        receivedAt: r.received ?? undefined,
+        deliveredAt: r.delivered ?? undefined,
+        records: r.records ?? 0,
+      },
+    ])
+  );
+}
+
+export interface ValidityCount {
+  label: string;
+  value: number;
+}
+
+// Promotion-level outcome for the filtered period. This is a different grain
+// from the run counts: one row per offer, carrying its accumulated verdict.
+// Unrecognised statuses fall into "other" rather than being dropped.
+export async function getValidityForPeriod(f: ReportFilters): Promise<ValidityCount[]> {
+  const match: Filter<LogDoc> = {
+    "systemMeta.createdAt": { $gte: dayStartMs(f.from), $lt: dayEndMs(f.to) },
+  };
+  if (f.clientIds?.length) match.clientId = { $in: f.clientIds };
+  if (f.domains?.length) match.domain = { $in: f.domains };
+
+  const rows = await db()
+    .collection<LogDoc>("promotions")
+    .aggregate<{ _id: string | null; n: number }>([
+      { $match: match },
+      { $group: { _id: "$validityStatus", n: { $sum: 1 } } },
+    ])
+    .toArray();
+
+  const counts = new Map<string, number>(VALIDITY_STATUSES.map((s) => [s, 0]));
+  for (const r of rows) {
+    const key = normalizeValidity(r._id);
+    const bucket = counts.has(key) ? key : "other";
+    counts.set(bucket, (counts.get(bucket) ?? 0) + r.n);
+  }
+  return [...counts.entries()]
+    .filter(([, value]) => value > 0)
+    .map(([label, value]) => ({ label, value }));
 }

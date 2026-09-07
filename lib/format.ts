@@ -32,6 +32,7 @@ export function normalizeValidity(status?: string | null): string {
   const map: Record<string, string> = {
     cannotValidate: "cannot_validate",
     insufficientValidations: "insufficient_validations",
+    merchantAutomationIssues: "merchant_automation_issues",
   };
   return map[status] ?? status;
 }
@@ -41,6 +42,7 @@ export function validityVariants(normalized: string): string[] {
   const variants: Record<string, string[]> = {
     cannot_validate: ["cannot_validate", "cannotValidate"],
     insufficient_validations: ["insufficient_validations", "insufficientValidations"],
+    merchant_automation_issues: ["merchant_automation_issues", "merchantAutomationIssues"],
   };
   return variants[normalized] ?? [normalized];
 }
@@ -49,6 +51,7 @@ export const VALIDITY_STATUSES = [
   "valid",
   "invalid",
   "cannot_validate",
+  "merchant_automation_issues",
   "insufficient_validations",
 ] as const;
 

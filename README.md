@@ -91,10 +91,10 @@ into the image.
 - `/reports/runs` — the individual validations behind any number on the report:
   reason (fail-code) breakdown, LLM reasoning, screenshot evidence, and CSV
   download of exactly that selection
-- `/reports` — cross-period reporting: any date range, grouped by customer /
-  merchant / day / month, filtered by customer, merchant and outcome, with
-  period-on-period comparison and CSV download of both the report and the
-  matching validation runs
+- `/reports` — cross-period reporting; break down by customer, merchant, day,
+  month, year or **batch** (batch rows add received / delivered / turnaround
+  from the client CSV events), plus a promotion-level validity summary for the
+  filtered period, with period-on-period comparison and CSV downloads
 - `/stats` — KPI tiles and daily charts: validations per day (success/failed),
   success rate, and LLM cost, over a selectable 7/30/60/90-day window
 - `/jobs/validation/[id]` — full validation job: result, reasoning, promotion under
@@ -122,3 +122,7 @@ Two data caveats are handled in `lib/reports.ts`:
   It is a crude estimate that ignores minimums, tiers and other contract terms.
 
 Year-on-year comparison is not yet possible: the database starts in May 2026.
+
+Batch turnaround is only available from 2026-09-03, when the client CSV import
+and export events began being recorded, and only for batches that have both
+events; older batches show runs and cost but no timings.

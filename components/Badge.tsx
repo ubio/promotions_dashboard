@@ -2,6 +2,7 @@ const STYLES: Record<string, string> = {
   valid: "bg-green-100 text-green-800",
   invalid: "bg-red-100 text-red-700",
   cannot_validate: "bg-amber-100 text-amber-800",
+  merchant_automation_issues: "bg-orange-100 text-orange-800",
   insufficient_validations: "bg-slate-200 text-slate-700",
   unknown: "bg-slate-100 text-slate-500",
   success: "bg-green-100 text-green-800",

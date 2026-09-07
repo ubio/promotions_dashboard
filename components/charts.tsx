@@ -183,6 +183,7 @@ export function ValidityBar({
     valid: GOOD,
     invalid: CRITICAL,
     cannot_validate: WARNING,
+    merchant_automation_issues: "#eb6834",
     insufficient_validations: NEUTRAL,
   };
   const total = counts.reduce((s, c) => s + c.value, 0);

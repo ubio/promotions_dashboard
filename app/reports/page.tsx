@@ -1,7 +1,9 @@
 import Link from "next/link";
 import {
   drillFilters,
+  getBatchMeta,
   getReport,
+  getValidityForPeriod,
   getReportClientIds,
   getReportDomains,
   parseReportSearch,
@@ -14,7 +16,8 @@ import {
 } from "@/lib/reports";
 import ReportsFilterBar from "@/components/reports/ReportsFilterBar";
 import { ratesConfigured } from "@/lib/rates";
-import { formatCost, formatCount } from "@/lib/format";
+import { formatCost, formatCount, formatDate, formatDuration } from "@/lib/format";
+import { ValidityBar } from "@/components/charts";
 
 export const dynamic = "force-dynamic";
 
@@ -25,6 +28,8 @@ const GROUPS: { value: string; label: string }[] = [
   { value: "merchant", label: "Merchant" },
   { value: "day", label: "Day" },
   { value: "month", label: "Month" },
+  { value: "year", label: "Year" },
+  { value: "batch", label: "Batch" },
 ];
 
 
@@ -83,6 +88,7 @@ function DrillCell({
 
 function rowLabel(row: ReportRow, groupBy: string, names: Map<string, string>): string {
   if (groupBy === "client") return names.get(row.key) ?? row.key;
+  if (groupBy === "batch") return row.key === "" ? "(no batch recorded)" : row.key;
   return row.key;
 }
 
@@ -91,12 +97,20 @@ export default async function ReportsPage({ searchParams }: { searchParams: Prom
   const filters = parseReportSearch(sp);
   const prev = previousPeriod(filters.from, filters.to);
 
-  const [current, comparison, clientIds, domains] = await Promise.all([
+  const [current, comparison, clientIds, domains, validity] = await Promise.all([
     getReport(filters),
     getReport({ ...filters, ...prev }),
     getReportClientIds(),
     getReportDomains(),
+    getValidityForPeriod(filters),
   ]);
+
+  // Batch rows gain receipt/delivery timings from the client CSV events.
+  const isBatch = filters.groupBy === "batch";
+  const batchMeta = isBatch
+    ? await getBatchMeta(current.rows.map((r) => r.key))
+    : new Map();
+  const validityTotal = validity.reduce((sum, v) => sum + v.value, 0);
 
   const names = new Map<string, string>();
   const qs = reportQueryString(filters);
@@ -174,6 +188,15 @@ export default async function ReportsPage({ searchParams }: { searchParams: Prom
         />
       </div>
 
+      {validityTotal > 0 && (
+        <div className="rounded-lg border border-slate-200 bg-white p-3">
+          <p className="mb-2 text-xs uppercase tracking-wide text-slate-400">
+            Offers created in this period — {formatCount(validityTotal)}
+          </p>
+          <ValidityBar counts={validity} />
+        </div>
+      )}
+
       <div className="flex flex-wrap items-center gap-2">
         <span className="text-xs text-slate-500">Break down by</span>
         <div className="flex rounded-lg border border-slate-300 bg-white p-0.5 text-sm w-fit">
@@ -200,6 +223,9 @@ export default async function ReportsPage({ searchParams }: { searchParams: Prom
               <th className="px-3 py-2">
                 {GROUPS.find((g) => g.value === filters.groupBy)?.label}
               </th>
+              {isBatch && <th className="px-3 py-2">Received</th>}
+              {isBatch && <th className="px-3 py-2">Delivered</th>}
+              {isBatch && <th className="px-3 py-2">Turnaround</th>}
               <th className="px-3 py-2">Runs</th>
               <th className="px-3 py-2">Conclusions</th>
               <th className="px-3 py-2">Errors</th>
@@ -217,6 +243,25 @@ export default async function ReportsPage({ searchParams }: { searchParams: Prom
                 <td className="whitespace-nowrap px-3 py-2 font-medium">
                   {rowLabel(row, filters.groupBy, names)}
                 </td>
+                {isBatch &&
+                  (() => {
+                    const m = batchMeta.get(row.key);
+                    const turnaround =
+                      m?.receivedAt && m?.deliveredAt ? m.deliveredAt - m.receivedAt : null;
+                    return (
+                      <>
+                        <td className="whitespace-nowrap px-3 py-2 text-slate-600">
+                          {m?.receivedAt ? formatDate(m.receivedAt) : "—"}
+                        </td>
+                        <td className="whitespace-nowrap px-3 py-2 text-slate-600">
+                          {m?.deliveredAt ? formatDate(m.deliveredAt) : "—"}
+                        </td>
+                        <td className="whitespace-nowrap px-3 py-2 font-medium">
+                          {turnaround == null ? "—" : formatDuration(turnaround)}
+                        </td>
+                      </>
+                    );
+                  })()}
                 <DrillCell href={drill(row.key)} value={row.runs} />
                 <td className="px-3 py-2">{formatCount(row.conclusions)}</td>
                 <DrillCell
@@ -251,7 +296,10 @@ export default async function ReportsPage({ searchParams }: { searchParams: Prom
             ))}
             {current.rows.length === 0 && (
               <tr>
-                <td colSpan={showRevenue ? 10 : 9} className="px-3 py-8 text-center text-slate-400">
+                <td
+                  colSpan={(showRevenue ? 10 : 9) + (isBatch ? 3 : 0)}
+                  className="px-3 py-8 text-center text-slate-400"
+                >
                   No validations in this range.
                 </td>
               </tr>
@@ -261,6 +309,7 @@ export default async function ReportsPage({ searchParams }: { searchParams: Prom
             <tfoot className="border-t-2 border-slate-200 bg-slate-50 font-medium">
               <tr>
                 <td className="px-3 py-2">Total</td>
+                {isBatch && <td colSpan={3} className="px-3 py-2" />}
                 <td className="px-3 py-2">{formatCount(t.runs)}</td>
                 <td className="px-3 py-2">{formatCount(t.conclusions)}</td>
                 <td className="px-3 py-2">{formatCount(t.errors)}</td>
