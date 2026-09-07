@@ -55,9 +55,6 @@ export default async function RootLayout({
                   <Link href="/promotions" className="hover:text-white">
                     Promotions
                   </Link>
-                  <Link href="/merchants" className="hover:text-white">
-                    Merchants
-                  </Link>
                 </>
               )}
             </nav>

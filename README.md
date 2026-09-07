@@ -100,8 +100,6 @@ into the image.
 - `/jobs/validation/[id]` — full validation job: result, reasoning, promotion under
   validation, screenshot/video evidence, LLM costs, raw JSON
 - `/jobs/extraction/[id]` — full extraction job: visited URLs, promotions found, raw JSON
-- `/merchants` — per-merchant validation stats joined with LLM costs aggregated
-  from that merchant's jobs
 - `/promotions/[id]` — promotion details: conditions, benefits, applicability,
   full validation history, raw JSON
 
