@@ -34,15 +34,6 @@ async function PromotionsList({ sp }: { sp: Search }) {
       <form className="flex flex-wrap items-end gap-3 rounded-lg border border-slate-200 bg-white p-3 text-sm">
         <input type="hidden" name="tab" value="promotions" />
         <label className="flex max-w-full flex-col gap-1">
-          <span className="text-xs text-slate-500">Search (domain, description, code, id)</span>
-          <input
-            name="q"
-            defaultValue={q ?? ""}
-            className="w-72 max-w-full rounded border border-slate-300 px-2 py-1.5"
-            placeholder="e.g. aloyoga.com or SAVE25"
-          />
-        </label>
-        <label className="flex max-w-full flex-col gap-1">
           <span className="text-xs text-slate-500">Client</span>
           <select name="clientId" defaultValue={clientId ?? ""} className="max-w-full rounded border border-slate-300 px-2 py-1.5">
             <option value="">All</option>
@@ -68,7 +59,16 @@ async function PromotionsList({ sp }: { sp: Search }) {
         <Link href="/promotions" className="py-1.5 text-slate-500 hover:text-slate-700">
           Reset
         </Link>
-      </form>
+              <label className="ml-auto flex max-w-full flex-col gap-1">
+          <span className="text-xs text-slate-500">Search (domain, description, code, id)</span>
+          <input
+            name="q"
+            defaultValue={q ?? ""}
+            className="w-72 max-w-full rounded border border-slate-300 px-2 py-1.5"
+            placeholder="e.g. aloyoga.com or SAVE25"
+          />
+        </label>
+        </form>
 
       <div className="overflow-x-auto rounded-lg border border-slate-200 bg-white">
         <table className="min-w-full text-sm">

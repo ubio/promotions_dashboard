@@ -18,6 +18,7 @@ export default function MultiSelect({
   noun,
   searchable = false,
   width = "w-44",
+  onCommit,
 }: {
   name: string;
   options: Option[];
@@ -26,22 +27,31 @@ export default function MultiSelect({
   noun: string;
   searchable?: boolean;
   width?: string;
+  // Fired when the dropdown closes after the selection changed, so the page
+  // can refresh once per decision rather than once per tick.
+  onCommit?: () => void;
 }) {
   const [open, setOpen] = useState(false);
   const [values, setValues] = useState<string[]>(selected);
   const [query, setQuery] = useState("");
   const ref = useRef<HTMLDivElement>(null);
+  const committed = useRef<string>(selected.join(","));
+
+  const close = () => {
+    setOpen(false);
+    setQuery("");
+  };
 
   useEffect(() => {
     if (!open) return;
     const onPointerDown = (e: PointerEvent) => {
-      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
+      if (ref.current && !ref.current.contains(e.target as Node)) close();
     };
     const onKeyDown = (e: KeyboardEvent) => {
-      if (e.key === "Escape") setOpen(false);
+      if (e.key === "Escape") close();
     };
     const onFocusIn = (e: FocusEvent) => {
-      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
+      if (ref.current && !ref.current.contains(e.target as Node)) close();
     };
     document.addEventListener("pointerdown", onPointerDown);
     document.addEventListener("keydown", onKeyDown);
@@ -52,6 +62,14 @@ export default function MultiSelect({
       document.removeEventListener("focusin", onFocusIn);
     };
   }, [open]);
+
+  useEffect(() => {
+    if (open) return;
+    const next = values.join(",");
+    if (next === committed.current) return;
+    committed.current = next;
+    onCommit?.();
+  }, [open, values, onCommit]);
 
   const toggle = (value: string) =>
     setValues((prev) =>
@@ -75,7 +93,7 @@ export default function MultiSelect({
       <input type="hidden" name={name} value={values.join(",")} />
       <button
         type="button"
-        onClick={() => setOpen((o) => !o)}
+        onClick={() => (open ? close() : setOpen(true))}
         aria-expanded={open}
         className={`flex ${width} items-center justify-between gap-2 rounded border border-slate-300 bg-white px-2 py-1.5 text-left text-sm ${
           values.length ? "text-slate-800" : "text-slate-500"

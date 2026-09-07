@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useCallback, useRef, useState } from "react";
 import MultiSelect from "./MultiSelect";
 import { periodPresets, matchPreset } from "./PeriodPresets";
 
@@ -37,15 +37,28 @@ export default function ReportsFilterBar({
   const presets = periodPresets();
   const [periodKey, setPeriodKey] = useState(matchPreset(from, to)?.key ?? "custom");
   const [range, setRange] = useState({ from, to });
+  const formRef = useRef<HTMLFormElement>(null);
+
+  // Filters apply as soon as a choice is made. Multi-selects commit when they
+  // close rather than on each tick, so one decision costs one request.
+  // setTimeout rather than requestAnimationFrame: rAF is paused in background
+  // tabs, which would silently drop the submit. The 0ms defer lets React flush
+  // the state change into the hidden inputs first.
+  const commit = useCallback(() => {
+    setTimeout(() => formRef.current?.requestSubmit(), 0);
+  }, []);
 
   function onPeriodChange(key: string) {
     setPeriodKey(key);
     const preset = presets.find((p) => p.key === key);
-    if (preset) setRange({ from: preset.from, to: preset.to });
+    if (preset) {
+      setRange({ from: preset.from, to: preset.to });
+      commit();
+    }
   }
 
   return (
-    <form action={action} className="flex flex-wrap items-center gap-2 rounded-lg border border-slate-200 bg-white p-2.5">
+    <form ref={formRef} action={action} className="flex flex-wrap items-center gap-2 rounded-lg border border-slate-200 bg-white p-2.5">
       <select
         value={periodKey}
         onChange={(e) => onPeriodChange(e.target.value)}
@@ -67,6 +80,7 @@ export default function ReportsFilterBar({
             name="from"
             value={range.from}
             onChange={(e) => setRange((r) => ({ ...r, from: e.target.value }))}
+            onBlur={commit}
             className={CONTROL}
             aria-label="From"
           />
@@ -76,6 +90,7 @@ export default function ReportsFilterBar({
             name="to"
             value={range.to}
             onChange={(e) => setRange((r) => ({ ...r, to: e.target.value }))}
+            onBlur={commit}
             className={CONTROL}
             aria-label="To"
           />
@@ -94,6 +109,7 @@ export default function ReportsFilterBar({
         allLabel="All customers"
         noun="customers"
         searchable={clientIds.length > 8}
+        onCommit={commit}
       />
 
       <MultiSelect
@@ -104,6 +120,7 @@ export default function ReportsFilterBar({
         noun="merchants"
         searchable
         width="w-48"
+        onCommit={commit}
       />
 
       <MultiSelect
@@ -112,16 +129,18 @@ export default function ReportsFilterBar({
         selected={outcomes}
         allLabel="All outcomes"
         noun="outcomes"
+        onCommit={commit}
       />
 
       {/* Breakdown is a property of the table, not a filter — it lives above the
           table. Carried here so applying filters keeps the current breakdown. */}
       <input type="hidden" name="groupBy" value={groupBy} />
 
-      <button className="rounded bg-slate-900 px-4 py-1.5 text-sm text-white hover:bg-slate-700">
-        Apply
-      </button>
-      <a href={action} className="px-1 text-sm text-slate-500 hover:text-slate-700">
+      {/* Filters apply on selection; this keeps the form usable without JS. */}
+      <noscript>
+        <button className="rounded bg-slate-900 px-4 py-1.5 text-sm text-white">Apply</button>
+      </noscript>
+      <a href={action} className="ml-auto px-1 text-sm text-slate-500 hover:text-slate-700">
         Reset
       </a>
     </form>

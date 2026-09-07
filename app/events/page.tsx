@@ -65,15 +65,6 @@ export async function BotDetectionEvents(props: {
       <form className="flex flex-wrap items-end gap-3 rounded-lg border border-slate-200 bg-white p-3 text-sm">
         {props.tab && <input type="hidden" name="tab" value={props.tab} />}
         <label className="flex max-w-full flex-col gap-1">
-          <span className="text-xs text-slate-500">Search (domain, merchant id, promotion id)</span>
-          <input
-            name="q"
-            defaultValue={props.q ?? ""}
-            className="w-64 max-w-full rounded border border-slate-300 px-2 py-1.5"
-            placeholder="e.g. bestbuy.com"
-          />
-        </label>
-        <label className="flex max-w-full flex-col gap-1">
           <span className="text-xs text-slate-500">Detected date (UTC)</span>
           <input
             name="date"
@@ -103,7 +94,25 @@ export async function BotDetectionEvents(props: {
         <Link href={props.tab ? `/promotions?tab=${props.tab}` : "/events"} className="py-1.5 text-slate-500 hover:text-slate-700">
           Reset
         </Link>
-      </form>
+              <label className="ml-auto flex max-w-full flex-col gap-1">
+          <span className="text-xs text-slate-500">Search (domain, merchant id, promotion id)</span>
+          <input
+            name="q"
+            defaultValue={props.q ?? ""}
+            className="w-64 max-w-full rounded border border-slate-300 px-2 py-1.5"
+            placeholder="e.g. bestbuy.com"
+          />
+        </label>
+                <label className="ml-auto flex max-w-full flex-col gap-1">
+          <span className="text-xs text-slate-500">Search (CSV name, bundle id)</span>
+          <input
+            name="q"
+            defaultValue={props.q ?? ""}
+            className="w-64 max-w-full rounded border border-slate-300 px-2 py-1.5"
+            placeholder="e.g. promotions-sku"
+          />
+        </label>
+        </form>
 
       <div className="overflow-x-auto rounded-lg border border-slate-200 bg-white">
         <table className="min-w-full text-sm">
@@ -211,15 +220,6 @@ export async function CsvEvents(props: {
       <form className="flex flex-wrap items-end gap-3 rounded-lg border border-slate-200 bg-white p-3 text-sm">
         {props.tab && <input type="hidden" name="tab" value={props.tab} />}
         <input type="hidden" name="type" value="csv" />
-        <label className="flex max-w-full flex-col gap-1">
-          <span className="text-xs text-slate-500">Search (CSV name, bundle id)</span>
-          <input
-            name="q"
-            defaultValue={props.q ?? ""}
-            className="w-64 max-w-full rounded border border-slate-300 px-2 py-1.5"
-            placeholder="e.g. promotions-sku"
-          />
-        </label>
         <label className="flex max-w-full flex-col gap-1">
           <span className="text-xs text-slate-500">Created date (UTC)</span>
           <input

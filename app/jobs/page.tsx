@@ -63,15 +63,6 @@ export async function ValidationJobs(props: {
       <form className="flex flex-wrap items-end gap-3 rounded-lg border border-slate-200 bg-white p-3 text-sm">
         {props.tab && <input type="hidden" name="tab" value={props.tab} />}
         <label className="flex max-w-full flex-col gap-1">
-          <span className="text-xs text-slate-500">Search (domain, URL, promotion id)</span>
-          <input
-            name="q"
-            defaultValue={props.q ?? ""}
-            className="w-64 max-w-full rounded border border-slate-300 px-2 py-1.5"
-            placeholder="e.g. bestbuy.com"
-          />
-        </label>
-        <label className="flex max-w-full flex-col gap-1">
           <span className="text-xs text-slate-500">Client</span>
           <select name="clientId" defaultValue={props.clientId ?? ""} className="max-w-full rounded border border-slate-300 px-2 py-1.5">
             <option value="">All</option>
@@ -109,7 +100,25 @@ export async function ValidationJobs(props: {
         <Link href={props.tab ? `/promotions?tab=${props.tab}` : "/jobs"} className="py-1.5 text-slate-500 hover:text-slate-700">
           Reset
         </Link>
-      </form>
+              <label className="ml-auto flex max-w-full flex-col gap-1">
+          <span className="text-xs text-slate-500">Search (domain, URL, promotion id)</span>
+          <input
+            name="q"
+            defaultValue={props.q ?? ""}
+            className="w-64 max-w-full rounded border border-slate-300 px-2 py-1.5"
+            placeholder="e.g. bestbuy.com"
+          />
+        </label>
+                <label className="ml-auto flex max-w-full flex-col gap-1">
+          <span className="text-xs text-slate-500">Search (domain, URL)</span>
+          <input
+            name="q"
+            defaultValue={props.q ?? ""}
+            className="w-64 max-w-full rounded border border-slate-300 px-2 py-1.5"
+            placeholder="e.g. dominos.com"
+          />
+        </label>
+        </form>
 
       <div className="overflow-x-auto rounded-lg border border-slate-200 bg-white">
         <table className="min-w-full text-sm">
@@ -198,15 +207,6 @@ export async function ExtractionJobs(props: {
       <form className="flex flex-wrap items-end gap-3 rounded-lg border border-slate-200 bg-white p-3 text-sm">
         {props.tab && <input type="hidden" name="tab" value={props.tab} />}
         <input type="hidden" name="type" value="extraction" />
-        <label className="flex max-w-full flex-col gap-1">
-          <span className="text-xs text-slate-500">Search (domain, URL)</span>
-          <input
-            name="q"
-            defaultValue={props.q ?? ""}
-            className="w-64 max-w-full rounded border border-slate-300 px-2 py-1.5"
-            placeholder="e.g. dominos.com"
-          />
-        </label>
         <label className="flex max-w-full flex-col gap-1">
           <span className="text-xs text-slate-500">Discovery failure</span>
           <select

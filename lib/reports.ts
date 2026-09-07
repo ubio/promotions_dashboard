@@ -237,12 +237,25 @@ export async function getReport(
   return { rows, totals: totalRest };
 }
 
+// Filter options change rarely but are fetched on every render; a short TTL
+// keeps auto-applying filters cheap (clientId distinct was the slowest query).
+const OPTIONS_TTL_MS = 60_000;
+const optionsCache = new Map<string, { at: number; values: string[] }>();
+
+async function distinctCached(field: string): Promise<string[]> {
+  const hit = optionsCache.get(field);
+  if (hit && Date.now() - hit.at < OPTIONS_TTL_MS) return hit.values;
+  const values = (await logs().distinct(field)).filter(Boolean).sort() as string[];
+  optionsCache.set(field, { at: Date.now(), values });
+  return values;
+}
+
 export async function getReportClientIds(): Promise<string[]> {
-  return (await logs().distinct("clientId")).filter(Boolean).sort() as string[];
+  return distinctCached("clientId");
 }
 
 export async function getReportDomains(): Promise<string[]> {
-  return (await logs().distinct("domain")).filter(Boolean).sort() as string[];
+  return distinctCached("domain");
 }
 
 export interface ValidationExportRow {
