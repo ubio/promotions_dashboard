@@ -4,7 +4,7 @@ import Link from "next/link";
 // their two nested sub-tab strips. Labels avoid internal jargon ("jobs",
 // "extraction", "CSV") that confused non-technical users.
 export const BROWSE_TABS = [
-  { key: "promotions", label: "Promotions", hint: "The offers and codes we validate" },
+  { key: "promotions", label: "Offers", hint: "The promotional offers and codes we validate" },
   { key: "validations", label: "Validations", hint: "Each check we ran against a promotion" },
   { key: "discovery", label: "Discovery", hint: "Runs that look for new promotions on merchant sites" },
   { key: "bot-detection", label: "Bot detection", hint: "Merchants that blocked our automation" },

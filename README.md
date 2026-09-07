@@ -84,7 +84,7 @@ into the image.
 
 ## Pages
 
-- `/promotions` — one browsing hub with flat tabs: Promotions, Validations,
+- `/promotions` — one browsing hub with flat tabs: Offers, Validations,
   Discovery, Bot detection, Client files. Replaces the separate Jobs, Events and
   Promotions nav items and their nested sub-tabs; `/jobs` and `/events` still
   resolve for old links

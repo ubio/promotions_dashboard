@@ -162,12 +162,12 @@ export default async function PromotionsHub({
 
   return (
     <div className="space-y-4">
-      <div className="flex flex-wrap items-baseline gap-x-4 gap-y-1">
-        <h1 className="text-xl font-semibold">{meta.label}</h1>
+      {/* The tab strip is the heading; the h1 stays for screen readers only. */}
+      <h1 className="sr-only">{meta.label}</h1>
+      <div className="flex flex-wrap items-center gap-x-4 gap-y-1.5">
+        <BrowseTabs active={tab} />
         <p className="text-xs text-slate-500">{meta.hint}</p>
       </div>
-
-      <BrowseTabs active={tab} />
 
       {tab === "promotions" && <PromotionsList sp={sp} />}
       {tab === "validations" && (

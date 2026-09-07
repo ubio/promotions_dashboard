@@ -37,7 +37,7 @@ export default async function PromotionPage({ params }: { params: Promise<{ id: 
     <div className="space-y-4">
       <div>
         <Link href="/promotions" className="text-sm text-sky-700 hover:underline">
-          ← Back to promotions
+          ← Back to offers
         </Link>
         <div className="mt-1 flex flex-wrap items-center gap-3">
           <h1 className="text-xl font-semibold">Promotion</h1>
