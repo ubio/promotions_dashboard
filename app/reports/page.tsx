@@ -1,4 +1,3 @@
-import Link from "next/link";
 import {
   getReport,
   getReportClientIds,
@@ -7,10 +6,10 @@ import {
   previousPeriod,
   reportQueryString,
   daysBetween,
-  shiftDate,
   type ReportRow,
   type ReportTotals,
 } from "@/lib/reports";
+import ReportsFilterBar from "@/components/reports/ReportsFilterBar";
 import { ratesConfigured } from "@/lib/rates";
 import { formatCost, formatCount } from "@/lib/format";
 
@@ -25,30 +24,8 @@ const GROUPS: { value: string; label: string }[] = [
   { value: "month", label: "Month" },
 ];
 
-function monthStart(offset = 0): string {
-  const now = new Date();
-  return new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() + offset, 1))
-    .toISOString()
-    .slice(0, 10);
-}
 
-function monthEnd(offset = 0): string {
-  const now = new Date();
-  return new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() + offset + 1, 0))
-    .toISOString()
-    .slice(0, 10);
-}
 
-function presets(): { label: string; from: string; to: string }[] {
-  const today = new Date().toISOString().slice(0, 10);
-  return [
-    { label: "Last 7 days", from: shiftDate(today, -6), to: today },
-    { label: "Last 30 days", from: shiftDate(today, -29), to: today },
-    { label: "This month", from: monthStart(), to: today },
-    { label: "Last month", from: monthStart(-1), to: monthEnd(-1) },
-    { label: "This year", from: `${today.slice(0, 4)}-01-01`, to: today },
-  ];
-}
 
 function Delta({ current, previous }: { current: number; previous: number }) {
   if (previous === 0) {
@@ -116,115 +93,27 @@ export default async function ReportsPage({ searchParams }: { searchParams: Prom
             href={`/api/reports/summary?${qs}`}
             className="rounded border border-slate-300 bg-white px-3 py-1.5 hover:bg-slate-100"
           >
-            ⭳ Download report (CSV)
+            ↓ Download report (CSV)
           </a>
           <a
             href={`/api/reports/validations?${qs}`}
             className="rounded border border-slate-300 bg-white px-3 py-1.5 hover:bg-slate-100"
           >
-            ⭳ Download validations (CSV)
+            ↓ Download validations (CSV)
           </a>
         </div>
       </div>
 
-      <form className="space-y-3 rounded-lg border border-slate-200 bg-white p-3 text-sm">
-        <div className="flex flex-wrap items-end gap-3">
-          <label className="flex max-w-full flex-col gap-1">
-            <span className="text-xs text-slate-500">From</span>
-            <input
-              type="date"
-              name="from"
-              defaultValue={filters.from}
-              className="max-w-full rounded border border-slate-300 px-2 py-1.5"
-            />
-          </label>
-          <label className="flex max-w-full flex-col gap-1">
-            <span className="text-xs text-slate-500">To</span>
-            <input
-              type="date"
-              name="to"
-              defaultValue={filters.to}
-              className="max-w-full rounded border border-slate-300 px-2 py-1.5"
-            />
-          </label>
-          <label className="flex max-w-full flex-col gap-1">
-            <span className="text-xs text-slate-500">Group by</span>
-            <select
-              name="groupBy"
-              defaultValue={filters.groupBy}
-              className="max-w-full rounded border border-slate-300 px-2 py-1.5"
-            >
-              {GROUPS.map((g) => (
-                <option key={g.value} value={g.value}>
-                  {g.label}
-                </option>
-              ))}
-            </select>
-          </label>
-          <label className="flex max-w-full flex-col gap-1">
-            <span className="text-xs text-slate-500">Outcome</span>
-            <select
-              name="outcome"
-              defaultValue={filters.outcome ?? ""}
-              className="max-w-full rounded border border-slate-300 px-2 py-1.5"
-            >
-              <option value="">All</option>
-              <option value="passed">Passed only</option>
-              <option value="failed">Failed only</option>
-              <option value="errored">Errored only</option>
-            </select>
-          </label>
-          <label className="flex max-w-full flex-col gap-1">
-            <span className="text-xs text-slate-500">Customers (none = all)</span>
-            <select
-              name="clientIds"
-              multiple
-              size={Math.min(3, Math.max(2, clientIds.length))}
-              defaultValue={filters.clientIds ?? []}
-              className="max-w-full rounded border border-slate-300 px-2 py-1"
-            >
-              {clientIds.map((c) => (
-                <option key={c} value={c}>
-                  {c}
-                </option>
-              ))}
-            </select>
-          </label>
-          <label className="flex max-w-full flex-col gap-1">
-            <span className="text-xs text-slate-500">Merchants (comma separated)</span>
-            <input
-              name="domains"
-              list="report-domains"
-              defaultValue={(filters.domains ?? []).join(",")}
-              placeholder="e.g. petsmart.com"
-              className="w-64 max-w-full rounded border border-slate-300 px-2 py-1.5"
-            />
-            <datalist id="report-domains">
-              {domains.map((d) => (
-                <option key={d} value={d} />
-              ))}
-            </datalist>
-          </label>
-          <button className="rounded bg-slate-900 px-4 py-1.5 text-white hover:bg-slate-700">
-            Apply
-          </button>
-          <Link href="/reports" className="py-1.5 text-slate-500 hover:text-slate-700">
-            Reset
-          </Link>
-        </div>
-        <div className="flex flex-wrap gap-2 text-xs">
-          <span className="py-1 text-slate-400">Quick range:</span>
-          {presets().map((preset) => (
-            <Link
-              key={preset.label}
-              href={`/reports?from=${preset.from}&to=${preset.to}&groupBy=${filters.groupBy}`}
-              className="rounded border border-slate-300 px-2 py-1 text-slate-600 hover:bg-slate-100"
-            >
-              {preset.label}
-            </Link>
-          ))}
-        </div>
-      </form>
+      <ReportsFilterBar
+        clientIds={clientIds}
+        domains={domains}
+        from={filters.from}
+        to={filters.to}
+        groupBy={filters.groupBy}
+        outcome={filters.outcome ?? ""}
+        selectedClients={filters.clientIds ?? []}
+        domain={(filters.domains ?? []).join(",")}
+      />
 
       <p className="text-xs text-slate-500">
         {filters.from} → {filters.to} ({span} day{span === 1 ? "" : "s"}) · compared with{" "}
