@@ -497,3 +497,26 @@ function addDays(from: string, days: number): string {
   const start = new Date(`${from}T00:00:00.000Z`);
   return new Date(start.getTime() + days * 86400000).toISOString().slice(0, 10);
 }
+
+
+export interface MerchantFlags {
+  validationsAllowed?: boolean;
+  scriptGenerated?: boolean;
+  scriptReviewed?: boolean;
+  botDetection?: boolean;
+}
+
+// Stats rows come from the `stats` collection, which carries no merchant
+// status. Fetch the flags separately so the list can show bot detection.
+export async function getMerchantFlags(
+  merchantIds: string[]
+): Promise<Map<string, MerchantFlags>> {
+  const ids = merchantIds.filter(Boolean);
+  if (ids.length === 0) return new Map();
+  const rows = await db()
+    .collection<Document & { _id: string }>("merchants")
+    .find({ _id: { $in: ids } })
+    .project({ validationsAllowed: 1, scriptGenerated: 1, scriptReviewed: 1, botDetection: 1 })
+    .toArray();
+  return new Map(rows.map((r) => [String(r._id), r as MerchantFlags]));
+}

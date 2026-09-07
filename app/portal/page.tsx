@@ -43,10 +43,16 @@ export default async function PortalPage({
   const validCount = validityCounts.find((c) => c.label === "valid")?.value ?? 0;
 
   const totals = daily.reduce(
-    (acc, d) => ({ success: acc.success + d.success, failed: acc.failed + d.failed }),
-    { success: 0, failed: 0 }
+    (acc, d) => ({
+      valid: acc.valid + d.success,
+      invalid: acc.invalid + d.failed,
+      noResult: acc.noResult + d.errors,
+    }),
+    { valid: 0, invalid: 0, noResult: 0 }
   );
-  const completed = totals.success + totals.failed;
+  // Success means the check reached a verdict — valid or invalid both count.
+  const resolved = totals.valid + totals.invalid;
+  const attempted = resolved + totals.noResult;
 
   return (
     <div className="space-y-4">
@@ -74,17 +80,25 @@ export default async function PortalPage({
           value={validCount.toLocaleString()}
           sub={totalPromotions > 0 ? `${Math.round((validCount / totalPromotions) * 100)}% of promotions` : undefined}
         />
-        <StatTile label="Validations" value={completed.toLocaleString()} sub={`last ${days} days`} />
+        <StatTile label="Validations" value={attempted.toLocaleString()} sub={`last ${days} days`} />
         <StatTile
           label="Success rate"
-          value={completed > 0 ? `${Math.round((totals.success / completed) * 100)}%` : "—"}
-          sub={`${totals.success.toLocaleString()} succeeded`}
+          value={attempted > 0 ? `${Math.round((resolved / attempted) * 100)}%` : "—"}
+          sub={`${resolved.toLocaleString()} reached a result`}
         />
       </div>
 
       <CollapsibleGroup>
         <CollapsibleSection title="Validations per day">
-          <StackedOutcomeChart data={daily} showErrors={false} />
+          <StackedOutcomeChart
+            data={daily.map((d) => ({
+              date: d.date,
+              valid: d.success,
+              invalid: d.failed,
+              noResult: d.errors,
+            }))}
+            showErrors={false}
+          />
         </CollapsibleSection>
 
         <CollapsibleSection title="Promotions by validity status (all time)">

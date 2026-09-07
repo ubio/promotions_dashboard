@@ -17,14 +17,15 @@ export const dynamic = "force-dynamic";
 type Search = { [key: string]: string | string[] | undefined };
 
 const OUTCOME_LABEL: Record<string, string> = {
-  passed: "Passed",
-  failed: "Failed",
-  errored: "Errored",
+  valid: "Valid",
+  invalid: "Invalid",
+  no_result: "No result",
 };
 
-function outcomeOf(r: { reportType?: string; success?: boolean }): "passed" | "failed" | "errored" {
-  if (r.reportType === "error") return "errored";
-  return r.success ? "passed" : "failed";
+function outcomeOf(r: { reportType?: string; success?: boolean }): "valid" | "invalid" | "no_result" {
+  // A run succeeds by reaching a verdict; valid vs invalid is that verdict.
+  if (r.reportType === "error") return "no_result";
+  return r.success ? "valid" : "invalid";
 }
 
 export default async function RunsPage({ searchParams }: { searchParams: Promise<Search> }) {
@@ -153,7 +154,7 @@ export default async function RunsPage({ searchParams }: { searchParams: Promise
                   <td className="px-3 py-2">
                     <Badge
                       variant={
-                        outcome === "passed" ? "valid" : outcome === "failed" ? "invalid" : "error"
+                        outcome === "valid" ? "valid" : outcome === "invalid" ? "invalid" : "error"
                       }
                     >
                       {OUTCOME_LABEL[outcome].toLowerCase()}

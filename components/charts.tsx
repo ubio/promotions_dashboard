@@ -109,16 +109,39 @@ function Legend({ entries }: { entries: { label: string; color: string }[] }) {
   );
 }
 
+
+// Invisible per-point hover targets laid over the plot area, giving exact
+// numbers on hover. Percentages mirror the SVG padding so slots line up with
+// the marks at any rendered width.
+function HoverSlots({ hints }: { hints: string[] }) {
+  return (
+    <div
+      className="chart-hints"
+      style={{
+        left: `${(PAD.left / W) * 100}%`,
+        right: `${(PAD.right / W) * 100}%`,
+        top: `${(PAD.top / H) * 100}%`,
+        bottom: `${(PAD.bottom / H) * 100}%`,
+      }}
+    >
+      {hints.map((hint, i) => (
+        <div key={i} className="chart-hint" data-hint={hint} tabIndex={0} />
+      ))}
+    </div>
+  );
+}
+
 export function StackedOutcomeChart({
   data,
   showErrors = true,
 }: {
-  data: { date: string; success: number; failed: number; errors: number }[];
-  // Client portal hides errored runs — they are internal noise, not outcomes.
+  // "valid"/"invalid" are both successful runs — the pipeline reached a
+  // verdict. "noResult" is the failure case: the run never got there.
+  data: { date: string; valid: number; invalid: number; noResult: number }[];
   showErrors?: boolean;
 }) {
-  const total = (d: { success: number; failed: number; errors: number }) =>
-    d.success + d.failed + (showErrors ? d.errors : 0);
+  const total = (d: { valid: number; invalid: number; noResult: number }) =>
+    d.valid + d.invalid + (showErrors ? d.noResult : 0);
   const max = niceMax(Math.max(...data.map(total), 1));
   const slot = PLOT_W / data.length;
   const bw = Math.max(2, slot - 2);
@@ -128,25 +151,26 @@ export function StackedOutcomeChart({
     <div>
       <Legend
         entries={[
-          { label: "Success", color: GOOD },
-          { label: "Failed (concluded invalid)", color: CRITICAL },
-          ...(showErrors ? [{ label: "Error (run broke)", color: WARNING }] : []),
+          { label: "Valid", color: GOOD },
+          { label: "Invalid", color: CRITICAL },
+          ...(showErrors ? [{ label: "No result (run could not finish)", color: WARNING }] : []),
         ]}
       />
+      <div className="relative">
       <svg
         viewBox={`0 0 ${W} ${H}`}
         className="w-full"
         role="img"
-        aria-label="Validations per day: success, failed and errored runs"
+        aria-label="Validations per day: valid, invalid and runs with no result"
       >
         <Grid max={max} format={(v) => String(Math.round(v))} />
         {data.map((d, i) => {
           const x = PAD.left + slot * i + (slot - bw) / 2;
           const baseline = PAD.top + PLOT_H;
           const segments = [
-            { v: d.success, color: GOOD },
-            { v: d.failed, color: CRITICAL },
-            ...(showErrors ? [{ v: d.errors, color: WARNING }] : []),
+            { v: d.valid, color: GOOD },
+            { v: d.invalid, color: CRITICAL },
+            ...(showErrors ? [{ v: d.noResult, color: WARNING }] : []),
           ].filter((seg) => seg.v > 0);
           let y = baseline;
           return (
@@ -163,13 +187,21 @@ export function StackedOutcomeChart({
                 );
               })}
               <rect x={PAD.left + slot * i} y={PAD.top} width={slot} height={PLOT_H} fill="transparent">
-                <title>{`${shortDate(d.date)} — ${total(d)} runs: ${d.success} success, ${d.failed} failed${showErrors ? `, ${d.errors} errors` : ""}`}</title>
+                <title>{`${shortDate(d.date)} — ${total(d)} runs: ${d.valid} valid, ${d.invalid} invalid${showErrors ? `, ${d.noResult} no result` : ""}`}</title>
               </rect>
             </g>
           );
         })}
         <XTicks dates={data.map((d) => d.date)} />
       </svg>
+      <HoverSlots
+        hints={data.map(
+          (d) =>
+            `${shortDate(d.date)}\n${total(d)} validations\nValid ${d.valid} · Invalid ${d.invalid}` +
+            (showErrors ? `\nNo result ${d.noResult}` : "")
+        )}
+      />
+      </div>
     </div>
   );
 }
@@ -196,14 +228,16 @@ export function ValidityBar({
           color: COLORS[c.label] ?? NEUTRAL,
         }))}
       />
-      <div className="flex h-6 w-full gap-0.5 overflow-hidden rounded" role="img" aria-label="Promotions by validity status">
+      <div className="relative flex h-6 w-full gap-0.5 rounded" role="img" aria-label="Promotions by validity status">
         {counts
           .filter((c) => c.value > 0)
           .map((c) => (
             <div
               key={c.label}
-              style={{ width: `${(c.value / total) * 100}%`, background: COLORS[c.label] ?? NEUTRAL }}
-              title={`${c.label.replaceAll("_", " ")}: ${c.value.toLocaleString()}`}
+              className="chart-hint"
+              style={{ width: `${(c.value / total) * 100}%`, background: COLORS[c.label] ?? NEUTRAL, flex: "none" }}
+              data-hint={`${c.label.replaceAll("_", " ")}\n${c.value.toLocaleString()} of ${total.toLocaleString()} (${((c.value / total) * 100).toFixed(1)}%)`}
+              tabIndex={0}
             />
           ))}
       </div>
@@ -227,6 +261,7 @@ export function RateLineChart({
   const showDots = points.length <= 45;
 
   return (
+    <div className="relative">
     <svg viewBox={`0 0 ${W} ${H}`} className="w-full" role="img" aria-label={ariaLabel}>
       <Grid max={1} format={(v) => `${Math.round(v * 100)}%`} />
       {path && <path d={path} fill="none" stroke={BLUE} strokeWidth={2} strokeLinejoin="round" />}
@@ -240,6 +275,14 @@ export function RateLineChart({
       ))}
       <XTicks dates={data.map((d) => d.date)} />
     </svg>
+    <HoverSlots
+      hints={data.map((d) =>
+        d.rate == null
+          ? `${shortDate(d.date)}\nNo validations`
+          : `${shortDate(d.date)}\n${(d.rate * 100).toFixed(1)}% reached a result`
+      )}
+    />
+    </div>
   );
 }
 
@@ -249,6 +292,7 @@ export function CostBarChart({ data }: { data: { date: string; cost: number }[] 
   const bw = Math.max(2, slot - 2);
 
   return (
+    <div className="relative">
     <svg viewBox={`0 0 ${W} ${H}`} className="w-full" role="img" aria-label="LLM cost per day">
       <Grid max={max} format={(v) => `$${v < 1 ? v.toFixed(2) : Math.round(v)}`} />
       {data.map((d, i) => {
@@ -265,6 +309,10 @@ export function CostBarChart({ data }: { data: { date: string; cost: number }[] 
       })}
       <XTicks dates={data.map((d) => d.date)} />
     </svg>
+    <HoverSlots
+      hints={data.map((d) => `${shortDate(d.date)}\n$${d.cost.toFixed(2)} LLM cost`)}
+    />
+    </div>
   );
 }
 
@@ -283,11 +331,17 @@ export function StackedSeriesChart({
   const slot = PLOT_W / data.length;
   const bw = Math.max(2, slot - 2);
   const scale = (v: number) => (v / max) * PLOT_H;
+  const hoverHints = data.map(
+    (d) =>
+      `${shortDate(d.date)}\n${total(d.values)} total\n` +
+      series.map((sr, j) => `${sr.label} ${d.values[j] ?? 0}`).join(" · ")
+  );
 
   return (
     <div>
       <Legend entries={series.map((s) => ({ label: s.label, color: s.color }))} />
-      <svg viewBox={`0 0 ${W} ${H}`} className="w-full" role="img" aria-label={ariaLabel}>
+      <div className="relative">
+    <svg viewBox={`0 0 ${W} ${H}`} className="w-full" role="img" aria-label={ariaLabel}>
         <Grid max={max} format={(v) => String(Math.round(v))} />
         {data.map((d, i) => {
           const x = PAD.left + slot * i + (slot - bw) / 2;
@@ -321,6 +375,8 @@ export function StackedSeriesChart({
         })}
         <XTicks dates={data.map((d) => d.date)} />
       </svg>
+    <HoverSlots hints={hoverHints} />
+    </div>
     </div>
   );
 }
@@ -338,8 +394,10 @@ export function CountBarChart({
   const max = niceMax(Math.max(...data.map((d) => d.value), 1));
   const slot = PLOT_W / data.length;
   const bw = Math.max(2, slot - 2);
+  const hoverHints = data.map((d) => `${shortDate(d.date)}\n${formatValue(d.value)}`);
 
   return (
+    <div className="relative">
     <svg viewBox={`0 0 ${W} ${H}`} className="w-full" role="img" aria-label={ariaLabel}>
       <Grid max={max} format={(v) => formatValue(v)} />
       {data.map((d, i) => {
@@ -356,5 +414,7 @@ export function CountBarChart({
       })}
       <XTicks dates={data.map((d) => d.date)} />
     </svg>
+    <HoverSlots hints={hoverHints} />
+    </div>
   );
 }

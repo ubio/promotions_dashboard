@@ -91,19 +91,31 @@ The dashboard follows one journey — *how are we doing → slice it → see the
 | --- | --- | --- |
 | Overview | `/` | Headline health for the last 30 days, with every figure linking onward |
 | Reports | `/reports` | The single analysis surface: filters, breakdowns, comparison, downloads |
-| Records | `/promotions` | Offers, Discovery, Bot detection, Client files |
-| Michael's page | `/stats` | The original pipeline/clients/merchants stats views, unchanged |
+| Stats | `/stats` | Pipeline / clients / merchants counters from the `stats` collection |
 
-Validation runs have a single home (`/reports/runs`); the old duplicate list
-under Records forwards there. Detail pages accept a `?back=` parameter so a
-drill-down returns to wherever it was opened from rather than a fixed section.
+Validation runs have a single home (`/reports/runs`). Detail pages accept a
+`?back=` parameter so a drill-down returns to wherever it was opened from.
+`/promotions`, `/jobs` and `/events` redirect there for old links; offer and
+discovery detail pages remain reachable from the runs they belong to.
+
+## What "success" means
+
+A run succeeds when it **reaches a verdict**, whether the offer turns out valid
+or invalid — in both cases we determined whether the code works. A run fails
+only when it could not get there (`reportType: "error"`).
+
+| Term | Definition |
+| --- | --- |
+| Reached a result | `reportType: "conclusion"` — valid or invalid |
+| Valid | reached a result, the promotion worked |
+| Invalid | reached a result, the promotion did not work |
+| No result | `reportType: "error"` — the run could not finish |
+
+Success rate is therefore `reached a result / total runs`, and the revenue
+estimate bills runs that reached a result rather than only valid ones.
 
 ## Pages
 
-- `/promotions` — one browsing hub with flat tabs: Offers, Validations,
-  Discovery, Bot detection, Client files. Replaces the separate Jobs, Events and
-  Promotions nav items and their nested sub-tabs; `/jobs` and `/events` still
-  resolve for old links
 - `/reports/runs` — the individual validations behind any number on the report:
   reason (fail-code) breakdown, LLM reasoning, screenshot evidence, and CSV
   download of exactly that selection
@@ -134,7 +146,7 @@ Two data caveats are handled in `lib/reports.ts`:
   wall-clock timestamp in `time` instead of an elapsed duration — a bug in the
   writing service. Values at or above `MAX_PLAUSIBLE_DURATION_MS` are excluded
   from timing stats, and the UI reports how many runs were counted.
-- **Revenue** is `passed runs × per-client rate` from `CLIENT_VALIDATION_RATES`.
+- **Revenue** is `runs that reached a result × per-client rate` from `CLIENT_VALIDATION_RATES`.
   It is a crude estimate that ignores minimums, tiers and other contract terms.
 
 Year-on-year comparison is not yet possible: the database starts in May 2026.

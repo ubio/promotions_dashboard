@@ -29,7 +29,7 @@ function logs() {
 }
 
 export type GroupBy = "client" | "merchant" | "day" | "month" | "year" | "batch";
-export type Outcome = "passed" | "failed" | "errored";
+export type Outcome = "valid" | "invalid" | "no_result";
 
 export interface ReportFilters {
   from: string; // YYYY-MM-DD inclusive
@@ -44,10 +44,11 @@ export interface ReportFilters {
 export interface ReportRow {
   key: string;
   runs: number;
-  conclusions: number;
-  errors: number;
-  passed: number;
-  failed: number;
+  // A run "succeeds" when it reaches a verdict — valid or invalid both count.
+  resolved: number;
+  noResult: number;
+  valid: number;
+  invalid: number;
   distinctPromotions: number;
   distinctCodes: number;
   totalTimeMs: number;
@@ -91,9 +92,9 @@ export function buildMatch(f: ReportFilters): Filter<LogDoc> {
   // outcomes become an $or rather than merged fields.
   const clauses: Filter<LogDoc>[] = [];
   for (const outcome of f.outcomes ?? []) {
-    if (outcome === "passed") clauses.push({ success: true });
-    if (outcome === "failed") clauses.push({ success: false, reportType: { $ne: "error" } });
-    if (outcome === "errored") clauses.push({ reportType: "error" });
+    if (outcome === "valid") clauses.push({ success: true });
+    if (outcome === "invalid") clauses.push({ success: false, reportType: { $ne: "error" } });
+    if (outcome === "no_result") clauses.push({ reportType: "error" });
   }
   if (clauses.length === 1) Object.assign(match, clauses[0]);
   else if (clauses.length > 1) match.$or = clauses;
@@ -121,10 +122,10 @@ function groupKeyExpr(groupBy: GroupBy): Document | string {
 interface RawRow {
   _id: { key: string | null; clientId: string | null };
   runs: number;
-  conclusions: number;
-  errors: number;
-  passed: number;
-  failed: number;
+  resolved: number;
+  noResult: number;
+  valid: number;
+  invalid: number;
   promotions: (string | null)[];
   codes: (string | null)[];
   totalTimeMs: number;
@@ -143,10 +144,10 @@ async function rawRows(f: ReportFilters): Promise<RawRow[]> {
         $group: {
           _id: { key: groupKeyExpr(groupBy), clientId: "$clientId" },
           runs: { $sum: 1 },
-          conclusions: { $sum: { $cond: [{ $eq: ["$reportType", "error"] }, 0, 1] } },
-          errors: { $sum: { $cond: [{ $eq: ["$reportType", "error"] }, 1, 0] } },
-          passed: { $sum: { $cond: ["$success", 1, 0] } },
-          failed: {
+          resolved: { $sum: { $cond: [{ $eq: ["$reportType", "error"] }, 0, 1] } },
+          noResult: { $sum: { $cond: [{ $eq: ["$reportType", "error"] }, 1, 0] } },
+          valid: { $sum: { $cond: ["$success", 1, 0] } },
+          invalid: {
             $sum: {
               $cond: [
                 { $and: [{ $eq: ["$success", false] }, { $ne: ["$reportType", "error"] }] },
@@ -170,10 +171,10 @@ function blankRow(key: string): ReportRow & { _promotions: Set<string>; _codes: 
   return {
     key,
     runs: 0,
-    conclusions: 0,
-    errors: 0,
-    passed: 0,
-    failed: 0,
+    resolved: 0,
+    noResult: 0,
+    valid: 0,
+    invalid: 0,
     distinctPromotions: 0,
     distinctCodes: 0,
     totalTimeMs: 0,
@@ -202,16 +203,16 @@ export async function getReport(
 
     for (const target of [row, totals]) {
       target.runs += r.runs;
-      target.conclusions += r.conclusions;
-      target.errors += r.errors;
-      target.passed += r.passed;
-      target.failed += r.failed;
+      target.resolved += r.resolved;
+      target.noResult += r.noResult;
+      target.valid += r.valid;
+      target.invalid += r.invalid;
       target.totalTimeMs += r.totalTimeMs;
       target.timedRuns += r.timedRuns;
       target.cost += r.cost;
       for (const p of r.promotions) if (p) target._promotions.add(p);
       for (const c of r.codes) if (c) target._codes.add(c);
-      if (rate != null) target.revenue = (target.revenue ?? 0) + r.passed * rate;
+      if (rate != null) target.revenue = (target.revenue ?? 0) + r.resolved * rate;
     }
     byKey.set(key, row);
   }
@@ -304,7 +305,15 @@ export async function getValidationsForExport(
 }
 
 export const GROUP_BY_VALUES: GroupBy[] = ["client", "merchant", "day", "month", "year", "batch"];
-export const OUTCOME_VALUES: Outcome[] = ["passed", "failed", "errored"];
+export const OUTCOME_VALUES: Outcome[] = ["valid", "invalid", "no_result"];
+
+// Older links used pass/fail language, where "passed" meant the promotion was
+// valid. Success now means the run reached a verdict at all, so map them over.
+const LEGACY_OUTCOMES: Record<string, Outcome> = {
+  passed: "valid",
+  failed: "invalid",
+  errored: "no_result",
+};
 
 function isIsoDate(v: string | undefined): v is string {
   return !!v && /^\d{4}-\d{2}-\d{2}$/.test(v);
@@ -328,7 +337,9 @@ export function parseReportSearch(sp: {
   const to = isIsoDate(one(sp.to)) ? (one(sp.to) as string) : today;
   const from = isIsoDate(one(sp.from)) ? (one(sp.from) as string) : shiftDate(to, -29);
   const groupByRaw = one(sp.groupBy) as GroupBy | undefined;
-  const outcomesRaw = (listParam(sp.outcomes) ?? listParam(sp.outcome) ?? []) as Outcome[];
+  const outcomesRaw = (listParam(sp.outcomes) ?? listParam(sp.outcome) ?? []).map(
+    (o) => LEGACY_OUTCOMES[o] ?? o
+  ) as Outcome[];
   return {
     from: from <= to ? from : to,
     to,
@@ -518,17 +529,17 @@ export async function getValidityForPeriod(f: ReportFilters): Promise<ValidityCo
 
 export async function getDailySeriesForOverview(
   f: ReportFilters
-): Promise<{ date: string; success: number; failed: number; errors: number }[]> {
+): Promise<{ date: string; valid: number; invalid: number; noResult: number }[]> {
   const { rows } = await getReport({ ...f, groupBy: "day" });
   const byDate = new Map(rows.map((r) => [r.key, r]));
-  const out: { date: string; success: number; failed: number; errors: number }[] = [];
+  const out: { date: string; valid: number; invalid: number; noResult: number }[] = [];
   for (let d = f.from; d <= f.to; d = shiftDate(d, 1)) {
     const r = byDate.get(d);
     out.push({
       date: d,
-      success: r?.passed ?? 0,
-      failed: r?.failed ?? 0,
-      errors: r?.errors ?? 0,
+      valid: r?.valid ?? 0,
+      invalid: r?.invalid ?? 0,
+      noResult: r?.noResult ?? 0,
     });
   }
   return out;

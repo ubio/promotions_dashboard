@@ -8,9 +8,9 @@ const CONTROL =
   "rounded border border-slate-300 bg-white px-2 py-1.5 text-sm text-slate-800 hover:bg-slate-50";
 
 const OUTCOMES = [
-  { value: "passed", label: "Passed" },
-  { value: "failed", label: "Failed" },
-  { value: "errored", label: "Errored" },
+  { value: "valid", label: "Valid" },
+  { value: "invalid", label: "Invalid" },
+  { value: "no_result", label: "No result" },
 ];
 
 export default function ReportsFilterBar({

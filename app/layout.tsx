@@ -52,11 +52,8 @@ export default async function RootLayout({
                   <Link href="/reports" className="hover:text-white">
                     Reports
                   </Link>
-                  <Link href="/promotions" className="hover:text-white">
-                    Records
-                  </Link>
-                  <Link href="/stats" className="ml-2 text-slate-400 hover:text-white">
-                    Michael&apos;s page
+                  <Link href="/stats" className="hover:text-white">
+                    Stats
                   </Link>
                 </>
               )}

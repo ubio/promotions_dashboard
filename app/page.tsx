@@ -58,13 +58,14 @@ export default async function Overview() {
     getReport(filters),
     getReport({ ...filters, ...prev }),
     getDailySeriesForOverview(filters),
-    getFailCodeBreakdown({ ...filters, outcomes: ["errored", "failed"] }),
+    getFailCodeBreakdown({ ...filters, outcomes: ["no_result", "invalid"] }),
     getValidityForPeriod(filters),
   ]);
 
   const t = current.totals;
   const p = comparison.totals;
-  const passRate = t.conclusions > 0 ? (t.passed / t.conclusions) * 100 : null;
+  // Success = we reached a verdict, whether the offer proved valid or invalid.
+  const successRate = t.runs > 0 ? (t.resolved / t.runs) * 100 : null;
   const qs = reportQueryString(filters);
   const topReasons = failCodes.slice(0, 5);
 
@@ -85,10 +86,10 @@ export default async function Overview() {
           href={`/reports/runs?${qs}`}
         />
         <Tile
-          label="Pass rate"
-          value={passRate == null ? "—" : `${passRate.toFixed(0)}%`}
-          sub={`${formatCount(t.passed)} of ${formatCount(t.conclusions)} conclusions`}
-          href={`/reports/runs?${reportQueryString({ ...filters, outcomes: ["passed"] })}`}
+          label="Success rate"
+          value={successRate == null ? "—" : `${successRate.toFixed(0)}%`}
+          sub={`${formatCount(t.resolved)} of ${formatCount(t.runs)} reached a result`}
+          href={`/reports/runs?${reportQueryString({ ...filters, outcomes: ["valid", "invalid"] })}`}
         />
         <Tile
           label="LLM cost"
@@ -99,7 +100,7 @@ export default async function Overview() {
         <Tile
           label={ratesConfigured() ? "Revenue estimate" : "Revenue estimate"}
           value={t.revenue == null ? "—" : `$${t.revenue.toFixed(2)}`}
-          sub={ratesConfigured() ? "passed × client rate" : "set CLIENT_VALIDATION_RATES"}
+          sub={ratesConfigured() ? "reached a result × client rate" : "set CLIENT_VALIDATION_RATES"}
           href={`/reports?${qs}`}
         />
       </div>
@@ -117,9 +118,9 @@ export default async function Overview() {
       <div className="grid gap-4 lg:grid-cols-2">
         <section className="rounded-lg border border-slate-200 bg-white p-4">
           <div className="mb-3 flex items-baseline justify-between gap-3">
-            <h2 className="text-sm font-semibold text-slate-700">Why validations did not pass</h2>
+            <h2 className="text-sm font-semibold text-slate-700">Why runs could not reach a result</h2>
             <Link
-              href={`/reports/runs?${reportQueryString({ ...filters, outcomes: ["failed", "errored"] })}`}
+              href={`/reports/runs?${reportQueryString({ ...filters, outcomes: ["no_result"] })}`}
               className="text-xs text-sky-700 hover:underline"
             >
               See them →
@@ -132,7 +133,7 @@ export default async function Overview() {
               {topReasons.map((r) => (
                 <li key={r.code}>
                   <Link
-                    href={`/reports/runs?${reportQueryString({ ...filters, outcomes: ["failed", "errored"], failCode: r.code })}`}
+                    href={`/reports/runs?${reportQueryString({ ...filters, outcomes: ["no_result"], failCode: r.code })}`}
                     className="flex items-center justify-between gap-3 rounded px-2 py-1 text-sm hover:bg-slate-50"
                   >
                     <span className="font-mono text-xs text-slate-600">{r.code}</span>
@@ -147,8 +148,11 @@ export default async function Overview() {
         <section className="rounded-lg border border-slate-200 bg-white p-4">
           <div className="mb-3 flex items-baseline justify-between gap-3">
             <h2 className="text-sm font-semibold text-slate-700">Offers created</h2>
-            <Link href="/promotions" className="text-xs text-sky-700 hover:underline">
-              Browse offers →
+            <Link
+              href="/reports?groupBy=merchant"
+              className="text-xs text-sky-700 hover:underline"
+            >
+              By merchant →
             </Link>
           </div>
           {validity.length === 0 ? (
@@ -171,7 +175,7 @@ export default async function Overview() {
             <tr>
               <th className="py-1 pr-4">Customer</th>
               <th className="py-1 pr-4">Validations</th>
-              <th className="py-1 pr-4">Passed</th>
+              <th className="py-1 pr-4">Reached result</th>
               <th className="py-1 pr-4">Cost</th>
             </tr>
           </thead>
@@ -187,7 +191,7 @@ export default async function Overview() {
                   </Link>
                 </td>
                 <td className="py-1.5 pr-4">{formatCount(row.runs)}</td>
-                <td className="py-1.5 pr-4 text-green-700">{formatCount(row.passed)}</td>
+                <td className="py-1.5 pr-4 text-green-700">{formatCount(row.resolved)}</td>
                 <td className="py-1.5 pr-4">{formatCost(row.cost)}</td>
               </tr>
             ))}

@@ -151,7 +151,8 @@ export default async function ReportsPage({ searchParams }: { searchParams: Prom
 
   const t: ReportTotals = current.totals;
   const p: ReportTotals = comparison.totals;
-  const passRate = t.conclusions > 0 ? (t.passed / t.conclusions) * 100 : null;
+  // Success = the run reached a verdict; valid and invalid both count.
+  const successRate = t.runs > 0 ? (t.resolved / t.runs) * 100 : null;
 
   return (
     <div className="space-y-4">
@@ -201,9 +202,9 @@ export default async function ReportsPage({ searchParams }: { searchParams: Prom
           sub={`${formatCount(t.distinctPromotions)} promotions`}
         />
         <Tile
-          label="Passed"
-          value={formatCount(t.passed)}
-          sub={passRate == null ? "no conclusions" : `${passRate.toFixed(0)}% of conclusions`}
+          label="Reached a result"
+          value={formatCount(t.resolved)}
+          sub={successRate == null ? "no runs" : `${successRate.toFixed(0)}% of runs`}
         />
         <Tile
           label="LLM cost"
@@ -213,7 +214,7 @@ export default async function ReportsPage({ searchParams }: { searchParams: Prom
         <Tile
           label={showRevenue ? "Revenue estimate" : "Revenue estimate"}
           value={t.revenue == null ? "—" : `$${t.revenue.toFixed(2)}`}
-          sub={showRevenue ? "passed × client rate" : "set CLIENT_VALIDATION_RATES"}
+          sub={showRevenue ? "reached a result × client rate" : "set CLIENT_VALIDATION_RATES"}
         />
       </div>
 
@@ -256,10 +257,10 @@ export default async function ReportsPage({ searchParams }: { searchParams: Prom
               {isBatch && <th className="px-3 py-2">Delivered</th>}
               {isBatch && <th className="px-3 py-2">Turnaround</th>}
               <th className="px-3 py-2">Runs</th>
-              <th className="px-3 py-2">Conclusions</th>
-              <th className="px-3 py-2">Errors</th>
-              <th className="px-3 py-2">Passed</th>
-              <th className="px-3 py-2">Failed</th>
+              <th className="px-3 py-2">Reached result</th>
+              <th className="px-3 py-2">No result</th>
+              <th className="px-3 py-2">Valid</th>
+              <th className="px-3 py-2">Invalid</th>
               <th className="px-3 py-2">Codes</th>
               <th className="px-3 py-2">Avg time</th>
               <th className="px-3 py-2">Cost</th>
@@ -298,20 +299,20 @@ export default async function ReportsPage({ searchParams }: { searchParams: Prom
                     );
                   })()}
                 <DrillCell href={drill(row.key)} value={row.runs} />
-                <td className="px-3 py-2">{formatCount(row.conclusions)}</td>
+                <td className="px-3 py-2">{formatCount(row.resolved)}</td>
                 <DrillCell
-                  href={drill(row.key, "errored")}
-                  value={row.errors}
+                  href={drill(row.key, "no_result")}
+                  value={row.noResult}
                   className="text-amber-700"
                 />
                 <DrillCell
-                  href={drill(row.key, "passed")}
-                  value={row.passed}
+                  href={drill(row.key, "valid")}
+                  value={row.valid}
                   className="text-green-700"
                 />
                 <DrillCell
-                  href={drill(row.key, "failed")}
-                  value={row.failed}
+                  href={drill(row.key, "invalid")}
+                  value={row.invalid}
                   className="text-red-600"
                 />
                 <td className="px-3 py-2">{formatCount(row.distinctCodes)}</td>
@@ -346,10 +347,10 @@ export default async function ReportsPage({ searchParams }: { searchParams: Prom
                 <td className="px-3 py-2">Total</td>
                 {isBatch && <td colSpan={3} className="px-3 py-2" />}
                 <td className="px-3 py-2">{formatCount(t.runs)}</td>
-                <td className="px-3 py-2">{formatCount(t.conclusions)}</td>
-                <td className="px-3 py-2">{formatCount(t.errors)}</td>
-                <td className="px-3 py-2">{formatCount(t.passed)}</td>
-                <td className="px-3 py-2">{formatCount(t.failed)}</td>
+                <td className="px-3 py-2">{formatCount(t.resolved)}</td>
+                <td className="px-3 py-2">{formatCount(t.noResult)}</td>
+                <td className="px-3 py-2">{formatCount(t.valid)}</td>
+                <td className="px-3 py-2">{formatCount(t.invalid)}</td>
                 <td className="px-3 py-2">{formatCount(t.distinctCodes)}</td>
                 <td className="whitespace-nowrap px-3 py-2">
                   {t.timedRuns === 0 ? "—" : `${(t.avgTimeMs / 1000).toFixed(1)}s`}
@@ -369,7 +370,7 @@ export default async function ReportsPage({ searchParams }: { searchParams: Prom
       <p className="text-xs text-slate-400">
         Click any count to see the individual validations behind it, with reasons and
         screenshots. Counts are validation runs from the job logs; “Codes” is distinct promotion codes touched in
-        the period. Revenue is a crude estimate (passed runs × per-client rate) and ignores
+        the period. Revenue is a crude estimate (runs that reached a result × per-client rate) and ignores
         contractual terms. Average time covers only runs with a usable duration —
         {" "}
         {t.runs - t.timedRuns > 0

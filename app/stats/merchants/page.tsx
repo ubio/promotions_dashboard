@@ -3,7 +3,12 @@ import Pagination from "@/components/Pagination";
 import { CounterCells, CounterTableHead, COUNTER_COL_SPAN, counterThClass } from "@/components/stats/CountersTable";
 import { PeriodToolbar, periodHref } from "@/components/stats/PeriodToolbar";
 import { firstParam, periodFromSearch } from "@/lib/stats-model";
-import { getMerchantPeriodRows, isDayFinalized } from "@/lib/stats-queries";
+import { getMerchantFlags, getMerchantPeriodRows, isDayFinalized } from "@/lib/stats-queries";
+import {
+  merchantHighlight,
+  merchantHighlightClass,
+  merchantHighlightLabel,
+} from "@/lib/merchant-status";
 
 export const dynamic = "force-dynamic";
 
@@ -19,6 +24,7 @@ export default async function MerchantStatsPage({ searchParams }: { searchParams
     period.granularity === "day" ? isDayFinalized(period.date) : true,
   ]);
   const pendingPromotionOutcomes = period.granularity === "day" && !dayFinalized;
+  const flags = await getMerchantFlags(result.items.map((r) => r.merchantId));
   const queryParams: Record<string, string | undefined> = {
     granularity: period.granularity,
     date: period.granularity === "day" ? period.date : undefined,
@@ -48,6 +54,9 @@ export default async function MerchantStatsPage({ searchParams }: { searchParams
                     Merchant
                   </th>
                   <th rowSpan={2} className={counterThClass}>
+                    Status
+                  </th>
+                  <th rowSpan={2} className={counterThClass}>
                     Clients
                   </th>
                 </>
@@ -55,8 +64,10 @@ export default async function MerchantStatsPage({ searchParams }: { searchParams
             />
           </thead>
           <tbody className="divide-y divide-slate-100">
-            {result.items.map((row) => (
-              <tr key={row.merchantId} className="hover:bg-sky-50/50">
+            {result.items.map((row) => {
+              const highlight = merchantHighlight(flags.get(row.merchantId) ?? {});
+              return (
+              <tr key={row.merchantId} className={merchantHighlightClass(highlight)}>
                 <td className="px-3 py-2">
                   <Link
                     href={periodHref(`/stats/merchants/${encodeURIComponent(row.merchantId)}`, period)}
@@ -68,13 +79,39 @@ export default async function MerchantStatsPage({ searchParams }: { searchParams
                     <div className="text-xs text-slate-500">{row.merchantName}</div>
                   )}
                 </td>
+                <td className="whitespace-nowrap px-3 py-2">
+                  <span className="flex items-center gap-1.5 text-xs">
+                    <span
+                      aria-hidden
+                      className={`inline-block h-2 w-2 rounded-full ${
+                        highlight === "bot-detected"
+                          ? "bg-red-500"
+                          : highlight === "onboarded"
+                            ? "bg-green-600"
+                            : "bg-slate-300"
+                      }`}
+                    />
+                    <span
+                      className={
+                        highlight === "bot-detected"
+                          ? "text-red-700"
+                          : highlight === "onboarded"
+                            ? "text-green-700"
+                            : "text-slate-400"
+                      }
+                    >
+                      {merchantHighlightLabel(highlight)}
+                    </span>
+                  </span>
+                </td>
                 <td className="px-3 py-2">{row.clientCount}</td>
                 <CounterCells stats={row} leadingDivider pendingPromotionOutcomes={pendingPromotionOutcomes} />
               </tr>
-            ))}
+              );
+            })}
             {result.items.length === 0 && (
               <tr>
-                <td colSpan={2 + COUNTER_COL_SPAN} className="px-3 py-8 text-center text-slate-400">
+                <td colSpan={3 + COUNTER_COL_SPAN} className="px-3 py-8 text-center text-slate-400">
                   No merchant stats for this period.
                 </td>
               </tr>

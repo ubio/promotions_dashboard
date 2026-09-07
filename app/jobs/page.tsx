@@ -27,10 +27,6 @@ export default async function JobsPage({ searchParams }: { searchParams: Promise
     if (k === "type" || v == null) continue;
     params.set(k, Array.isArray(v) ? v[0] : v);
   }
-  if (str(sp.type) === "extraction") {
-    params.set("tab", "discovery");
-    redirect(`/promotions?${params.toString()}`);
-  }
   redirect(`/reports/runs${params.size ? `?${params.toString()}` : ""}`);
 }
 

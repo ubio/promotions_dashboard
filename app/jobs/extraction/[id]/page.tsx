@@ -17,7 +17,7 @@ function backTarget(back?: string): { href: string; label: string } {
     if (back.startsWith("/promotions")) return { href: back, label: "records" };
     return { href: back, label: "back" };
   }
-  return { href: "/promotions?tab=discovery", label: "discovery" };
+  return { href: "/reports/runs", label: "validations" };
 }
 
 export default async function ExtractionJobPage({ params, searchParams }: {
