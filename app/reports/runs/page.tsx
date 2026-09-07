@@ -9,23 +9,31 @@ import {
   parseReportSearch,
   reportQueryString,
   RUNS_PAGE_SIZE,
+  type Outcome,
 } from "@/lib/reports";
+import { isAutomationIssueRun, isClientFacingRun } from "@/lib/fail-codes";
 import { formatCount, formatDate, truncate } from "@/lib/format";
 
 export const dynamic = "force-dynamic";
 
 type Search = { [key: string]: string | string[] | undefined };
 
-const OUTCOME_LABEL: Record<string, string> = {
-  valid: "Valid",
-  invalid: "Invalid",
+const OUTCOME_LABEL: Record<Outcome | "other", string> = {
+  client_facing: "Client-facing",
+  automation_issues: "Automation issues",
   no_result: "No result",
+  other: "Other",
 };
 
-function outcomeOf(r: { reportType?: string; success?: boolean }): "valid" | "invalid" | "no_result" {
-  // A run succeeds by reaching a verdict; valid vs invalid is that verdict.
+function outcomeOf(r: {
+  reportType?: string;
+  success?: boolean;
+  failCodes?: string[];
+}): Outcome | "other" {
+  if (isClientFacingRun(r)) return "client_facing";
+  if (isAutomationIssueRun(r)) return "automation_issues";
   if (r.reportType === "error") return "no_result";
-  return r.success ? "valid" : "invalid";
+  return "other";
 }
 
 export default async function RunsPage({ searchParams }: { searchParams: Promise<Search> }) {
@@ -152,11 +160,7 @@ export default async function RunsPage({ searchParams }: { searchParams: Promise
                   <td className="whitespace-nowrap px-3 py-2">{r.clientId ?? "—"}</td>
                   <td className="px-3 py-2 font-mono text-xs">{r.domain ?? "—"}</td>
                   <td className="px-3 py-2">
-                    <Badge
-                      variant={
-                        outcome === "valid" ? "valid" : outcome === "invalid" ? "invalid" : "error"
-                      }
-                    >
+                    <Badge variant={outcome}>
                       {OUTCOME_LABEL[outcome].toLowerCase()}
                     </Badge>
                   </td>

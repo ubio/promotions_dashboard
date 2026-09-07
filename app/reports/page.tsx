@@ -3,7 +3,6 @@ import {
   drillFilters,
   getBatchMeta,
   getReport,
-  getValidityForPeriod,
   getReportClientIds,
   getReportDomains,
   parseReportSearch,
@@ -18,7 +17,7 @@ import {
 import ReportsFilterBar from "@/components/reports/ReportsFilterBar";
 import { ratesConfigured } from "@/lib/rates";
 import { formatCost, formatCount, formatDate, formatDuration } from "@/lib/format";
-import { ValidityBar } from "@/components/charts";
+import { ValidationSplitBar } from "@/components/charts";
 
 export const dynamic = "force-dynamic";
 
@@ -126,12 +125,11 @@ export default async function ReportsPage({ searchParams }: { searchParams: Prom
   const filters = parseReportSearch(sp);
   const prev = previousPeriod(filters.from, filters.to);
 
-  const [current, comparison, clientIds, domains, validity] = await Promise.all([
+  const [current, comparison, clientIds, domains] = await Promise.all([
     getReport(filters),
     getReport({ ...filters, ...prev }),
     getReportClientIds(),
     getReportDomains(),
-    getValidityForPeriod(filters),
   ]);
 
   // Batch rows gain receipt/delivery timings from the client CSV events.
@@ -139,7 +137,6 @@ export default async function ReportsPage({ searchParams }: { searchParams: Prom
   const batchMeta = isBatch
     ? await getBatchMeta(current.rows.map((r) => r.key))
     : new Map();
-  const validityTotal = validity.reduce((sum, v) => sum + v.value, 0);
 
   const names = new Map<string, string>();
   const qs = reportQueryString(filters);
@@ -197,14 +194,13 @@ export default async function ReportsPage({ searchParams }: { searchParams: Prom
           sub={<Delta current={t.runs} previous={p.runs} />}
         />
         <Tile
-          label="Distinct codes"
-          value={formatCount(t.distinctCodes)}
-          sub={`${formatCount(t.distinctPromotions)} promotions`}
-        />
-        <Tile
           label="Reached a result"
           value={formatCount(t.resolved)}
           sub={successRate == null ? "no runs" : `${successRate.toFixed(0)}% of runs`}
+        />
+        <Tile
+          label="Promotions sent to client"
+          value={formatCount(t.sentBack)}
         />
         <Tile
           label="LLM cost"
@@ -218,12 +214,16 @@ export default async function ReportsPage({ searchParams }: { searchParams: Prom
         />
       </div>
 
-      {validityTotal > 0 && (
+      {t.runs > 0 && (
         <div className="rounded-lg border border-slate-200 bg-white p-3">
           <p className="mb-2 text-xs uppercase tracking-wide text-slate-400">
-            Offers created in this period — {formatCount(validityTotal)}
+            Validation runs — {formatCount(t.runs)}
           </p>
-          <ValidityBar counts={validity} />
+          <ValidationSplitBar
+            runs={t.runs}
+            clientFacing={t.clientFacing}
+            automationIssues={t.automationIssues}
+          />
         </div>
       )}
 
@@ -259,9 +259,9 @@ export default async function ReportsPage({ searchParams }: { searchParams: Prom
               <th className="px-3 py-2">Runs</th>
               <th className="px-3 py-2">Reached result</th>
               <th className="px-3 py-2">No result</th>
-              <th className="px-3 py-2">Valid</th>
-              <th className="px-3 py-2">Invalid</th>
-              <th className="px-3 py-2">Codes</th>
+              <th className="px-3 py-2">Client-facing</th>
+              <th className="px-3 py-2">Automation issues</th>
+              <th className="px-3 py-2">Promotions sent to client</th>
               <th className="px-3 py-2">Avg time</th>
               <th className="px-3 py-2">Cost</th>
               {showRevenue && <th className="px-3 py-2">Revenue</th>}
@@ -305,17 +305,9 @@ export default async function ReportsPage({ searchParams }: { searchParams: Prom
                   value={row.noResult}
                   className="text-amber-700"
                 />
-                <DrillCell
-                  href={drill(row.key, "valid")}
-                  value={row.valid}
-                  className="text-green-700"
-                />
-                <DrillCell
-                  href={drill(row.key, "invalid")}
-                  value={row.invalid}
-                  className="text-red-600"
-                />
-                <td className="px-3 py-2">{formatCount(row.distinctCodes)}</td>
+                <td className="px-3 py-2 text-green-700">{formatCount(row.clientFacing)}</td>
+                <td className="px-3 py-2 text-orange-700">{formatCount(row.automationIssues)}</td>
+                <td className="px-3 py-2">{formatCount(row.sentBack)}</td>
                 <td className="whitespace-nowrap px-3 py-2">
                   {row.timedRuns === 0 ? "—" : `${(row.avgTimeMs / 1000).toFixed(1)}s`}
                   {row.timedRuns > 0 && row.timedRuns < row.runs && (
@@ -349,9 +341,9 @@ export default async function ReportsPage({ searchParams }: { searchParams: Prom
                 <td className="px-3 py-2">{formatCount(t.runs)}</td>
                 <td className="px-3 py-2">{formatCount(t.resolved)}</td>
                 <td className="px-3 py-2">{formatCount(t.noResult)}</td>
-                <td className="px-3 py-2">{formatCount(t.valid)}</td>
-                <td className="px-3 py-2">{formatCount(t.invalid)}</td>
-                <td className="px-3 py-2">{formatCount(t.distinctCodes)}</td>
+                <td className="px-3 py-2">{formatCount(t.clientFacing)}</td>
+                <td className="px-3 py-2">{formatCount(t.automationIssues)}</td>
+                <td className="px-3 py-2">{formatCount(t.sentBack)}</td>
                 <td className="whitespace-nowrap px-3 py-2">
                   {t.timedRuns === 0 ? "—" : `${(t.avgTimeMs / 1000).toFixed(1)}s`}
                 </td>
@@ -369,8 +361,12 @@ export default async function ReportsPage({ searchParams }: { searchParams: Prom
 
       <p className="text-xs text-slate-400">
         Click any count to see the individual validations behind it, with reasons and
-        screenshots. Counts are validation runs from the job logs; “Codes” is distinct promotion codes touched in
-        the period. Revenue is a crude estimate (runs that reached a result × per-client rate) and ignores
+        screenshots. Counts are validation runs from the job logs; “Client-facing” is a
+        conclusion the client can act on (the promotion worked, or it failed with a
+        client-facing fail code); “Automation issues” are runs whose fail codes are
+        automation failures (bot detection, agent errors, proxy, timeouts).
+        “Promotions sent to client” is promotions in export files delivered to the client in this period.
+        Revenue is a crude estimate (runs that reached a result × per-client rate) and ignores
         contractual terms. Average time covers only runs with a usable duration —
         {" "}
         {t.runs - t.timedRuns > 0

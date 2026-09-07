@@ -8,8 +8,8 @@ const CONTROL =
   "rounded border border-slate-300 bg-white px-2 py-1.5 text-sm text-slate-800 hover:bg-slate-50";
 
 const OUTCOMES = [
-  { value: "valid", label: "Valid" },
-  { value: "invalid", label: "Invalid" },
+  { value: "client_facing", label: "Client-facing" },
+  { value: "automation_issues", label: "Automation issues" },
   { value: "no_result", label: "No result" },
 ];
 
