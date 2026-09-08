@@ -9,6 +9,7 @@ import {
   previousPeriod,
   reportQueryString,
   daysBetween,
+  sortBatchRowsByReceived,
   type ReportRow,
   type ReportFilters,
   type ReportTotals,
@@ -137,6 +138,7 @@ export default async function ReportsPage({ searchParams }: { searchParams: Prom
   const batchMeta = isBatch
     ? await getBatchMeta(current.rows.map((r) => r.key))
     : new Map();
+  const rows = isBatch ? sortBatchRowsByReceived(current.rows, batchMeta) : current.rows;
 
   const names = new Map<string, string>();
   const qs = reportQueryString(filters);
@@ -268,7 +270,7 @@ export default async function ReportsPage({ searchParams }: { searchParams: Prom
             </tr>
           </thead>
           <tbody className="divide-y divide-slate-100">
-            {current.rows.map((row) => (
+            {rows.map((row) => (
               <tr key={row.key} className="hover:bg-sky-50/50">
                 <td className="whitespace-nowrap px-3 py-2 font-medium">
                   {rowHref(row, filters) ? (
@@ -322,7 +324,7 @@ export default async function ReportsPage({ searchParams }: { searchParams: Prom
                 )}
               </tr>
             ))}
-            {current.rows.length === 0 && (
+            {rows.length === 0 && (
               <tr>
                 <td
                   colSpan={(showRevenue ? 10 : 9) + (isBatch ? 3 : 0)}
@@ -333,7 +335,7 @@ export default async function ReportsPage({ searchParams }: { searchParams: Prom
               </tr>
             )}
           </tbody>
-          {current.rows.length > 0 && (
+          {rows.length > 0 && (
             <tfoot className="border-t-2 border-slate-200 bg-slate-50 font-medium">
               <tr>
                 <td className="px-3 py-2">Total</td>

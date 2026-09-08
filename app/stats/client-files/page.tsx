@@ -2,8 +2,13 @@ import Link from "next/link";
 import Badge from "@/components/Badge";
 import Pagination from "@/components/Pagination";
 import { CLIENT_CSV_EVENT_TYPES, formatClientCsvEventType } from "@/lib/events-model";
-import { getClientCsvClientIds, getClientCsvEvents } from "@/lib/events-queries";
-import { formatCount, formatDate, formatUtcDay, truncate } from "@/lib/format";
+import {
+  csvImportTurnaroundMs,
+  getClientCsvClientIds,
+  getClientCsvEvents,
+  getCsvImportDeliveredAt,
+} from "@/lib/events-queries";
+import { formatCount, formatDate, formatDuration, formatUtcDay, truncate } from "@/lib/format";
 
 export const dynamic = "force-dynamic";
 
@@ -29,6 +34,7 @@ export default async function ClientFilesStatsPage({
     getClientCsvEvents({ q, date, clientId, eventType, page }),
     getClientCsvClientIds(),
   ]);
+  const deliveredAt = await getCsvImportDeliveredAt(result.items);
 
   const params = { q, date, clientId, eventType };
 
@@ -106,6 +112,7 @@ export default async function ClientFilesStatsPage({
               <th className="px-3 py-2">Bundle date</th>
               <th className="px-3 py-2">Data type</th>
               <th className="px-3 py-2">Records</th>
+              <th className="px-3 py-2">Turnaround</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-slate-100">
@@ -130,11 +137,14 @@ export default async function ClientFilesStatsPage({
                   <Badge variant="code">{event.dataType}</Badge>
                 </td>
                 <td className="px-3 py-2">{formatCount(event.recordCount)}</td>
+                <td className="whitespace-nowrap px-3 py-2 font-medium">
+                  {formatDuration(csvImportTurnaroundMs(event, deliveredAt))}
+                </td>
               </tr>
             ))}
             {result.items.length === 0 && (
               <tr>
-                <td colSpan={8} className="px-3 py-8 text-center text-slate-400">
+                <td colSpan={9} className="px-3 py-8 text-center text-slate-400">
                   No CSV events match these filters.
                 </td>
               </tr>

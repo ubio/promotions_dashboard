@@ -75,6 +75,62 @@ export async function getClientCsvEvents(f: ClientCsvEventFilters): Promise<Page
   return paginateEvents("clientCsvEvents", filter, f.page ?? 1, "createdAt");
 }
 
+function csvImportTurnaroundKey(bundleId: string, dataType: string): string {
+  return `${bundleId}\t${dataType}`;
+}
+
+function csvImportKeyFromEvent(event: Document): { bundleId: string; dataType: string } | null {
+  if (event.eventType !== "client-record-import") return null;
+  const bundleId = event.bundleId;
+  const dataType = event.dataType;
+  if (typeof bundleId !== "string" || !bundleId || typeof dataType !== "string" || !dataType) {
+    return null;
+  }
+  return { bundleId, dataType };
+}
+
+// Matching promotions-export createdAt for the same bundle + data type, so an
+// import row can show how long that file took to come back to the client.
+export async function getCsvImportDeliveredAt(items: Document[]): Promise<Map<string, number>> {
+  const bundleIds = [
+    ...new Set(
+      items.flatMap((event) => {
+        const key = csvImportKeyFromEvent(event);
+        return key ? [key.bundleId] : [];
+      })
+    ),
+  ];
+  if (bundleIds.length === 0) return new Map();
+  const rows = await clientCsvColl()
+    .aggregate<{ _id: { bundleId: string; dataType: string }; deliveredAt: number }>([
+      { $match: { eventType: "promotions-export", bundleId: { $in: bundleIds } } },
+      {
+        $group: {
+          _id: { bundleId: "$bundleId", dataType: "$dataType" },
+          deliveredAt: { $max: "$createdAt" },
+        },
+      },
+    ])
+    .toArray();
+  return new Map(
+    rows
+      .filter((r) => r._id.bundleId && r._id.dataType && r.deliveredAt)
+      .map((r) => [csvImportTurnaroundKey(r._id.bundleId, r._id.dataType), r.deliveredAt])
+  );
+}
+
+export function csvImportTurnaroundMs(
+  event: Document,
+  deliveredAt: Map<string, number>
+): number | null {
+  const key = csvImportKeyFromEvent(event);
+  const createdAt = event.createdAt;
+  if (!key || typeof createdAt !== "number") return null;
+  const delivered = deliveredAt.get(csvImportTurnaroundKey(key.bundleId, key.dataType));
+  if (delivered == null || delivered < createdAt) return null;
+  return delivered - createdAt;
+}
+
 export async function getBotDetectionClientIds(): Promise<string[]> {
   const rows = await botDetectionColl().aggregate<{ _id: string }>([
     { $unwind: "$clientIds" },

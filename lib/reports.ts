@@ -610,6 +610,20 @@ export async function getBatchMeta(bundleIds: string[]): Promise<Map<string, Bat
   );
 }
 
+export function sortBatchRowsByReceived(
+  rows: ReportRow[],
+  batchMeta: Map<string, BatchMeta>
+): ReportRow[] {
+  return [...rows].sort((a, b) => {
+    const aReceived = batchMeta.get(a.key)?.receivedAt;
+    const bReceived = batchMeta.get(b.key)?.receivedAt;
+    if (aReceived == null && bReceived == null) return b.runs - a.runs;
+    if (aReceived == null) return 1;
+    if (bReceived == null) return -1;
+    return bReceived - aReceived;
+  });
+}
+
 export interface DailyRunSeries {
   date: string;
   clientFacing: number;
