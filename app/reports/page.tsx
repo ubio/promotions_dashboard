@@ -1,30 +1,34 @@
 import Link from "next/link";
+import Pagination from "@/components/Pagination";
 import {
   drillFilters,
   getBatchMeta,
   getReport,
-  getValidityForPeriod,
   getReportClientIds,
   getReportDomains,
   parseReportSearch,
   previousPeriod,
   reportQueryString,
+  reportSearchParams,
   daysBetween,
+  sortBatchRowsByReceived,
   type ReportRow,
   type ReportFilters,
   type ReportTotals,
   type Outcome,
+  type GroupBy,
 } from "@/lib/reports";
 import ReportsFilterBar from "@/components/reports/ReportsFilterBar";
 import { ratesConfigured } from "@/lib/rates";
+import { PAGE_SIZE } from "@/lib/queries";
 import { formatCost, formatCount, formatDate, formatDuration } from "@/lib/format";
-import { ValidityBar } from "@/components/charts";
+import { ValidationSplitBar } from "@/components/charts";
 
 export const dynamic = "force-dynamic";
 
 type Search = { [key: string]: string | string[] | undefined };
 
-const GROUPS: { value: string; label: string }[] = [
+const GROUPS: { value: GroupBy; label: string }[] = [
   { value: "client", label: "Customer" },
   { value: "merchant", label: "Merchant" },
   { value: "day", label: "Day" },
@@ -32,9 +36,6 @@ const GROUPS: { value: string; label: string }[] = [
   { value: "year", label: "Year" },
   { value: "batch", label: "Batch" },
 ];
-
-
-
 
 function Delta({ current, previous }: { current: number; previous: number }) {
   if (previous === 0) {
@@ -121,17 +122,22 @@ function rowLabel(row: ReportRow, groupBy: string, names: Map<string, string>): 
   return row.key;
 }
 
+function sentBackRate(imported: number, sentBack: number): string {
+  if (imported <= 0) return "—";
+  return `${((sentBack / imported) * 100).toFixed(0)}%`;
+}
+
 export default async function ReportsPage({ searchParams }: { searchParams: Promise<Search> }) {
   const sp = await searchParams;
   const filters = parseReportSearch(sp);
+  const page = Number(typeof sp.page === "string" ? sp.page : "1") || 1;
   const prev = previousPeriod(filters.from, filters.to);
 
-  const [current, comparison, clientIds, domains, validity] = await Promise.all([
+  const [current, comparison, clientIds, domains] = await Promise.all([
     getReport(filters),
     getReport({ ...filters, ...prev }),
     getReportClientIds(),
     getReportDomains(),
-    getValidityForPeriod(filters),
   ]);
 
   // Batch rows gain receipt/delivery timings from the client CSV events.
@@ -139,7 +145,10 @@ export default async function ReportsPage({ searchParams }: { searchParams: Prom
   const batchMeta = isBatch
     ? await getBatchMeta(current.rows.map((r) => r.key))
     : new Map();
-  const validityTotal = validity.reduce((sum, v) => sum + v.value, 0);
+  const allRows = isBatch ? sortBatchRowsByReceived(current.rows, batchMeta) : current.rows;
+  const pages = Math.max(1, Math.ceil(allRows.length / PAGE_SIZE));
+  const safePage = Math.min(Math.max(1, page), pages);
+  const rows = allRows.slice((safePage - 1) * PAGE_SIZE, safePage * PAGE_SIZE);
 
   const names = new Map<string, string>();
   const qs = reportQueryString(filters);
@@ -192,14 +201,14 @@ export default async function ReportsPage({ searchParams }: { searchParams: Prom
 
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-5">
         <Tile
+          label="Client Records"
+          value={sentBackRate(t.imported, t.sentBack)}
+          sub={`${formatCount(t.imported)} imported · ${formatCount(t.sentBack)} sent back`}
+        />
+        <Tile
           label="Validation runs"
           value={formatCount(t.runs)}
           sub={<Delta current={t.runs} previous={p.runs} />}
-        />
-        <Tile
-          label="Distinct codes"
-          value={formatCount(t.distinctCodes)}
-          sub={`${formatCount(t.distinctPromotions)} promotions`}
         />
         <Tile
           label="Reached a result"
@@ -212,18 +221,22 @@ export default async function ReportsPage({ searchParams }: { searchParams: Prom
           sub={<Delta current={t.cost} previous={p.cost} />}
         />
         <Tile
-          label={showRevenue ? "Revenue estimate" : "Revenue estimate"}
+          label="Revenue estimate"
           value={t.revenue == null ? "—" : `$${t.revenue.toFixed(2)}`}
-          sub={showRevenue ? "reached a result × client rate" : "set CLIENT_VALIDATION_RATES"}
+          sub={showRevenue ? "promotions sent × client rate" : "set CLIENT_VALIDATION_RATES"}
         />
       </div>
 
-      {validityTotal > 0 && (
+      {t.runs > 0 && (
         <div className="rounded-lg border border-slate-200 bg-white p-3">
           <p className="mb-2 text-xs uppercase tracking-wide text-slate-400">
-            Offers created in this period — {formatCount(validityTotal)}
+            Validation runs — {formatCount(t.runs)}
           </p>
-          <ValidityBar counts={validity} />
+          <ValidationSplitBar
+            runs={t.runs}
+            clientFacing={t.clientFacing}
+            automationIssues={t.automationIssues}
+          />
         </div>
       )}
 
@@ -233,7 +246,7 @@ export default async function ReportsPage({ searchParams }: { searchParams: Prom
           {GROUPS.map((g) => (
             <Link
               key={g.value}
-              href={`/reports?${reportQueryString({ ...filters, groupBy: g.value as typeof filters.groupBy })}`}
+              href={`/reports?${reportQueryString({ ...filters, groupBy: g.value })}`}
               className={`rounded-md px-3 py-1 ${
                 filters.groupBy === g.value
                   ? "bg-slate-900 text-white"
@@ -259,20 +272,22 @@ export default async function ReportsPage({ searchParams }: { searchParams: Prom
               <th className="px-3 py-2">Runs</th>
               <th className="px-3 py-2">Reached result</th>
               <th className="px-3 py-2">No result</th>
-              <th className="px-3 py-2">Valid</th>
-              <th className="px-3 py-2">Invalid</th>
-              <th className="px-3 py-2">Codes</th>
+              <th className="px-3 py-2">Client-facing</th>
+              <th className="px-3 py-2">Automation issues</th>
+              <th className="px-3 py-2">Other</th>
               <th className="px-3 py-2">Avg time</th>
               <th className="px-3 py-2">Cost</th>
               {showRevenue && <th className="px-3 py-2">Revenue</th>}
             </tr>
           </thead>
           <tbody className="divide-y divide-slate-100">
-            {current.rows.map((row) => (
+            {rows.map((row) => {
+              const href = rowHref(row, filters);
+              return (
               <tr key={row.key} className="hover:bg-sky-50/50">
                 <td className="whitespace-nowrap px-3 py-2 font-medium">
-                  {rowHref(row, filters) ? (
-                    <Link href={rowHref(row, filters)!} className="text-sky-700 hover:underline">
+                  {href ? (
+                    <Link href={href} className="text-sky-700 hover:underline">
                       {rowLabel(row, filters.groupBy, names)}
                     </Link>
                   ) : (
@@ -305,17 +320,9 @@ export default async function ReportsPage({ searchParams }: { searchParams: Prom
                   value={row.noResult}
                   className="text-amber-700"
                 />
-                <DrillCell
-                  href={drill(row.key, "valid")}
-                  value={row.valid}
-                  className="text-green-700"
-                />
-                <DrillCell
-                  href={drill(row.key, "invalid")}
-                  value={row.invalid}
-                  className="text-red-600"
-                />
-                <td className="px-3 py-2">{formatCount(row.distinctCodes)}</td>
+                <td className="px-3 py-2 text-green-700">{formatCount(row.clientFacing)}</td>
+                <td className="px-3 py-2 text-orange-700">{formatCount(row.automationIssues)}</td>
+                <td className="px-3 py-2 text-slate-600">{formatCount(row.other)}</td>
                 <td className="whitespace-nowrap px-3 py-2">
                   {row.timedRuns === 0 ? "—" : `${(row.avgTimeMs / 1000).toFixed(1)}s`}
                   {row.timedRuns > 0 && row.timedRuns < row.runs && (
@@ -329,8 +336,9 @@ export default async function ReportsPage({ searchParams }: { searchParams: Prom
                   </td>
                 )}
               </tr>
-            ))}
-            {current.rows.length === 0 && (
+              );
+            })}
+            {rows.length === 0 && (
               <tr>
                 <td
                   colSpan={(showRevenue ? 10 : 9) + (isBatch ? 3 : 0)}
@@ -341,7 +349,7 @@ export default async function ReportsPage({ searchParams }: { searchParams: Prom
               </tr>
             )}
           </tbody>
-          {current.rows.length > 0 && (
+          {rows.length > 0 && (
             <tfoot className="border-t-2 border-slate-200 bg-slate-50 font-medium">
               <tr>
                 <td className="px-3 py-2">Total</td>
@@ -349,9 +357,9 @@ export default async function ReportsPage({ searchParams }: { searchParams: Prom
                 <td className="px-3 py-2">{formatCount(t.runs)}</td>
                 <td className="px-3 py-2">{formatCount(t.resolved)}</td>
                 <td className="px-3 py-2">{formatCount(t.noResult)}</td>
-                <td className="px-3 py-2">{formatCount(t.valid)}</td>
-                <td className="px-3 py-2">{formatCount(t.invalid)}</td>
-                <td className="px-3 py-2">{formatCount(t.distinctCodes)}</td>
+                <td className="px-3 py-2">{formatCount(t.clientFacing)}</td>
+                <td className="px-3 py-2">{formatCount(t.automationIssues)}</td>
+                <td className="px-3 py-2">{formatCount(t.other)}</td>
                 <td className="whitespace-nowrap px-3 py-2">
                   {t.timedRuns === 0 ? "—" : `${(t.avgTimeMs / 1000).toFixed(1)}s`}
                 </td>
@@ -367,10 +375,27 @@ export default async function ReportsPage({ searchParams }: { searchParams: Prom
         </table>
       </div>
 
+      {pages > 1 && (
+        <Pagination
+          page={safePage}
+          pages={pages}
+          total={allRows.length}
+          basePath="/reports"
+          params={reportSearchParams(filters)}
+        />
+      )}
+
       <p className="text-xs text-slate-400">
         Click any count to see the individual validations behind it, with reasons and
-        screenshots. Counts are validation runs from the job logs; “Codes” is distinct promotion codes touched in
-        the period. Revenue is a crude estimate (runs that reached a result × per-client rate) and ignores
+        screenshots. Counts are validation runs from the job logs; “Client-facing” is a
+        conclusion the client can act on (the promotion worked, or it failed with a
+        client-facing fail code); “Automation issues” are runs whose fail codes are
+        automation failures (bot detection, agent errors, proxy, timeouts); “Other”
+        is the remainder of validation runs (including no-result runs and conclusions
+        that are neither client-facing nor automation failures). “Client Records”
+        is import-file records received from the client versus promotions in export
+        files sent back in this period. Revenue is a crude estimate (promotions sent
+        to the client × per-client rate) and ignores
         contractual terms. Average time covers only runs with a usable duration —
         {" "}
         {t.runs - t.timedRuns > 0

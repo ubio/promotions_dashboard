@@ -1,7 +1,19 @@
 import { NextRequest } from "next/server";
 import { csvResponse, toCsv } from "@/lib/csv";
 import { getValidationsForExport, parseReportSearch } from "@/lib/reports";
+import { isAutomationIssueRun, isClientFacingRun } from "@/lib/fail-codes";
 import { sumLlmCosts } from "@/lib/format";
+
+function exportOutcome(r: {
+  reportType?: string;
+  success?: boolean;
+  failCodes?: string[];
+}): string {
+  if (isClientFacingRun(r)) return "client_facing";
+  if (isAutomationIssueRun(r)) return "automation_issues";
+  if (r.reportType === "error") return "no_result";
+  return "other";
+}
 
 export const dynamic = "force-dynamic";
 
@@ -34,7 +46,7 @@ export async function GET(req: NextRequest) {
     r.domain ?? "",
     r.promotionId ?? "",
     r.promotionUniqId ?? "",
-    r.reportType === "error" ? "errored" : r.success ? "passed" : "failed",
+    exportOutcome(r),
     (r.failCodes ?? []).join(" "),
     r.reasoning ?? "",
     r.time == null ? "" : (r.time / 1000).toFixed(1),

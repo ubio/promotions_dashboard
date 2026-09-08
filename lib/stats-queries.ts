@@ -1,5 +1,6 @@
 import type { Document, Filter } from "mongodb";
 import { escapeRegex } from "./format";
+import { merchantStatusFields, type MerchantHighlight } from "./merchant-status";
 import { db } from "./mongo";
 import { PAGE_SIZE, type Paged } from "./queries";
 import {
@@ -137,6 +138,23 @@ function projectNestedCounters(extra: Document = {}): Document {
 }
 
 function periodBuckets(period: StatsPeriod): Document[] {
+  if (period.granularity === "all") {
+    // Finalized months plus any still-open days in the rolling window.
+    return [
+      { $unwind: "$monthlyStats" },
+      { $set: { period: "$monthlyStats" } },
+      {
+        $unionWith: {
+          coll: "stats",
+          pipeline: [
+            { $unwind: "$last30Days" },
+            { $match: { "last30Days.finalized": { $ne: true } } },
+            { $set: { period: "$last30Days" } },
+          ],
+        },
+      },
+    ];
+  }
   if (period.granularity === "day") {
     return [
       { $unwind: "$last30Days" },
@@ -199,6 +217,27 @@ function withIdentityMatch(match: Filter<StatDoc>, pipeline: Document[]): Docume
   return prefixed;
 }
 
+function merchantStatusStages(status: MerchantHighlight | undefined): Document[] {
+  if (!status) return [];
+  const flagsMatch: Document = {};
+  for (const [field, value] of Object.entries(merchantStatusFields(status))) {
+    flagsMatch[`flags.${field}`] = value;
+  }
+  return [
+    {
+      $lookup: {
+        from: "merchants",
+        localField: "merchantId",
+        foreignField: "_id",
+        as: "flags",
+      },
+    },
+    { $unwind: { path: "$flags", preserveNullAndEmptyArrays: false } },
+    { $match: flagsMatch },
+    { $unset: "flags" },
+  ];
+}
+
 function paginateFacet(sort: Document, page: number): Document {
   const safePage = Math.max(1, page);
   return {
@@ -254,7 +293,7 @@ export async function getClientPeriodRows(
 
 export async function getMerchantPeriodRows(
   period: StatsPeriod,
-  opts: { q?: string; page?: number } = {}
+  opts: { q?: string; page?: number; status?: MerchantHighlight } = {}
 ): Promise<Paged<MerchantPeriodRow>> {
   const page = opts.page ?? 1;
   const match: Filter<StatDoc> = {};
@@ -280,6 +319,7 @@ export async function getMerchantPeriodRows(
       clientCount: { $size: "$clientIds" },
     }),
     { $match: ACTIVITY_MATCH },
+    ...merchantStatusStages(opts.status),
     paginateFacet(
       { "validationsStats.totalValidationsCount": -1, "promotionsStats.receivedPromotions": -1, merchantDomain: 1 },
       page

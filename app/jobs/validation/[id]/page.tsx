@@ -13,7 +13,7 @@ function backTarget(back?: string): { href: string; label: string } {
   if (back && back.startsWith("/") && !back.startsWith("//")) {
     if (back.startsWith("/reports/runs")) return { href: back, label: "validations" };
     if (back.startsWith("/reports")) return { href: back, label: "report" };
-    if (back.startsWith("/promotions/")) return { href: back, label: "offer" };
+    if (back.startsWith("/promotions/")) return { href: back, label: "promotion" };
     if (back.startsWith("/promotions")) return { href: back, label: "records" };
     return { href: back, label: "back" };
   }

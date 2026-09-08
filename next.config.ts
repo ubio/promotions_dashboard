@@ -8,9 +8,26 @@ const nextConfig: NextConfig = {
   async redirects() {
     return [
       { source: "/merchants", destination: "/stats/merchants", permanent: false },
-      // The Records hub was removed; its lists live under Reports or Stats now.
+      {
+        source: "/promotions",
+        has: [{ type: "query", key: "tab", value: "bot-detection" }],
+        destination: "/stats/bot-detection",
+        permanent: false,
+      },
+      {
+        source: "/promotions",
+        has: [{ type: "query", key: "tab", value: "client-files" }],
+        destination: "/stats/client-files",
+        permanent: false,
+      },
       { source: "/promotions", destination: "/reports/runs", permanent: false },
-      { source: "/events", destination: "/reports/runs", permanent: false },
+      {
+        source: "/events",
+        has: [{ type: "query", key: "type", value: "csv" }],
+        destination: "/stats/client-files",
+        permanent: false,
+      },
+      { source: "/events", destination: "/stats/bot-detection", permanent: false },
     ];
   },
 };

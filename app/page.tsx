@@ -1,10 +1,9 @@
 import Link from "next/link";
-import { StackedOutcomeChart, ValidityBar } from "@/components/charts";
+import { CHART_COLORS, StackedSeriesChart, ValidationSplitBar } from "@/components/charts";
 import {
   getReport,
   getDailySeriesForOverview,
   getFailCodeBreakdown,
-  getValidityForPeriod,
   previousPeriod,
   reportQueryString,
   shiftDate,
@@ -54,17 +53,16 @@ export default async function Overview() {
   const filters: ReportFilters = { from, to, groupBy: "client" };
   const prev = previousPeriod(from, to);
 
-  const [current, comparison, daily, failCodes, validity] = await Promise.all([
+  const [current, comparison, daily, failCodes] = await Promise.all([
     getReport(filters),
     getReport({ ...filters, ...prev }),
     getDailySeriesForOverview(filters),
-    getFailCodeBreakdown({ ...filters, outcomes: ["no_result", "invalid"] }),
-    getValidityForPeriod(filters),
+    getFailCodeBreakdown({ ...filters, outcomes: ["no_result"] }),
   ]);
 
   const t = current.totals;
   const p = comparison.totals;
-  // Success = we reached a verdict, whether the offer proved valid or invalid.
+  // Success = we reached a verdict, whether the promotion proved valid or invalid.
   const successRate = t.runs > 0 ? (t.resolved / t.runs) * 100 : null;
   const qs = reportQueryString(filters);
   const topReasons = failCodes.slice(0, 5);
@@ -89,7 +87,7 @@ export default async function Overview() {
           label="Success rate"
           value={successRate == null ? "—" : `${successRate.toFixed(0)}%`}
           sub={`${formatCount(t.resolved)} of ${formatCount(t.runs)} reached a result`}
-          href={`/reports/runs?${reportQueryString({ ...filters, outcomes: ["valid", "invalid"] })}`}
+          href={`/reports/runs?${qs}`}
         />
         <Tile
           label="LLM cost"
@@ -100,7 +98,7 @@ export default async function Overview() {
         <Tile
           label={ratesConfigured() ? "Revenue estimate" : "Revenue estimate"}
           value={t.revenue == null ? "—" : `$${t.revenue.toFixed(2)}`}
-          sub={ratesConfigured() ? "reached a result × client rate" : "set CLIENT_VALIDATION_RATES"}
+          sub={ratesConfigured() ? "promotions sent × client rate" : "set CLIENT_VALIDATION_RATES"}
           href={`/reports?${qs}`}
         />
       </div>
@@ -112,7 +110,18 @@ export default async function Overview() {
             Break down in Reports →
           </Link>
         </div>
-        <StackedOutcomeChart data={daily} />
+        <StackedSeriesChart
+          ariaLabel="Validations per day: client-facing conclusions, automation issues, other"
+          series={[
+            { label: "Client-facing", color: CHART_COLORS.good },
+            { label: "Automation issues", color: "#eb6834" },
+            { label: "Other", color: CHART_COLORS.neutral },
+          ]}
+          data={daily.map((d) => ({
+            date: d.date,
+            values: [d.clientFacing, d.automationIssues, d.other],
+          }))}
+        />
       </section>
 
       <div className="grid gap-4 lg:grid-cols-2">
@@ -147,19 +156,18 @@ export default async function Overview() {
 
         <section className="rounded-lg border border-slate-200 bg-white p-4">
           <div className="mb-3 flex items-baseline justify-between gap-3">
-            <h2 className="text-sm font-semibold text-slate-700">Offers created</h2>
-            <Link
-              href="/reports?groupBy=merchant"
-              className="text-xs text-sky-700 hover:underline"
-            >
-              By merchant →
+            <h2 className="text-sm font-semibold text-slate-700">
+              Validation runs — {formatCount(t.runs)}
+            </h2>
+            <Link href={`/reports?${qs}`} className="text-xs text-sky-700 hover:underline">
+              Full report →
             </Link>
           </div>
-          {validity.length === 0 ? (
-            <p className="text-sm text-slate-400">No offers created in this period.</p>
-          ) : (
-            <ValidityBar counts={validity} />
-          )}
+          <ValidationSplitBar
+            runs={t.runs}
+            clientFacing={t.clientFacing}
+            automationIssues={t.automationIssues}
+          />
         </section>
       </div>
 

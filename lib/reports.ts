@@ -7,7 +7,7 @@
 import type { Document, Filter } from "mongodb";
 import { db } from "./mongo";
 import { rateFor, clientRates } from "./rates";
-import { normalizeValidity, VALIDITY_STATUSES } from "./format";
+import { AUTOMATION_FAILURE_FAIL_CODES, CLIENT_FACING_FAIL_CODES } from "./fail-codes";
 
 type LogDoc = Document & { _id: string };
 
@@ -29,7 +29,7 @@ function logs() {
 }
 
 export type GroupBy = "client" | "merchant" | "day" | "month" | "year" | "batch";
-export type Outcome = "valid" | "invalid" | "no_result";
+export type Outcome = "client_facing" | "automation_issues" | "no_result";
 
 export interface ReportFilters {
   from: string; // YYYY-MM-DD inclusive
@@ -49,8 +49,17 @@ export interface ReportRow {
   noResult: number;
   valid: number;
   invalid: number;
-  distinctPromotions: number;
-  distinctCodes: number;
+  // Conclusion the client can act on: a successful run, or a failed conclusion
+  // whose fail code is in CLIENT_FACING_FAIL_CODES (same rule as promotions-service).
+  clientFacing: number;
+  // Run whose fail codes include an automation failure (bot, agent, proxy, …).
+  automationIssues: number;
+  // Runs that are neither client-facing nor automation issues (same split as the chart).
+  other: number;
+  // Records in import files received from the client this window.
+  imported: number;
+  // Promotions in export files delivered to the client this window.
+  sentBack: number;
   totalTimeMs: number;
   timedRuns: number;
   avgTimeMs: number;
@@ -92,8 +101,15 @@ export function buildMatch(f: ReportFilters): Filter<LogDoc> {
   // outcomes become an $or rather than merged fields.
   const clauses: Filter<LogDoc>[] = [];
   for (const outcome of f.outcomes ?? []) {
-    if (outcome === "valid") clauses.push({ success: true });
-    if (outcome === "invalid") clauses.push({ success: false, reportType: { $ne: "error" } });
+    if (outcome === "client_facing") {
+      clauses.push({
+        reportType: "conclusion",
+        $or: [{ success: true }, { failCodes: { $in: CLIENT_FACING_FAIL_CODES } }],
+      });
+    }
+    if (outcome === "automation_issues") {
+      clauses.push({ failCodes: { $in: AUTOMATION_FAILURE_FAIL_CODES } });
+    }
     if (outcome === "no_result") clauses.push({ reportType: "error" });
   }
   if (clauses.length === 1) Object.assign(match, clauses[0]);
@@ -102,18 +118,18 @@ export function buildMatch(f: ReportFilters): Filter<LogDoc> {
   return match;
 }
 
-function groupKeyExpr(groupBy: GroupBy): Document | string {
+function groupKeyExpr(groupBy: GroupBy, createdAtPath: string, bundlePath: string): Document | string {
   switch (groupBy) {
     case "merchant":
       return "$domain";
     case "day":
-      return { $dateToString: { format: "%Y-%m-%d", date: { $toDate: "$createdAt" } } };
+      return { $dateToString: { format: "%Y-%m-%d", date: { $toDate: createdAtPath } } };
     case "month":
-      return { $dateToString: { format: "%Y-%m", date: { $toDate: "$createdAt" } } };
+      return { $dateToString: { format: "%Y-%m", date: { $toDate: createdAtPath } } };
     case "year":
-      return { $dateToString: { format: "%Y", date: { $toDate: "$createdAt" } } };
+      return { $dateToString: { format: "%Y", date: { $toDate: createdAtPath } } };
     case "batch":
-      return { $ifNull: ["$importBundle", ""] };
+      return { $ifNull: [bundlePath, ""] };
     default:
       return "$clientId";
   }
@@ -126,15 +142,20 @@ interface RawRow {
   noResult: number;
   valid: number;
   invalid: number;
-  promotions: (string | null)[];
-  codes: (string | null)[];
+  clientFacing: number;
+  automationIssues: number;
   totalTimeMs: number;
   timedRuns: number;
   cost: number;
 }
 
-// Grouped by (key, clientId) so per-client revenue rates can be applied before
-// rolling the rows up — a day or merchant row can span several clients.
+function hasAnyFailCode(codes: string[]): Document {
+  return {
+    $gt: [{ $size: { $setIntersection: [{ $ifNull: ["$failCodes", []] }, codes] } }, 0],
+  };
+}
+
+// Grouped by (key, clientId). A day or merchant row can span several clients.
 async function rawRows(f: ReportFilters): Promise<RawRow[]> {
   const groupBy = f.groupBy ?? "client";
   return logs()
@@ -142,7 +163,10 @@ async function rawRows(f: ReportFilters): Promise<RawRow[]> {
       { $match: buildMatch(f) },
       {
         $group: {
-          _id: { key: groupKeyExpr(groupBy), clientId: "$clientId" },
+          _id: {
+            key: groupKeyExpr(groupBy, "$createdAt", "$importBundle"),
+            clientId: "$clientId",
+          },
           runs: { $sum: 1 },
           resolved: { $sum: { $cond: [{ $eq: ["$reportType", "error"] }, 0, 1] } },
           noResult: { $sum: { $cond: [{ $eq: ["$reportType", "error"] }, 1, 0] } },
@@ -156,8 +180,25 @@ async function rawRows(f: ReportFilters): Promise<RawRow[]> {
               ],
             },
           },
-          promotions: { $addToSet: "$promotionId" },
-          codes: { $addToSet: "$promotionUniqId" },
+          clientFacing: {
+            $sum: {
+              $cond: [
+                {
+                  $and: [
+                    { $eq: ["$reportType", "conclusion"] },
+                    {
+                      $or: [{ $eq: ["$success", true] }, hasAnyFailCode(CLIENT_FACING_FAIL_CODES)],
+                    },
+                  ],
+                },
+                1,
+                0,
+              ],
+            },
+          },
+          automationIssues: {
+            $sum: { $cond: [hasAnyFailCode(AUTOMATION_FAILURE_FAIL_CODES), 1, 0] },
+          },
           totalTimeMs: { $sum: { $cond: [plausibleTime, "$time", 0] } },
           timedRuns: { $sum: { $cond: [plausibleTime, 1, 0] } },
           cost: { $sum: { $sum: "$llmCosts.totalCost" } },
@@ -167,7 +208,7 @@ async function rawRows(f: ReportFilters): Promise<RawRow[]> {
     .toArray();
 }
 
-function blankRow(key: string): ReportRow & { _promotions: Set<string>; _codes: Set<string> } {
+function blankRow(key: string): ReportRow {
   return {
     key,
     runs: 0,
@@ -175,31 +216,128 @@ function blankRow(key: string): ReportRow & { _promotions: Set<string>; _codes: 
     noResult: 0,
     valid: 0,
     invalid: 0,
-    distinctPromotions: 0,
-    distinctCodes: 0,
+    clientFacing: 0,
+    automationIssues: 0,
+    other: 0,
+    imported: 0,
+    sentBack: 0,
     totalTimeMs: 0,
     timedRuns: 0,
     avgTimeMs: 0,
     cost: 0,
     revenue: null,
-    _promotions: new Set<string>(),
-    _codes: new Set<string>(),
   };
+}
+
+function finishRow(row: ReportRow): ReportRow {
+  return {
+    ...row,
+    other: Math.max(0, row.runs - row.clientFacing - row.automationIssues),
+    avgTimeMs: row.timedRuns > 0 ? Math.round(row.totalTimeMs / row.timedRuns) : 0,
+  };
+}
+
+function toTotals(row: ReportRow): ReportTotals {
+  return {
+    runs: row.runs,
+    resolved: row.resolved,
+    noResult: row.noResult,
+    valid: row.valid,
+    invalid: row.invalid,
+    clientFacing: row.clientFacing,
+    automationIssues: row.automationIssues,
+    other: row.other,
+    imported: row.imported,
+    sentBack: row.sentBack,
+    totalTimeMs: row.totalTimeMs,
+    timedRuns: row.timedRuns,
+    avgTimeMs: row.avgTimeMs,
+    cost: row.cost,
+    revenue: row.revenue,
+  };
+}
+
+type CsvEventType = "promotions-export" | "client-record-import";
+
+// Date / client only — CSV events have no merchant domain.
+function buildCsvEventMatch(f: ReportFilters, eventType: CsvEventType): Filter<LogDoc> {
+  const match: Filter<LogDoc> = {
+    eventType,
+    createdAt: { $gte: dayStartMs(f.from), $lt: dayEndMs(f.to) },
+  };
+  if (f.clientIds?.length) match.clientId = { $in: f.clientIds };
+  return match;
+}
+
+interface CsvCountRow {
+  _id: { key: string | null; clientId: string | null };
+  records: number;
+}
+
+// Grouped by (key, clientId) so each client's deliveries are billed at that
+// client's rate before rolling up. CSV files have no merchant domain, so a
+// merchant breakdown only contributes to the period total.
+async function csvRecordRows(f: ReportFilters, eventType: CsvEventType): Promise<CsvCountRow[]> {
+  const groupBy = f.groupBy ?? "client";
+  const keyExpr =
+    groupBy === "merchant"
+      ? { $literal: "__total__" }
+      : groupKeyExpr(groupBy, "$createdAt", "$bundleId");
+  return db()
+    .collection<LogDoc>("clientCsvEvents")
+    .aggregate<CsvCountRow>([
+      { $match: buildCsvEventMatch(f, eventType) },
+      {
+        $group: {
+          _id: {
+            key: keyExpr,
+            clientId: "$clientId",
+          },
+          records: { $sum: { $ifNull: ["$recordCount", 0] } },
+        },
+      },
+    ])
+    .toArray();
+}
+
+function addBilledRevenue(target: ReportRow, sentBack: number, rate: number | null): void {
+  if (rate == null) return;
+  target.revenue = (target.revenue ?? 0) + sentBack * rate;
+}
+
+function applyCsvRows(
+  rows: CsvCountRow[],
+  byKey: Map<string, ReportRow>,
+  totals: ReportRow,
+  attachToRows: boolean,
+  apply: (target: ReportRow, row: CsvCountRow) => void
+): void {
+  for (const r of rows) {
+    apply(totals, r);
+    if (!attachToRows) continue;
+    const key = r._id.key ?? "(unknown)";
+    const row = byKey.get(key) ?? blankRow(key);
+    apply(row, r);
+    byKey.set(key, row);
+  }
 }
 
 export async function getReport(
   f: ReportFilters
 ): Promise<{ rows: ReportRow[]; totals: ReportTotals }> {
   const rates = clientRates();
-  const raw = await rawRows(f);
+  const [raw, exported, imported] = await Promise.all([
+    rawRows(f),
+    csvRecordRows(f, "promotions-export"),
+    csvRecordRows(f, "client-record-import"),
+  ]);
 
-  const byKey = new Map<string, ReturnType<typeof blankRow>>();
+  const byKey = new Map<string, ReportRow>();
   const totals = blankRow("__total__");
 
   for (const r of raw) {
     const key = r._id.key ?? "(unknown)";
     const row = byKey.get(key) ?? blankRow(key);
-    const rate = rateFor(r._id.clientId ?? undefined, rates);
 
     for (const target of [row, totals]) {
       target.runs += r.runs;
@@ -207,35 +345,30 @@ export async function getReport(
       target.noResult += r.noResult;
       target.valid += r.valid;
       target.invalid += r.invalid;
+      target.clientFacing += r.clientFacing;
+      target.automationIssues += r.automationIssues;
       target.totalTimeMs += r.totalTimeMs;
       target.timedRuns += r.timedRuns;
       target.cost += r.cost;
-      for (const p of r.promotions) if (p) target._promotions.add(p);
-      for (const c of r.codes) if (c) target._codes.add(c);
-      if (rate != null) target.revenue = (target.revenue ?? 0) + r.resolved * rate;
     }
     byKey.set(key, row);
   }
 
-  const finish = (row: ReturnType<typeof blankRow>): ReportRow => {
-    const { _promotions, _codes, ...rest } = row;
-    return {
-      ...rest,
-      distinctPromotions: _promotions.size,
-      distinctCodes: _codes.size,
-      avgTimeMs: rest.timedRuns > 0 ? Math.round(rest.totalTimeMs / rest.timedRuns) : 0,
-    };
-  };
+  const attachCsvToRows = (f.groupBy ?? "client") !== "merchant";
+  applyCsvRows(exported, byKey, totals, attachCsvToRows, (target, r) => {
+    target.sentBack += r.records;
+    addBilledRevenue(target, r.records, rateFor(r._id.clientId ?? undefined, rates));
+  });
+  applyCsvRows(imported, byKey, totals, attachCsvToRows, (target, r) => {
+    target.imported += r.records;
+  });
 
-  const rows = [...byKey.values()].map(finish);
+  const rows = [...byKey.values()].map(finishRow);
   const groupBy = f.groupBy ?? "client";
   const chronological = groupBy === "day" || groupBy === "month" || groupBy === "year";
   rows.sort((a, b) => (chronological ? a.key.localeCompare(b.key) : b.runs - a.runs));
 
-  const totalRow = finish(totals);
-  const totalRest: ReportTotals = { ...totalRow, key: undefined } as ReportTotals;
-  delete (totalRest as { key?: string }).key;
-  return { rows, totals: totalRest };
+  return { rows, totals: toTotals(finishRow(totals)) };
 }
 
 // Filter options change rarely but are fetched on every render; a short TTL
@@ -305,15 +438,32 @@ export async function getValidationsForExport(
 }
 
 export const GROUP_BY_VALUES: GroupBy[] = ["client", "merchant", "day", "month", "year", "batch"];
-export const OUTCOME_VALUES: Outcome[] = ["valid", "invalid", "no_result"];
+export const OUTCOME_VALUES: Outcome[] = ["client_facing", "automation_issues", "no_result"];
 
-// Older links used pass/fail language, where "passed" meant the promotion was
-// valid. Success now means the run reached a verdict at all, so map them over.
+// Older links used pass/fail, then valid/invalid. Both map onto the current
+// client-facing / automation-issues filter so bookmarked URLs still resolve.
 const LEGACY_OUTCOMES: Record<string, Outcome> = {
-  passed: "valid",
-  failed: "invalid",
+  passed: "client_facing",
+  valid: "client_facing",
+  failed: "automation_issues",
+  invalid: "automation_issues",
   errored: "no_result",
 };
+
+function parseGroupBy(raw: string | undefined): GroupBy {
+  for (const value of GROUP_BY_VALUES) {
+    if (value === raw) return value;
+  }
+  return "client";
+}
+
+function parseOutcome(raw: string): Outcome | undefined {
+  const mapped = LEGACY_OUTCOMES[raw] ?? raw;
+  for (const value of OUTCOME_VALUES) {
+    if (value === mapped) return value;
+  }
+  return undefined;
+}
 
 function isIsoDate(v: string | undefined): v is string {
   return !!v && /^\d{4}-\d{2}-\d{2}$/.test(v);
@@ -334,32 +484,43 @@ export function parseReportSearch(sp: {
   const one = (v: string | string[] | undefined) =>
     typeof v === "string" && v !== "" ? v : undefined;
   const today = new Date().toISOString().slice(0, 10);
-  const to = isIsoDate(one(sp.to)) ? (one(sp.to) as string) : today;
-  const from = isIsoDate(one(sp.from)) ? (one(sp.from) as string) : shiftDate(to, -29);
-  const groupByRaw = one(sp.groupBy) as GroupBy | undefined;
-  const outcomesRaw = (listParam(sp.outcomes) ?? listParam(sp.outcome) ?? []).map(
-    (o) => LEGACY_OUTCOMES[o] ?? o
-  ) as Outcome[];
+  const toRaw = one(sp.to);
+  const fromRaw = one(sp.from);
+  const to = isIsoDate(toRaw) ? toRaw : today;
+  const from = isIsoDate(fromRaw) ? fromRaw : shiftDate(to, -29);
+  const outcomes: Outcome[] = [];
+  for (const raw of listParam(sp.outcomes) ?? listParam(sp.outcome) ?? []) {
+    const parsed = parseOutcome(raw);
+    if (parsed) outcomes.push(parsed);
+  }
   return {
     from: from <= to ? from : to,
     to,
-    groupBy: groupByRaw && GROUP_BY_VALUES.includes(groupByRaw) ? groupByRaw : "client",
+    groupBy: parseGroupBy(one(sp.groupBy)),
     clientIds: listParam(sp.clientIds),
     domains: listParam(sp.domains),
-    outcomes: outcomesRaw.filter((o) => OUTCOME_VALUES.includes(o)),
+    outcomes,
     failCode: one(sp.failCode),
+  };
+}
+
+export function reportSearchParams(f: ReportFilters): Record<string, string | undefined> {
+  return {
+    from: f.from,
+    to: f.to,
+    groupBy: f.groupBy,
+    clientIds: f.clientIds?.join(","),
+    domains: f.domains?.join(","),
+    outcomes: f.outcomes?.join(","),
+    failCode: f.failCode,
   };
 }
 
 export function reportQueryString(f: ReportFilters): string {
   const sp = new URLSearchParams();
-  sp.set("from", f.from);
-  sp.set("to", f.to);
-  if (f.groupBy) sp.set("groupBy", f.groupBy);
-  if (f.clientIds?.length) sp.set("clientIds", f.clientIds.join(","));
-  if (f.domains?.length) sp.set("domains", f.domains.join(","));
-  if (f.outcomes?.length) sp.set("outcomes", f.outcomes.join(","));
-  if (f.failCode) sp.set("failCode", f.failCode);
+  for (const [key, value] of Object.entries(reportSearchParams(f))) {
+    if (value) sp.set(key, value);
+  }
   return sp.toString();
 }
 
@@ -492,54 +653,41 @@ export async function getBatchMeta(bundleIds: string[]): Promise<Map<string, Bat
   );
 }
 
-export interface ValidityCount {
-  label: string;
-  value: number;
+export function sortBatchRowsByReceived(
+  rows: ReportRow[],
+  batchMeta: Map<string, BatchMeta>
+): ReportRow[] {
+  return [...rows].sort((a, b) => {
+    const aReceived = batchMeta.get(a.key)?.receivedAt;
+    const bReceived = batchMeta.get(b.key)?.receivedAt;
+    if (aReceived == null && bReceived == null) return b.runs - a.runs;
+    if (aReceived == null) return 1;
+    if (bReceived == null) return -1;
+    return bReceived - aReceived;
+  });
 }
 
-// Promotion-level outcome for the filtered period. This is a different grain
-// from the run counts: one row per offer, carrying its accumulated verdict.
-// Unrecognised statuses fall into "other" rather than being dropped.
-export async function getValidityForPeriod(f: ReportFilters): Promise<ValidityCount[]> {
-  const match: Filter<LogDoc> = {
-    "systemMeta.createdAt": { $gte: dayStartMs(f.from), $lt: dayEndMs(f.to) },
-  };
-  if (f.clientIds?.length) match.clientId = { $in: f.clientIds };
-  if (f.domains?.length) match.domain = { $in: f.domains };
-
-  const rows = await db()
-    .collection<LogDoc>("promotions")
-    .aggregate<{ _id: string | null; n: number }>([
-      { $match: match },
-      { $group: { _id: "$validityStatus", n: { $sum: 1 } } },
-    ])
-    .toArray();
-
-  const counts = new Map<string, number>(VALIDITY_STATUSES.map((s) => [s, 0]));
-  for (const r of rows) {
-    const key = normalizeValidity(r._id);
-    const bucket = counts.has(key) ? key : "other";
-    counts.set(bucket, (counts.get(bucket) ?? 0) + r.n);
-  }
-  return [...counts.entries()]
-    .filter(([, value]) => value > 0)
-    .map(([label, value]) => ({ label, value }));
+export interface DailyRunSeries {
+  date: string;
+  clientFacing: number;
+  automationIssues: number;
+  other: number;
 }
 
-
-export async function getDailySeriesForOverview(
-  f: ReportFilters
-): Promise<{ date: string; valid: number; invalid: number; noResult: number }[]> {
+export async function getDailySeriesForOverview(f: ReportFilters): Promise<DailyRunSeries[]> {
   const { rows } = await getReport({ ...f, groupBy: "day" });
   const byDate = new Map(rows.map((r) => [r.key, r]));
-  const out: { date: string; valid: number; invalid: number; noResult: number }[] = [];
+  const out: DailyRunSeries[] = [];
   for (let d = f.from; d <= f.to; d = shiftDate(d, 1)) {
     const r = byDate.get(d);
+    const clientFacing = r?.clientFacing ?? 0;
+    const automationIssues = r?.automationIssues ?? 0;
+    const runs = r?.runs ?? 0;
     out.push({
       date: d,
-      valid: r?.valid ?? 0,
-      invalid: r?.invalid ?? 0,
-      noResult: r?.noResult ?? 0,
+      clientFacing,
+      automationIssues,
+      other: Math.max(0, runs - clientFacing - automationIssues),
     });
   }
   return out;

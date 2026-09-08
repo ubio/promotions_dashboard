@@ -5,6 +5,25 @@ export function parseMerchantStatus(value: string | undefined): MerchantHighligh
   return undefined;
 }
 
+// Field predicates that match merchantHighlight(), so a status filter
+// returns the same merchants the Status column would label that way.
+export function merchantStatusFields(status: MerchantHighlight): {
+  validationsAllowed?: boolean | { $ne: false };
+  scriptGenerated?: boolean;
+  scriptReviewed?: boolean;
+  botDetection?: boolean;
+} {
+  if (status === "bot-detected") {
+    return { validationsAllowed: false };
+  }
+  return {
+    scriptGenerated: true,
+    scriptReviewed: true,
+    botDetection: false,
+    validationsAllowed: { $ne: false },
+  };
+}
+
 export function merchantHighlight(merchant: {
   validationsAllowed?: boolean;
   scriptGenerated?: boolean;

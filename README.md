@@ -36,7 +36,7 @@ Required environment variables:
 | `JWT_SECRET`             | Random secret for signing session cookies (`openssl rand -hex 32`) |
 | `CLIENT_EMAIL_DOMAINS`   | Optional: `domain:ClientId` pairs granting client-portal access  |
 | `CLIENT_VALIDATION_RATES`| Optional: `ClientId:rate` pairs for the revenue estimate         |
-| `DEFAULT_VALIDATION_RATE`| Optional: fallback USD rate per successful validation           |
+| `DEFAULT_VALIDATION_RATE`| Optional: fallback USD rate per promotion sent to the client    |
 
 MongoDB is accessed only from the server (React Server Components) with
 `readPreference: secondaryPreferred`. The app never writes to the database.
@@ -91,28 +91,29 @@ The dashboard follows one journey — *how are we doing → slice it → see the
 | --- | --- | --- |
 | Overview | `/` | Headline health for the last 30 days, with every figure linking onward |
 | Reports | `/reports` | The single analysis surface: filters, breakdowns, comparison, downloads |
-| Stats | `/stats` | Pipeline / clients / merchants counters from the `stats` collection |
+| Stats | `/stats` | Pipeline, client and merchant counters, plus bot-detection and client-file event logs |
 
 Validation runs have a single home (`/reports/runs`). Detail pages accept a
 `?back=` parameter so a drill-down returns to wherever it was opened from.
-`/promotions`, `/jobs` and `/events` redirect there for old links; offer and
+`/promotions` and `/jobs` redirect into Reports for old links; `/events` and
+the old hub’s bot-detection / client-files tabs land under Stats. Promotion and
 discovery detail pages remain reachable from the runs they belong to.
 
 ## What "success" means
 
-A run succeeds when it **reaches a verdict**, whether the offer turns out valid
+A run succeeds when it **reaches a verdict**, whether the promotion turns out valid
 or invalid — in both cases we determined whether the code works. A run fails
 only when it could not get there (`reportType: "error"`).
 
 | Term | Definition |
 | --- | --- |
-| Reached a result | `reportType: "conclusion"` — valid or invalid |
-| Valid | reached a result, the promotion worked |
-| Invalid | reached a result, the promotion did not work |
+| Reached a result | `reportType: "conclusion"` — a client-facing or debug conclusion |
+| Client-facing conclusion | `reportType: "conclusion"` and either `success: true` or a client-facing fail code (promo not working, not applicable, out of stock, …) |
+| Automation issues | fail codes such as bot detection, agent error, proxy, timeout, LLM cost limit |
 | No result | `reportType: "error"` — the run could not finish |
 
-Success rate is therefore `reached a result / total runs`, and the revenue
-estimate bills runs that reached a result rather than only valid ones.
+Success rate is therefore `reached a result / total runs`. Revenue is billed
+from promotions sent to the client, not from validation runs.
 
 ## Pages
 
@@ -121,10 +122,12 @@ estimate bills runs that reached a result rather than only valid ones.
   download of exactly that selection
 - `/reports` — cross-period reporting; break down by customer, merchant, day,
   month, year or **batch** (batch rows add received / delivered / turnaround
-  from the client CSV events), plus a promotion-level validity summary for the
-  filtered period, with period-on-period comparison and CSV downloads
-- `/stats` — KPI tiles and daily charts: validations per day (success/failed),
-  success rate, and LLM cost, over a selectable 7/30/60/90-day window
+  from the client CSV events), with a split of client-facing conclusions vs
+  automation issues for the filtered period, plus period-on-period comparison and CSV downloads
+- `/stats` — pipeline counters and daily charts from job logs, with client and merchant
+  rollups from the `stats` collection
+- `/stats/bot-detection` — merchants flagged for bot detection after repeated validation failures
+- `/stats/client-files` — CSV imports from S3 and promotions exports to the client bucket
 - `/jobs/validation/[id]` — full validation job: result, reasoning, promotion under
   validation, screenshot/video evidence, LLM costs, raw JSON
 - `/jobs/extraction/[id]` — full extraction job: visited URLs, promotions found, raw JSON
@@ -146,8 +149,15 @@ Two data caveats are handled in `lib/reports.ts`:
   wall-clock timestamp in `time` instead of an elapsed duration — a bug in the
   writing service. Values at or above `MAX_PLAUSIBLE_DURATION_MS` are excluded
   from timing stats, and the UI reports how many runs were counted.
-- **Revenue** is `runs that reached a result × per-client rate` from `CLIENT_VALIDATION_RATES`.
-  It is a crude estimate that ignores minimums, tiers and other contract terms.
+- **Client records** sums `recordCount` on `clientCsvEvents` of type
+  `client-record-import` (received) and `promotions-export` (sent back) in the
+  filtered range. The send-back rate is `sent / imported`. Client CSV events
+  began 2026-09-03, so earlier periods show 0. Merchant breakdowns cannot split
+  these figures because CSV files are not tagged with a domain.
+- **Revenue** is `promotions sent to the client × per-client rate` from
+  `CLIENT_VALIDATION_RATES`. When several clients are in scope, each client's
+  deliveries are billed at that client's rate. It is a crude estimate that
+  ignores minimums, tiers and other contract terms.
 
 Year-on-year comparison is not yet possible: the database starts in May 2026.
 

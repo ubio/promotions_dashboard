@@ -206,6 +206,59 @@ export function StackedOutcomeChart({
   );
 }
 
+export function ValidationSplitBar({
+  runs,
+  clientFacing,
+  automationIssues,
+}: {
+  runs: number;
+  clientFacing: number;
+  automationIssues: number;
+}) {
+  if (runs === 0) return <p className="text-sm text-slate-400">No validations in this period.</p>;
+  const other = Math.max(0, runs - clientFacing - automationIssues);
+  const segments = [
+    { label: "Client-facing conclusions", value: clientFacing, color: GOOD },
+    { label: "Automation issues", value: automationIssues, color: "#eb6834" },
+    { label: "Other", value: other, color: NEUTRAL },
+  ];
+  const shown = segments.filter((s) => s.value > 0);
+  const pct = (n: number) => `${Math.round((n / runs) * 100)}%`;
+  return (
+    <div>
+      <ul className="mb-2 space-y-1 text-sm text-slate-700">
+        <li className="flex items-baseline justify-between gap-3">
+          <span>Client-facing conclusions</span>
+          <span className="[font-variant-numeric:tabular-nums] text-slate-500">
+            {clientFacing.toLocaleString()} ({pct(clientFacing)})
+          </span>
+        </li>
+        <li className="flex items-baseline justify-between gap-3">
+          <span>Automation issues</span>
+          <span className="[font-variant-numeric:tabular-nums] text-slate-500">
+            {automationIssues.toLocaleString()} ({pct(automationIssues)})
+          </span>
+        </li>
+      </ul>
+      <div
+        className="relative flex h-6 w-full gap-0.5 rounded"
+        role="img"
+        aria-label="Validation runs: client-facing conclusions and automation issues"
+      >
+        {shown.map((s) => (
+          <div
+            key={s.label}
+            className="chart-hint"
+            style={{ width: `${(s.value / runs) * 100}%`, background: s.color, flex: "none" }}
+            data-hint={`${s.label}\n${s.value.toLocaleString()} of ${runs.toLocaleString()} (${((s.value / runs) * 100).toFixed(1)}%)`}
+            tabIndex={0}
+          />
+        ))}
+      </div>
+    </div>
+  );
+}
+
 export function ValidityBar({
   counts,
 }: {
