@@ -38,7 +38,7 @@ export interface MonthlyStat extends PeriodStatsCounters {
   yearMonth: string;
 }
 
-export type Granularity = "day" | "month";
+export type Granularity = "day" | "month" | "all";
 
 export interface StatsPeriod {
   granularity: Granularity;
@@ -202,7 +202,9 @@ export function isYearMonth(value: string): boolean {
 }
 
 export function parseGranularity(value: string | undefined): Granularity {
-  return value === "month" ? "month" : "day";
+  if (value === "month") return "month";
+  if (value === "all") return "all";
+  return "day";
 }
 
 export function parseStatsPeriod(sp: {
@@ -247,6 +249,9 @@ export function periodPromotionOutcomesPending(
 }
 
 export function periodQuery(period: StatsPeriod): Record<string, string> {
+  if (period.granularity === "all") {
+    return { granularity: "all" };
+  }
   if (period.granularity === "month") {
     return { granularity: "month", yearMonth: period.yearMonth };
   }

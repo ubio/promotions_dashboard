@@ -35,7 +35,11 @@ export default async function MerchantStatsDetailPage({
   ]);
   const pendingPromotionOutcomes = periodPromotionOutcomesPending(period, daily);
   const periodLabel =
-    period.granularity === "day" ? formatUtcDay(period.date) : formatUtcMonth(period.yearMonth);
+    period.granularity === "day"
+      ? formatUtcDay(period.date)
+      : period.granularity === "month"
+        ? formatUtcMonth(period.yearMonth)
+        : "all time";
   const dayDetailHref =
     period.granularity === "day"
       ? `/stats/merchants/${encodeURIComponent(merchantId)}/days/${period.date}`
@@ -53,7 +57,11 @@ export default async function MerchantStatsDetailPage({
         {merchant.merchantName && <p className="text-sm text-slate-500">{merchant.merchantName}</p>}
       </div>
 
-      <PeriodToolbar basePath={`/stats/merchants/${encodeURIComponent(merchantId)}`} period={period} />
+      <PeriodToolbar
+        basePath={`/stats/merchants/${encodeURIComponent(merchantId)}`}
+        period={period}
+        showAllPeriod
+      />
 
       <div className="flex flex-wrap items-baseline justify-between gap-2">
         <p className="text-sm text-slate-500">Selected period: {periodLabel}</p>

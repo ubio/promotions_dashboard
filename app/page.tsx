@@ -98,7 +98,7 @@ export default async function Overview() {
         <Tile
           label={ratesConfigured() ? "Revenue estimate" : "Revenue estimate"}
           value={t.revenue == null ? "—" : `$${t.revenue.toFixed(2)}`}
-          sub={ratesConfigured() ? "reached a result × client rate" : "set CLIENT_VALIDATION_RATES"}
+          sub={ratesConfigured() ? "promotions sent × client rate" : "set CLIENT_VALIDATION_RATES"}
           href={`/reports?${qs}`}
         />
       </div>

@@ -7,18 +7,24 @@ export function PeriodToolbar({
   period,
   q,
   clientIds,
+  status,
+  showAllPeriod,
 }: {
   basePath: string;
   period: StatsPeriod;
   q?: string;
   clientIds?: string[];
+  status?: string;
+  showAllPeriod?: boolean;
 }) {
-  const dayHref = queryHref(basePath, { granularity: "day", date: period.date, q });
+  const dayHref = queryHref(basePath, { granularity: "day", date: period.date, q, status });
   const monthHref = queryHref(basePath, {
     granularity: "month",
     yearMonth: period.yearMonth,
     q,
+    status,
   });
+  const allHref = queryHref(basePath, { granularity: "all", q, status });
 
   const clientOptions = q && clientIds && !clientIds.includes(q) ? [q, ...clientIds] : clientIds;
 
@@ -44,6 +50,16 @@ export function PeriodToolbar({
           >
             Month
           </Link>
+          {showAllPeriod && (
+            <Link
+              href={allHref}
+              className={`rounded-md px-3 py-1 ${
+                period.granularity === "all" ? "bg-slate-900 text-white" : "text-slate-600 hover:bg-slate-100"
+              }`}
+            >
+              All
+            </Link>
+          )}
         </div>
       </div>
       {period.granularity === "day" ? (
@@ -56,7 +72,7 @@ export function PeriodToolbar({
             className="rounded border border-slate-300 px-2 py-1.5"
           />
         </label>
-      ) : (
+      ) : period.granularity === "month" ? (
         <label className="flex flex-col gap-1">
           <span className="text-xs text-slate-500">Month</span>
           <input
@@ -66,7 +82,7 @@ export function PeriodToolbar({
             className="rounded border border-slate-300 px-2 py-1.5"
           />
         </label>
-      )}
+      ) : null}
       {clientIds ? (
         <label className="flex max-w-full flex-col gap-1">
           <span className="text-xs text-slate-500">Client</span>
@@ -96,6 +112,20 @@ export function PeriodToolbar({
           </label>
         )
       )}
+      {status !== undefined && (
+        <label className="flex max-w-full flex-col gap-1">
+          <span className="text-xs text-slate-500">Status</span>
+          <select
+            name="status"
+            defaultValue={status}
+            className="max-w-full rounded border border-slate-300 px-2 py-1.5"
+          >
+            <option value="">All</option>
+            <option value="onboarded">Onboarded</option>
+            <option value="bot-detected">Bot-detected</option>
+          </select>
+        </label>
+      )}
       <button className="rounded bg-slate-900 px-4 py-1.5 text-white hover:bg-slate-700">Apply</button>
       <Link href={basePath} className="py-1.5 text-slate-500 hover:text-slate-700">
         Reset
@@ -103,7 +133,9 @@ export function PeriodToolbar({
       <p className="w-full text-xs text-slate-400">
         {period.granularity === "day"
           ? `Daily counters are kept for the last 30 days. Showing ${formatUtcDay(period.date)}.`
-          : `Monthly totals include finalized days plus any still-open days in ${formatUtcMonth(period.yearMonth)}.`}
+          : period.granularity === "month"
+            ? `Monthly totals include finalized days plus any still-open days in ${formatUtcMonth(period.yearMonth)}.`
+            : "All-time totals from finalized monthly rollups plus any still-open days."}
       </p>
     </form>
   );

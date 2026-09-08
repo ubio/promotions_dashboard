@@ -36,7 +36,7 @@ Required environment variables:
 | `JWT_SECRET`             | Random secret for signing session cookies (`openssl rand -hex 32`) |
 | `CLIENT_EMAIL_DOMAINS`   | Optional: `domain:ClientId` pairs granting client-portal access  |
 | `CLIENT_VALIDATION_RATES`| Optional: `ClientId:rate` pairs for the revenue estimate         |
-| `DEFAULT_VALIDATION_RATE`| Optional: fallback USD rate per successful validation           |
+| `DEFAULT_VALIDATION_RATE`| Optional: fallback USD rate per promotion sent to the client    |
 
 MongoDB is accessed only from the server (React Server Components) with
 `readPreference: secondaryPreferred`. The app never writes to the database.
@@ -112,8 +112,8 @@ only when it could not get there (`reportType: "error"`).
 | Automation issues | fail codes such as bot detection, agent error, proxy, timeout, LLM cost limit |
 | No result | `reportType: "error"` — the run could not finish |
 
-Success rate is therefore `reached a result / total runs`, and the revenue
-estimate bills runs that reached a result rather than only valid ones.
+Success rate is therefore `reached a result / total runs`. Revenue is billed
+from promotions sent to the client, not from validation runs.
 
 ## Pages
 
@@ -149,13 +149,15 @@ Two data caveats are handled in `lib/reports.ts`:
   wall-clock timestamp in `time` instead of an elapsed duration — a bug in the
   writing service. Values at or above `MAX_PLAUSIBLE_DURATION_MS` are excluded
   from timing stats, and the UI reports how many runs were counted.
-- **Sent to client** sums `recordCount` on `clientCsvEvents` of type
-  `promotions-export` in the filtered range (when the file was delivered).
-  Client CSV events began 2026-09-03, so earlier periods show 0. Merchant
-  breakdowns cannot split this figure because export files are not tagged
-  with a domain.
-- **Revenue** is `runs that reached a result × per-client rate` from `CLIENT_VALIDATION_RATES`.
-  It is a crude estimate that ignores minimums, tiers and other contract terms.
+- **Client records** sums `recordCount` on `clientCsvEvents` of type
+  `client-record-import` (received) and `promotions-export` (sent back) in the
+  filtered range. The send-back rate is `sent / imported`. Client CSV events
+  began 2026-09-03, so earlier periods show 0. Merchant breakdowns cannot split
+  these figures because CSV files are not tagged with a domain.
+- **Revenue** is `promotions sent to the client × per-client rate` from
+  `CLIENT_VALIDATION_RATES`. When several clients are in scope, each client's
+  deliveries are billed at that client's rate. It is a crude estimate that
+  ignores minimums, tiers and other contract terms.
 
 Year-on-year comparison is not yet possible: the database starts in May 2026.
 

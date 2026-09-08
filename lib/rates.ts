@@ -1,8 +1,8 @@
 // Per-client revenue rates, e.g.
 //   CLIENT_VALIDATION_RATES=ZiffDavis:0.25,Atoll:0.30
 // DEFAULT_VALIDATION_RATE covers clients not listed. Rates are USD per
-// successful validation and produce a deliberately crude revenue estimate —
-// real contracts have minimums, tiers and other terms this ignores.
+// promotion delivered to the client and produce a deliberately crude revenue
+// estimate — real contracts have minimums, tiers and other terms this ignores.
 
 export function clientRates(): Map<string, number> {
   const map = new Map<string, number>();

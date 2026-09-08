@@ -8,6 +8,7 @@ import {
   merchantHighlight,
   merchantHighlightClass,
   merchantHighlightLabel,
+  parseMerchantStatus,
 } from "@/lib/merchant-status";
 
 export const dynamic = "force-dynamic";
@@ -18,9 +19,10 @@ export default async function MerchantStatsPage({ searchParams }: { searchParams
   const sp = await searchParams;
   const period = periodFromSearch(sp);
   const q = firstParam(sp.q);
+  const status = parseMerchantStatus(firstParam(sp.status));
   const page = Number(firstParam(sp.page) ?? "1") || 1;
   const [result, dayFinalized] = await Promise.all([
-    getMerchantPeriodRows(period, { q, page }),
+    getMerchantPeriodRows(period, { q, page, status }),
     period.granularity === "day" ? isDayFinalized(period.date) : true,
   ]);
   const pendingPromotionOutcomes = period.granularity === "day" && !dayFinalized;
@@ -30,6 +32,7 @@ export default async function MerchantStatsPage({ searchParams }: { searchParams
     date: period.granularity === "day" ? period.date : undefined,
     yearMonth: period.granularity === "month" ? period.yearMonth : undefined,
     q,
+    status,
   };
 
   return (
@@ -41,7 +44,13 @@ export default async function MerchantStatsPage({ searchParams }: { searchParams
         </p>
       </div>
 
-      <PeriodToolbar basePath="/stats/merchants" period={period} q={q ?? ""} />
+      <PeriodToolbar
+        basePath="/stats/merchants"
+        period={period}
+        q={q ?? ""}
+        status={status ?? ""}
+        showAllPeriod
+      />
 
       <div className="overflow-x-auto rounded-lg border border-slate-200 bg-white">
         <table className="min-w-full text-sm [font-variant-numeric:tabular-nums]">
@@ -112,7 +121,7 @@ export default async function MerchantStatsPage({ searchParams }: { searchParams
             {result.items.length === 0 && (
               <tr>
                 <td colSpan={3 + COUNTER_COL_SPAN} className="px-3 py-8 text-center text-slate-400">
-                  No merchant stats for this period.
+                  No merchants match these filters.
                 </td>
               </tr>
             )}

@@ -54,8 +54,11 @@ export interface ReportRow {
   clientFacing: number;
   // Run whose fail codes include an automation failure (bot, agent, proxy, …).
   automationIssues: number;
-  // Promotions in files actually delivered to the client this window
-  // (`clientCsvEvents` promotions-export recordCount).
+  // Runs that are neither client-facing nor automation issues (same split as the chart).
+  other: number;
+  // Records in import files received from the client this window.
+  imported: number;
+  // Promotions in export files delivered to the client this window.
   sentBack: number;
   totalTimeMs: number;
   timedRuns: number;
@@ -152,8 +155,7 @@ function hasAnyFailCode(codes: string[]): Document {
   };
 }
 
-// Grouped by (key, clientId) so per-client revenue rates can be applied before
-// rolling the rows up — a day or merchant row can span several clients.
+// Grouped by (key, clientId). A day or merchant row can span several clients.
 async function rawRows(f: ReportFilters): Promise<RawRow[]> {
   const groupBy = f.groupBy ?? "client";
   return logs()
@@ -216,6 +218,8 @@ function blankRow(key: string): ReportRow {
     invalid: 0,
     clientFacing: 0,
     automationIssues: 0,
+    other: 0,
+    imported: 0,
     sentBack: 0,
     totalTimeMs: 0,
     timedRuns: 0,
@@ -228,6 +232,7 @@ function blankRow(key: string): ReportRow {
 function finishRow(row: ReportRow): ReportRow {
   return {
     ...row,
+    other: Math.max(0, row.runs - row.clientFacing - row.automationIssues),
     avgTimeMs: row.timedRuns > 0 ? Math.round(row.totalTimeMs / row.timedRuns) : 0,
   };
 }
@@ -241,6 +246,8 @@ function toTotals(row: ReportRow): ReportTotals {
     invalid: row.invalid,
     clientFacing: row.clientFacing,
     automationIssues: row.automationIssues,
+    other: row.other,
+    imported: row.imported,
     sentBack: row.sentBack,
     totalTimeMs: row.totalTimeMs,
     timedRuns: row.timedRuns,
@@ -250,49 +257,80 @@ function toTotals(row: ReportRow): ReportTotals {
   };
 }
 
-// Date / client only — export events have no merchant, and outcome filters
-// belong to the run grain rather than the delivery file.
-function buildExportEventMatch(f: ReportFilters): Filter<LogDoc> {
+type CsvEventType = "promotions-export" | "client-record-import";
+
+// Date / client only — CSV events have no merchant domain.
+function buildCsvEventMatch(f: ReportFilters, eventType: CsvEventType): Filter<LogDoc> {
   const match: Filter<LogDoc> = {
-    eventType: "promotions-export",
+    eventType,
     createdAt: { $gte: dayStartMs(f.from), $lt: dayEndMs(f.to) },
   };
   if (f.clientIds?.length) match.clientId = { $in: f.clientIds };
   return match;
 }
 
-interface ExportedRow {
-  _id: string | null;
-  sentBack: number;
+interface CsvCountRow {
+  _id: { key: string | null; clientId: string | null };
+  records: number;
 }
 
-async function exportedRows(f: ReportFilters): Promise<ExportedRow[]> {
+// Grouped by (key, clientId) so each client's deliveries are billed at that
+// client's rate before rolling up. CSV files have no merchant domain, so a
+// merchant breakdown only contributes to the period total.
+async function csvRecordRows(f: ReportFilters, eventType: CsvEventType): Promise<CsvCountRow[]> {
   const groupBy = f.groupBy ?? "client";
-  // Export files are not tagged with a merchant, so that breakdown only
-  // contributes to the period total.
   const keyExpr =
     groupBy === "merchant"
       ? { $literal: "__total__" }
       : groupKeyExpr(groupBy, "$createdAt", "$bundleId");
   return db()
     .collection<LogDoc>("clientCsvEvents")
-    .aggregate<ExportedRow>([
-      { $match: buildExportEventMatch(f) },
+    .aggregate<CsvCountRow>([
+      { $match: buildCsvEventMatch(f, eventType) },
       {
         $group: {
-          _id: keyExpr,
-          sentBack: { $sum: { $ifNull: ["$recordCount", 0] } },
+          _id: {
+            key: keyExpr,
+            clientId: "$clientId",
+          },
+          records: { $sum: { $ifNull: ["$recordCount", 0] } },
         },
       },
     ])
     .toArray();
 }
 
+function addBilledRevenue(target: ReportRow, sentBack: number, rate: number | null): void {
+  if (rate == null) return;
+  target.revenue = (target.revenue ?? 0) + sentBack * rate;
+}
+
+function applyCsvRows(
+  rows: CsvCountRow[],
+  byKey: Map<string, ReportRow>,
+  totals: ReportRow,
+  attachToRows: boolean,
+  apply: (target: ReportRow, row: CsvCountRow) => void
+): void {
+  for (const r of rows) {
+    apply(totals, r);
+    if (!attachToRows) continue;
+    const key = r._id.key ?? "(unknown)";
+    const row = byKey.get(key) ?? blankRow(key);
+    apply(row, r);
+    byKey.set(key, row);
+  }
+}
+
 export async function getReport(
   f: ReportFilters
 ): Promise<{ rows: ReportRow[]; totals: ReportTotals }> {
   const rates = clientRates();
-  const [raw, exported] = await Promise.all([rawRows(f), exportedRows(f)]);
+  const [raw, exported, imported] = await Promise.all([
+    rawRows(f),
+    csvRecordRows(f, "promotions-export"),
+    csvRecordRows(f, "client-record-import"),
+  ]);
 
   const byKey = new Map<string, ReportRow>();
   const totals = blankRow("__total__");
@@ -300,7 +338,6 @@ export async function getReport(
   for (const r of raw) {
     const key = r._id.key ?? "(unknown)";
     const row = byKey.get(key) ?? blankRow(key);
-    const rate = rateFor(r._id.clientId ?? undefined, rates);
 
     for (const target of [row, totals]) {
       target.runs += r.runs;
@@ -313,20 +350,18 @@ export async function getReport(
       target.totalTimeMs += r.totalTimeMs;
       target.timedRuns += r.timedRuns;
       target.cost += r.cost;
-      if (rate != null) target.revenue = (target.revenue ?? 0) + r.resolved * rate;
     }
     byKey.set(key, row);
   }
 
-  const attachExportsToRows = (f.groupBy ?? "client") !== "merchant";
-  for (const r of exported) {
-    totals.sentBack += r.sentBack;
-    if (!attachExportsToRows) continue;
-    const key = r._id ?? "(unknown)";
-    const row = byKey.get(key) ?? blankRow(key);
-    row.sentBack += r.sentBack;
-    byKey.set(key, row);
-  }
+  const attachCsvToRows = (f.groupBy ?? "client") !== "merchant";
+  applyCsvRows(exported, byKey, totals, attachCsvToRows, (target, r) => {
+    target.sentBack += r.records;
+    addBilledRevenue(target, r.records, rateFor(r._id.clientId ?? undefined, rates));
+  });
+  applyCsvRows(imported, byKey, totals, attachCsvToRows, (target, r) => {
+    target.imported += r.records;
+  });
 
   const rows = [...byKey.values()].map(finishRow);
   const groupBy = f.groupBy ?? "client";
@@ -469,15 +504,23 @@ export function parseReportSearch(sp: {
   };
 }
 
+export function reportSearchParams(f: ReportFilters): Record<string, string | undefined> {
+  return {
+    from: f.from,
+    to: f.to,
+    groupBy: f.groupBy,
+    clientIds: f.clientIds?.join(","),
+    domains: f.domains?.join(","),
+    outcomes: f.outcomes?.join(","),
+    failCode: f.failCode,
+  };
+}
+
 export function reportQueryString(f: ReportFilters): string {
   const sp = new URLSearchParams();
-  sp.set("from", f.from);
-  sp.set("to", f.to);
-  if (f.groupBy) sp.set("groupBy", f.groupBy);
-  if (f.clientIds?.length) sp.set("clientIds", f.clientIds.join(","));
-  if (f.domains?.length) sp.set("domains", f.domains.join(","));
-  if (f.outcomes?.length) sp.set("outcomes", f.outcomes.join(","));
-  if (f.failCode) sp.set("failCode", f.failCode);
+  for (const [key, value] of Object.entries(reportSearchParams(f))) {
+    if (value) sp.set(key, value);
+  }
   return sp.toString();
 }
 
