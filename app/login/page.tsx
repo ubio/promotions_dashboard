@@ -1,5 +1,6 @@
 import { redirect } from "next/navigation";
 import GoogleSignIn from "@/components/GoogleSignIn";
+import { Logo } from "@/components/Logo";
 import { isAuthDisabled } from "@/lib/session";
 
 export const dynamic = "force-dynamic";
@@ -19,8 +20,8 @@ export default async function LoginPage({
   return (
     <div className="flex flex-1 items-center justify-center py-24">
       <div className="w-full max-w-sm rounded-xl border border-slate-200 bg-white p-8 text-center shadow-sm">
-        <h1 className="text-lg font-semibold">
-          UBIO <span className="text-sky-600">Promotions</span>
+        <h1 className="flex justify-center text-lg">
+          <Logo subdued />
         </h1>
         <p className="mt-2 mb-6 text-sm text-slate-500">
           Sign in with your company account to continue.

@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import Link from "next/link";
+import { Logo } from "@/components/Logo";
 import { getSessionUser } from "@/lib/auth";
 import { isAuthDisabled } from "@/lib/session";
 import "./globals.css";
@@ -31,8 +32,8 @@ export default async function RootLayout({
       <body className="min-h-full flex flex-col font-sans">
         <header className="bg-slate-900 text-white">
           <div className="mx-auto max-w-7xl px-4 py-3 flex flex-wrap items-center gap-x-6 gap-y-1.5">
-            <Link href={user?.role === "client" ? "/portal" : "/"} className="font-semibold tracking-tight whitespace-nowrap">
-              UBIO <span className="text-sky-400">Promotions</span>
+            <Link href={user?.role === "client" ? "/portal" : "/"}>
+              <Logo />
             </Link>
             <nav className="flex flex-wrap gap-x-4 gap-y-1 text-sm text-slate-300">
               {user?.role === "client" ? (
