@@ -94,14 +94,15 @@ tr:has(.pending-promotion-outcome:focus-visible) {
   max-width: 18rem;
   transform: translateX(-50%);
   border-radius: 0.375rem;
-  background: #0f172a;
+  border: 1px solid #696969;
+  background: #fafafa;
   padding: 0.3rem 0.5rem;
   font-size: 0.75rem;
   font-weight: 500;
   line-height: 1.35;
   white-space: pre-line;
-  color: #fff;
-  box-shadow: 0 4px 12px rgb(15 23 42 / 0.18);
+  color: #000;
+  box-shadow: 0 2px 8px rgb(15 23 42 / 0.1);
   pointer-events: none;
 }
 
@@ -127,12 +128,13 @@ tr:has(.pending-promotion-outcome:focus-visible) {
   max-width: 18rem;
   transform: translateX(-50%);
   border-radius: 0.375rem;
-  background: #0f172a;
+  border: 1px solid #696969;
+  background: #fafafa;
   padding: 0.3rem 0.5rem;
   font-size: 0.75rem;
   font-weight: 500;
   line-height: 1.35;
-  box-shadow: 0 4px 12px rgb(15 23 42 / 0.18);
+  box-shadow: 0 2px 8px rgb(15 23 42 / 0.1);
   pointer-events: none;
 }
 
@@ -143,7 +145,7 @@ tr:has(.pending-promotion-outcome:focus-visible) {
 
 .chart-hint-headline {
   margin: 0;
-  color: #fff;
+  color: #000;
 }
 
 .chart-hint-row {
@@ -159,31 +161,4 @@ tr:has(.pending-promotion-outcome:focus-visible) {
   left: auto;
   right: 0;
   transform: none;
-}
-
-/* Inline legend help icons — same tooltip styling as chart hints. */
-.legend-help[data-hint]:hover::after,
-.legend-help[data-hint]:focus-visible::after {
-  content: attr(data-hint);
-  position: absolute;
-  left: 50%;
-  bottom: calc(100% + 4px);
-  z-index: 50;
-  width: max-content;
-  max-width: 16rem;
-  transform: translateX(-50%);
-  border-radius: 0.375rem;
-  background: #0f172a;
-  padding: 0.3rem 0.5rem;
-  font-size: 0.75rem;
-  font-weight: 500;
-  line-height: 1.35;
-  white-space: normal;
-  color: #fff;
-  box-shadow: 0 4px 12px rgb(15 23 42 / 0.18);
-  pointer-events: none;
-}
-
-.legend-help {
-  position: relative;
 }

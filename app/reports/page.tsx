@@ -18,7 +18,10 @@ import {
   type Outcome,
   type GroupBy,
 } from "@/lib/reports";
+import { TableHeaderLabel } from "@/components/HelpHint";
 import ReportsFilterBar from "@/components/reports/ReportsFilterBar";
+import { REPORT_COLUMN_HINTS } from "@/lib/report-column-hints";
+import { REPORT_GROUP_LABELS } from "@/lib/report-summary-csv";
 import { ratesConfigured } from "@/lib/rates";
 import { PAGE_SIZE } from "@/lib/queries";
 import { formatCost, formatCount, formatDate, formatDuration } from "@/lib/format";
@@ -28,14 +31,9 @@ export const dynamic = "force-dynamic";
 
 type Search = { [key: string]: string | string[] | undefined };
 
-const GROUPS: { value: GroupBy; label: string }[] = [
-  { value: "client", label: "Customer" },
-  { value: "merchant", label: "Merchant" },
-  { value: "day", label: "Day" },
-  { value: "month", label: "Month" },
-  { value: "year", label: "Year" },
-  { value: "batch", label: "Batch" },
-];
+const GROUPS: { value: GroupBy; label: string }[] = (
+  ["client", "merchant", "day", "month", "year", "batch"] as const
+).map((value) => ({ value, label: REPORT_GROUP_LABELS[value] }));
 
 function Delta({ current, previous }: { current: number; previous: number }) {
   if (previous === 0) {
@@ -272,14 +270,30 @@ export default async function ReportsPage({ searchParams }: { searchParams: Prom
               {isBatch && <th className="px-3 py-2">Received</th>}
               {isBatch && <th className="px-3 py-2">Delivered</th>}
               {isBatch && <th className="px-3 py-2">Turnaround</th>}
-              <th className="px-3 py-2">Runs</th>
-              <th className="px-3 py-2">Reached result</th>
-              <th className="px-3 py-2">No result</th>
-              <th className="px-3 py-2">Client-facing</th>
-              <th className="px-3 py-2">Automation issues</th>
-              <th className="px-3 py-2">Other</th>
-              <th className="px-3 py-2">Avg time</th>
-              <th className="px-3 py-2">Cost</th>
+              <th className="px-3 py-2">
+                <TableHeaderLabel label="Runs" hint={REPORT_COLUMN_HINTS.runs} />
+              </th>
+              <th className="px-3 py-2">
+                <TableHeaderLabel label="Reached result" hint={REPORT_COLUMN_HINTS.reachedResult} />
+              </th>
+              <th className="px-3 py-2">
+                <TableHeaderLabel label="No result" hint={REPORT_COLUMN_HINTS.noResult} />
+              </th>
+              <th className="px-3 py-2">
+                <TableHeaderLabel label="Client-facing" hint={REPORT_COLUMN_HINTS.clientFacing} />
+              </th>
+              <th className="px-3 py-2">
+                <TableHeaderLabel label="Automation issues" hint={REPORT_COLUMN_HINTS.automationIssues} />
+              </th>
+              <th className="px-3 py-2">
+                <TableHeaderLabel label="Other" hint={REPORT_COLUMN_HINTS.other} />
+              </th>
+              <th className="px-3 py-2">
+                <TableHeaderLabel label="Avg time" hint={REPORT_COLUMN_HINTS.avgTime} />
+              </th>
+              <th className="px-3 py-2">
+                <TableHeaderLabel label="LLM Cost" hint={REPORT_COLUMN_HINTS.llmCost} />
+              </th>
               {showRevenue && <th className="px-3 py-2">Revenue</th>}
             </tr>
           </thead>

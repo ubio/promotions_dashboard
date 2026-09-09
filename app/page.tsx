@@ -1,5 +1,7 @@
 import Link from "next/link";
-import { CHART_COLORS, StackedSeriesChart, ValidationSplitBar } from "@/components/charts";
+import { StackedSeriesChart, VALIDATION_OUTCOME_SERIES, ValidationSplitBar } from "@/components/charts";
+import { TableHeaderLabel } from "@/components/HelpHint";
+import { REPORT_COLUMN_HINTS } from "@/lib/report-column-hints";
 import {
   getReport,
   getDailySeriesForOverview,
@@ -127,11 +129,7 @@ export default async function Overview() {
         </div>
         <StackedSeriesChart
           ariaLabel="Validations per day: client-facing conclusions, automation issues, other"
-          series={[
-            { label: "Client facing", color: CHART_COLORS.good },
-            { label: "Automation issues", color: CHART_COLORS.critical },
-            { label: "Other", color: CHART_COLORS.neutral },
-          ]}
+          series={[...VALIDATION_OUTCOME_SERIES]}
           data={daily.map((d) => ({
             date: d.date,
             values: [d.clientFacing, d.automationIssues, d.other],
@@ -197,10 +195,21 @@ export default async function Overview() {
           <thead className="text-left text-xs uppercase text-slate-500">
             <tr>
               <th className="py-1 pr-4">Customer</th>
-              <th className="py-1 pr-4">Validations</th>
-              <th className="py-1 pr-4">Reached result</th>
-              <th className="py-1 pr-4">Promotions sent to client</th>
-              <th className="py-1 pr-4">Cost</th>
+              <th className="py-1 pr-4">
+                <TableHeaderLabel label="Validations" hint={REPORT_COLUMN_HINTS.validations} />
+              </th>
+              <th className="py-1 pr-4">
+                <TableHeaderLabel label="Reached result" hint={REPORT_COLUMN_HINTS.reachedResult} />
+              </th>
+              <th className="py-1 pr-4">
+                <TableHeaderLabel
+                  label="Promotions sent to client"
+                  hint={REPORT_COLUMN_HINTS.promotionsSentToClient}
+                />
+              </th>
+              <th className="py-1 pr-4">
+                <TableHeaderLabel label="LLM Cost" hint={REPORT_COLUMN_HINTS.llmCost} />
+              </th>
             </tr>
           </thead>
           <tbody className="divide-y divide-slate-100">

@@ -1,3 +1,4 @@
+import { HelpHint } from "@/components/HelpHint";
 import { OTHER_FAIL_CODES } from "@/lib/fail-codes";
 
 // Server-rendered SVG charts. Colors follow the validated reference palette:
@@ -21,6 +22,18 @@ export const CHART_COLORS = {
   neutral: NEUTRAL,
   blue: BLUE,
 };
+
+export const VALIDATION_OUTCOME_COLORS = {
+  clientFacing: GOOD,
+  automationIssues: CRITICAL,
+  other: NEUTRAL,
+} as const;
+
+export const VALIDATION_OUTCOME_SERIES = [
+  { label: "Client facing", color: VALIDATION_OUTCOME_COLORS.clientFacing },
+  { label: "Automation issues", color: VALIDATION_OUTCOME_COLORS.automationIssues },
+  { label: "Other", color: VALIDATION_OUTCOME_COLORS.other },
+] as const;
 
 const W = 720;
 const H = 210;
@@ -95,19 +108,6 @@ function XTicks({ dates }: { dates: string[] }) {
         ) : null
       )}
     </>
-  );
-}
-
-function LegendHelp({ hint }: { hint: string }) {
-  return (
-    <span
-      className="legend-help inline-flex h-3.5 w-3.5 shrink-0 cursor-help items-center justify-center rounded-full border border-slate-300 text-[10px] leading-none text-slate-400"
-      data-hint={hint}
-      tabIndex={0}
-      aria-label={hint}
-    >
-      ?
-    </span>
   );
 }
 
@@ -248,19 +248,19 @@ const VALIDATION_SPLIT_SEGMENTS = [
   {
     key: "client-facing",
     label: "Client-facing conclusions",
-    color: GOOD,
+    color: VALIDATION_OUTCOME_COLORS.clientFacing,
     hint: "Runs that reached a verdict the client can act on — valid, invalid, or a recognised client-facing failure.",
   },
   {
     key: "automation",
     label: "Automation issues",
-    color: "#eb6834",
+    color: VALIDATION_OUTCOME_COLORS.automationIssues,
     hint: "Runs blocked by automation or infrastructure — bot detection, timeouts, agent errors, and similar.",
   },
   {
     key: "other",
     label: "Other",
-    color: NEUTRAL,
+    color: VALIDATION_OUTCOME_COLORS.other,
     hint: OTHER_FAIL_CODES.join(", "),
   },
 ] as const;
@@ -294,7 +294,7 @@ export function ValidationSplitBar({
           <li key={segment.key} className="flex items-baseline justify-between gap-3">
             <span className="flex items-center gap-1">
               {segment.label}
-              <LegendHelp hint={segment.hint} />
+              <HelpHint hint={segment.hint} />
             </span>
             <span className="[font-variant-numeric:tabular-nums] text-slate-500">
               {segment.value.toLocaleString()} ({pct(segment.value)})
@@ -449,7 +449,7 @@ export function StackedSeriesChart({
   const hoverHints = data.map((d) => {
     const dayTotal = total(d.values);
     return {
-      headline: `${shortDate(d.date)} - ${dayTotal.toLocaleString()} total`,
+      headline: `${shortDate(d.date)}: total ${dayTotal.toLocaleString()}`,
       rows: series.map((sr, j) => ({
         label: sr.label,
         value: d.values[j] ?? 0,
