@@ -7,6 +7,7 @@ const nextConfig: NextConfig = {
   // period-aware one under /stats; keep its links working.
   async redirects() {
     return [
+      { source: "/stats", destination: "/stats/clients", permanent: false },
       { source: "/merchants", destination: "/stats/merchants", permanent: false },
       {
         source: "/promotions",

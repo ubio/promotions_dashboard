@@ -122,11 +122,6 @@ function rowLabel(row: ReportRow, groupBy: string, names: Map<string, string>): 
   return row.key;
 }
 
-function sentBackRate(imported: number, sentBack: number): string {
-  if (imported <= 0) return "—";
-  return `${((sentBack / imported) * 100).toFixed(0)}%`;
-}
-
 export default async function ReportsPage({ searchParams }: { searchParams: Promise<Search> }) {
   const sp = await searchParams;
   const filters = parseReportSearch(sp);
@@ -199,21 +194,16 @@ export default async function ReportsPage({ searchParams }: { searchParams: Prom
         {prev.from} → {prev.to}
       </p>
 
-      <div className="grid grid-cols-2 gap-3 lg:grid-cols-5">
+      <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
         <Tile
-          label="Client Records"
-          value={sentBackRate(t.imported, t.sentBack)}
-          sub={`${formatCount(t.imported)} imported · ${formatCount(t.sentBack)} sent back`}
+          label="Records received"
+          value={formatCount(t.imported)}
+          sub={<Delta current={t.imported} previous={p.imported} />}
         />
         <Tile
-          label="Validation runs"
-          value={formatCount(t.runs)}
-          sub={<Delta current={t.runs} previous={p.runs} />}
-        />
-        <Tile
-          label="Reached a result"
-          value={formatCount(t.resolved)}
-          sub={successRate == null ? "no runs" : `${successRate.toFixed(0)}% of runs`}
+          label="Promotions sent to client"
+          value={formatCount(t.sentBack)}
+          sub={<Delta current={t.sentBack} previous={p.sentBack} />}
         />
         <Tile
           label="LLM cost"
@@ -224,6 +214,19 @@ export default async function ReportsPage({ searchParams }: { searchParams: Prom
           label="Revenue estimate"
           value={t.revenue == null ? "—" : `$${t.revenue.toFixed(2)}`}
           sub={showRevenue ? "promotions sent × client rate" : "set CLIENT_VALIDATION_RATES"}
+        />
+      </div>
+
+      <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+        <Tile
+          label="Validation runs"
+          value={formatCount(t.runs)}
+          sub={<Delta current={t.runs} previous={p.runs} />}
+        />
+        <Tile
+          label="Validation Results Reached"
+          value={successRate == null ? "—" : `${successRate.toFixed(0)}%`}
+          sub={`${formatCount(t.resolved)} of ${formatCount(t.runs)} reached a result`}
         />
       </div>
 

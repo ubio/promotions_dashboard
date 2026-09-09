@@ -24,6 +24,15 @@ export const AUTOMATION_FAILURE_FAIL_CODES = [
   "BOT_DETECTION",
 ];
 
+// FailCodes enum values in promotions-service that are neither ClientFacingFailCodes
+// nor AutomationFailureFailCodes.
+export const OTHER_FAIL_CODES = [
+  "WEBSITE_ISSUE",
+  "ACCOUNT_BLOCKED",
+  "WEBSITE_LOADING_ISSUE",
+  "WEBSITE_UI_ISSUE",
+];
+
 function hasAny(failCodes: string[] | undefined, codes: string[]): boolean {
   return (failCodes ?? []).some((code) => codes.includes(code));
 }

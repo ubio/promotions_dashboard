@@ -1,3 +1,5 @@
+import { OTHER_FAIL_CODES } from "@/lib/fail-codes";
+
 // Server-rendered SVG charts. Colors follow the validated reference palette:
 // status good/critical for success/failed, sequential blue for magnitude.
 const INK = {
@@ -96,6 +98,19 @@ function XTicks({ dates }: { dates: string[] }) {
   );
 }
 
+function LegendHelp({ hint }: { hint: string }) {
+  return (
+    <span
+      className="legend-help inline-flex h-3.5 w-3.5 shrink-0 cursor-help items-center justify-center rounded-full border border-slate-300 text-[10px] leading-none text-slate-400"
+      data-hint={hint}
+      tabIndex={0}
+      aria-label={hint}
+    >
+      ?
+    </span>
+  );
+}
+
 function Legend({ entries }: { entries: { label: string; color: string }[] }) {
   return (
     <div className="mb-2 flex flex-wrap gap-4 text-xs" style={{ color: INK.secondary }}>
@@ -110,22 +125,45 @@ function Legend({ entries }: { entries: { label: string; color: string }[] }) {
 }
 
 
+interface BreakdownHoverHint {
+  headline: string;
+  rows: { label: string; value: number; color: string }[];
+}
+
+const hoverLayerStyle = {
+  left: `${(PAD.left / W) * 100}%`,
+  right: `${(PAD.right / W) * 100}%`,
+  top: `${(PAD.top / H) * 100}%`,
+  bottom: `${(PAD.bottom / H) * 100}%`,
+};
+
 // Invisible per-point hover targets laid over the plot area, giving exact
 // numbers on hover. Percentages mirror the SVG padding so slots line up with
 // the marks at any rendered width.
 function HoverSlots({ hints }: { hints: string[] }) {
   return (
-    <div
-      className="chart-hints"
-      style={{
-        left: `${(PAD.left / W) * 100}%`,
-        right: `${(PAD.right / W) * 100}%`,
-        top: `${(PAD.top / H) * 100}%`,
-        bottom: `${(PAD.bottom / H) * 100}%`,
-      }}
-    >
+    <div className="chart-hints" style={hoverLayerStyle}>
       {hints.map((hint, i) => (
         <div key={i} className="chart-hint" data-hint={hint} tabIndex={0} />
+      ))}
+    </div>
+  );
+}
+
+function BreakdownHoverSlots({ hints }: { hints: BreakdownHoverHint[] }) {
+  return (
+    <div className="chart-hints" style={hoverLayerStyle}>
+      {hints.map((hint, i) => (
+        <div key={i} className="chart-hint chart-hint-breakdown" tabIndex={0}>
+          <div className="chart-hint-popup">
+            <p className="chart-hint-headline">{hint.headline}</p>
+            {hint.rows.map((row) => (
+              <p key={row.label} className="chart-hint-row" style={{ color: row.color }}>
+                {row.label}: {row.value.toLocaleString()}
+              </p>
+            ))}
+          </div>
+        </div>
       ))}
     </div>
   );
@@ -206,6 +244,27 @@ export function StackedOutcomeChart({
   );
 }
 
+const VALIDATION_SPLIT_SEGMENTS = [
+  {
+    key: "client-facing",
+    label: "Client-facing conclusions",
+    color: GOOD,
+    hint: "Runs that reached a verdict the client can act on — valid, invalid, or a recognised client-facing failure.",
+  },
+  {
+    key: "automation",
+    label: "Automation issues",
+    color: "#eb6834",
+    hint: "Runs blocked by automation or infrastructure — bot detection, timeouts, agent errors, and similar.",
+  },
+  {
+    key: "other",
+    label: "Other",
+    color: NEUTRAL,
+    hint: OTHER_FAIL_CODES.join(", "),
+  },
+] as const;
+
 export function ValidationSplitBar({
   runs,
   clientFacing,
@@ -217,33 +276,36 @@ export function ValidationSplitBar({
 }) {
   if (runs === 0) return <p className="text-sm text-slate-400">No validations in this period.</p>;
   const other = Math.max(0, runs - clientFacing - automationIssues);
-  const segments = [
-    { label: "Client-facing conclusions", value: clientFacing, color: GOOD },
-    { label: "Automation issues", value: automationIssues, color: "#eb6834" },
-    { label: "Other", value: other, color: NEUTRAL },
-  ];
+  const values: Record<(typeof VALIDATION_SPLIT_SEGMENTS)[number]["key"], number> = {
+    "client-facing": clientFacing,
+    automation: automationIssues,
+    other,
+  };
+  const segments = VALIDATION_SPLIT_SEGMENTS.map((segment) => ({
+    ...segment,
+    value: values[segment.key],
+  }));
   const shown = segments.filter((s) => s.value > 0);
   const pct = (n: number) => `${Math.round((n / runs) * 100)}%`;
   return (
     <div>
       <ul className="mb-2 space-y-1 text-sm text-slate-700">
-        <li className="flex items-baseline justify-between gap-3">
-          <span>Client-facing conclusions</span>
-          <span className="[font-variant-numeric:tabular-nums] text-slate-500">
-            {clientFacing.toLocaleString()} ({pct(clientFacing)})
-          </span>
-        </li>
-        <li className="flex items-baseline justify-between gap-3">
-          <span>Automation issues</span>
-          <span className="[font-variant-numeric:tabular-nums] text-slate-500">
-            {automationIssues.toLocaleString()} ({pct(automationIssues)})
-          </span>
-        </li>
+        {segments.map((segment) => (
+          <li key={segment.key} className="flex items-baseline justify-between gap-3">
+            <span className="flex items-center gap-1">
+              {segment.label}
+              <LegendHelp hint={segment.hint} />
+            </span>
+            <span className="[font-variant-numeric:tabular-nums] text-slate-500">
+              {segment.value.toLocaleString()} ({pct(segment.value)})
+            </span>
+          </li>
+        ))}
       </ul>
       <div
         className="relative flex h-6 w-full gap-0.5 rounded"
         role="img"
-        aria-label="Validation runs: client-facing conclusions and automation issues"
+        aria-label="Validation runs: client-facing conclusions, automation issues, and other"
       >
         {shown.map((s) => (
           <div
@@ -384,11 +446,17 @@ export function StackedSeriesChart({
   const slot = PLOT_W / data.length;
   const bw = Math.max(2, slot - 2);
   const scale = (v: number) => (v / max) * PLOT_H;
-  const hoverHints = data.map(
-    (d) =>
-      `${shortDate(d.date)}\n${total(d.values)} total\n` +
-      series.map((sr, j) => `${sr.label} ${d.values[j] ?? 0}`).join(" · ")
-  );
+  const hoverHints = data.map((d) => {
+    const dayTotal = total(d.values);
+    return {
+      headline: `${shortDate(d.date)} - ${dayTotal.toLocaleString()} total`,
+      rows: series.map((sr, j) => ({
+        label: sr.label,
+        value: d.values[j] ?? 0,
+        color: sr.color,
+      })),
+    };
+  });
 
   return (
     <div>
@@ -428,7 +496,7 @@ export function StackedSeriesChart({
         })}
         <XTicks dates={data.map((d) => d.date)} />
       </svg>
-    <HoverSlots hints={hoverHints} />
+    <BreakdownHoverSlots hints={hoverHints} />
     </div>
     </div>
   );

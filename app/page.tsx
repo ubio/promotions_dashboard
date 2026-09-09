@@ -78,16 +78,16 @@ export default async function Overview() {
 
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
         <Tile
-          label="Validations"
-          value={formatCount(t.runs)}
-          sub={<Delta current={t.runs} previous={p.runs} />}
-          href={`/reports/runs?${qs}`}
+          label="Records received"
+          value={formatCount(t.imported)}
+          sub={<Delta current={t.imported} previous={p.imported} />}
+          href={`/reports?${qs}`}
         />
         <Tile
-          label="Success rate"
-          value={successRate == null ? "—" : `${successRate.toFixed(0)}%`}
-          sub={`${formatCount(t.resolved)} of ${formatCount(t.runs)} reached a result`}
-          href={`/reports/runs?${qs}`}
+          label="Promotions sent to client"
+          value={formatCount(t.sentBack)}
+          sub={<Delta current={t.sentBack} previous={p.sentBack} />}
+          href={`/reports?${qs}`}
         />
         <Tile
           label="LLM cost"
@@ -96,10 +96,25 @@ export default async function Overview() {
           href={`/reports?${qs}`}
         />
         <Tile
-          label={ratesConfigured() ? "Revenue estimate" : "Revenue estimate"}
+          label="Revenue estimate"
           value={t.revenue == null ? "—" : `$${t.revenue.toFixed(2)}`}
           sub={ratesConfigured() ? "promotions sent × client rate" : "set CLIENT_VALIDATION_RATES"}
           href={`/reports?${qs}`}
+        />
+      </div>
+
+      <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+        <Tile
+          label="Validation runs"
+          value={formatCount(t.runs)}
+          sub={<Delta current={t.runs} previous={p.runs} />}
+          href={`/reports/runs?${qs}`}
+        />
+        <Tile
+          label="Validation Results Reached"
+          value={successRate == null ? "—" : `${successRate.toFixed(0)}%`}
+          sub={`${formatCount(t.resolved)} of ${formatCount(t.runs)} reached a result`}
+          href={`/reports/runs?${qs}`}
         />
       </div>
 
@@ -113,8 +128,8 @@ export default async function Overview() {
         <StackedSeriesChart
           ariaLabel="Validations per day: client-facing conclusions, automation issues, other"
           series={[
-            { label: "Client-facing", color: CHART_COLORS.good },
-            { label: "Automation issues", color: "#eb6834" },
+            { label: "Client facing", color: CHART_COLORS.good },
+            { label: "Automation issues", color: CHART_COLORS.critical },
             { label: "Other", color: CHART_COLORS.neutral },
           ]}
           data={daily.map((d) => ({
@@ -184,6 +199,7 @@ export default async function Overview() {
               <th className="py-1 pr-4">Customer</th>
               <th className="py-1 pr-4">Validations</th>
               <th className="py-1 pr-4">Reached result</th>
+              <th className="py-1 pr-4">Promotions sent to client</th>
               <th className="py-1 pr-4">Cost</th>
             </tr>
           </thead>
@@ -200,12 +216,13 @@ export default async function Overview() {
                 </td>
                 <td className="py-1.5 pr-4">{formatCount(row.runs)}</td>
                 <td className="py-1.5 pr-4 text-green-700">{formatCount(row.resolved)}</td>
+                <td className="py-1.5 pr-4">{formatCount(row.sentBack)}</td>
                 <td className="py-1.5 pr-4">{formatCost(row.cost)}</td>
               </tr>
             ))}
             {current.rows.length === 0 && (
               <tr>
-                <td colSpan={4} className="py-6 text-center text-slate-400">
+                <td colSpan={5} className="py-6 text-center text-slate-400">
                   No validations in the last 30 days.
                 </td>
               </tr>

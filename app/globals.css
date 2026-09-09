@@ -116,3 +116,74 @@ tr:has(.pending-promotion-outcome:focus-visible) {
   right: 0;
   transform: none;
 }
+
+.chart-hint-breakdown .chart-hint-popup {
+  display: none;
+  position: absolute;
+  left: 50%;
+  bottom: calc(100% + 4px);
+  z-index: 50;
+  width: max-content;
+  max-width: 18rem;
+  transform: translateX(-50%);
+  border-radius: 0.375rem;
+  background: #0f172a;
+  padding: 0.3rem 0.5rem;
+  font-size: 0.75rem;
+  font-weight: 500;
+  line-height: 1.35;
+  box-shadow: 0 4px 12px rgb(15 23 42 / 0.18);
+  pointer-events: none;
+}
+
+.chart-hint-breakdown:hover .chart-hint-popup,
+.chart-hint-breakdown:focus-visible .chart-hint-popup {
+  display: block;
+}
+
+.chart-hint-headline {
+  margin: 0;
+  color: #fff;
+}
+
+.chart-hint-row {
+  margin: 0;
+}
+
+.chart-hint-breakdown:first-child .chart-hint-popup {
+  left: 0;
+  transform: none;
+}
+
+.chart-hint-breakdown:last-child .chart-hint-popup {
+  left: auto;
+  right: 0;
+  transform: none;
+}
+
+/* Inline legend help icons — same tooltip styling as chart hints. */
+.legend-help[data-hint]:hover::after,
+.legend-help[data-hint]:focus-visible::after {
+  content: attr(data-hint);
+  position: absolute;
+  left: 50%;
+  bottom: calc(100% + 4px);
+  z-index: 50;
+  width: max-content;
+  max-width: 16rem;
+  transform: translateX(-50%);
+  border-radius: 0.375rem;
+  background: #0f172a;
+  padding: 0.3rem 0.5rem;
+  font-size: 0.75rem;
+  font-weight: 500;
+  line-height: 1.35;
+  white-space: normal;
+  color: #fff;
+  box-shadow: 0 4px 12px rgb(15 23 42 / 0.18);
+  pointer-events: none;
+}
+
+.legend-help {
+  position: relative;
+}
