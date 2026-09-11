@@ -8,6 +8,7 @@ const ITEMS: Array<{ href: string; label: string; prefix: string }> = [
   { href: "/stats/merchants", label: "Merchants", prefix: "/stats/merchants" },
   { href: "/stats/bot-detection", label: "Bot detection", prefix: "/stats/bot-detection" },
   { href: "/stats/client-files", label: "Client files", prefix: "/stats/client-files" },
+  { href: "/stats/script-failing", label: "Script failing", prefix: "/stats/script-failing" },
 ];
 
 function isActive(pathname: string, prefix: string): boolean {

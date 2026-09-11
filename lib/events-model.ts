@@ -2,7 +2,14 @@
 
 export type MerchantBotDetectionSource = "auto";
 
+export type MerchantBotDetectionEventType = "botDetection" | "scriptFailing";
+
 export type MerchantBotDetectionResolution = "unlocked_for_retry" | "marked_fixed";
+
+export interface ValidationScriptFailureLog {
+  stageName: string;
+  error: string;
+}
 
 export interface MerchantBotDetectionEvent {
   _id?: string;
@@ -12,7 +19,10 @@ export interface MerchantBotDetectionEvent {
   detectedAt: number;
   detectedDate: string;
   source: MerchantBotDetectionSource;
-  botDetectionCount: number;
+  eventType?: MerchantBotDetectionEventType;
+  botDetectionCount?: number;
+  scriptIssuesCount?: number;
+  scriptFailures?: ValidationScriptFailureLog[];
   triggerClientId?: string;
   triggerPromotionId?: string;
   resolvedAt?: number;
@@ -53,4 +63,26 @@ export function formatBotDetectionResolution(resolution?: string): string {
   if (resolution === "unlocked_for_retry") return "Unlocked for retry";
   if (resolution === "marked_fixed") return "Marked fixed";
   return "—";
+}
+
+export function scriptFailuresFromEvent(event: {
+  scriptFailures?: unknown;
+}): ValidationScriptFailureLog[] {
+  const failures = event.scriptFailures;
+  if (!Array.isArray(failures)) return [];
+  const result: ValidationScriptFailureLog[] = [];
+  for (const failure of failures) {
+    if (
+      typeof failure !== "object" ||
+      failure === null ||
+      !("stageName" in failure) ||
+      !("error" in failure) ||
+      typeof failure.stageName !== "string" ||
+      typeof failure.error !== "string"
+    ) {
+      continue;
+    }
+    result.push({ stageName: failure.stageName, error: failure.error });
+  }
+  return result;
 }

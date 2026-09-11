@@ -1,4 +1,5 @@
 import type { Document, Filter } from "mongodb";
+import type { MerchantBotDetectionEventType } from "./events-model";
 import { escapeRegex } from "./format";
 import { db } from "./mongo";
 import { PAGE_SIZE, type Paged } from "./queries";
@@ -40,17 +41,56 @@ export interface BotDetectionEventFilters {
   page?: number;
 }
 
-export async function getBotDetectionEvents(f: BotDetectionEventFilters): Promise<Paged<Document>> {
-  const filter: Filter<EventDoc> = {};
-  if (f.date) filter.detectedDate = f.date;
-  if (f.clientId) filter.clientIds = f.clientId;
-  if (f.status === "open") filter.resolvedAt = { $exists: false };
-  if (f.status === "resolved") filter.resolvedAt = { $exists: true };
+function merchantEventTypeFilter(eventType: MerchantBotDetectionEventType): Filter<EventDoc> {
+  if (eventType === "botDetection") {
+    return {
+      $or: [{ eventType: "botDetection" }, { eventType: { $exists: false } }],
+    };
+  }
+  return { eventType };
+}
+
+function merchantEventFilter(
+  f: BotDetectionEventFilters,
+  eventType: MerchantBotDetectionEventType
+): Filter<EventDoc> {
+  const clauses: Filter<EventDoc>[] = [merchantEventTypeFilter(eventType)];
+  if (f.date) clauses.push({ detectedDate: f.date });
+  if (f.clientId) clauses.push({ clientIds: f.clientId });
+  if (f.status === "open") clauses.push({ resolvedAt: { $exists: false } });
+  if (f.status === "resolved") clauses.push({ resolvedAt: { $exists: true } });
   if (f.q) {
     const rx = { $regex: escapeRegex(f.q), $options: "i" };
-    filter.$or = [{ domain: rx }, { merchantId: f.q }, { triggerPromotionId: f.q }, { _id: f.q }];
+    const search: Filter<EventDoc>[] = [
+      { domain: rx },
+      { merchantId: f.q },
+      { triggerPromotionId: f.q },
+      { _id: f.q },
+    ];
+    if (eventType === "scriptFailing") {
+      search.push({ "scriptFailures.stageName": rx }, { "scriptFailures.error": rx });
+    }
+    clauses.push({ $or: search });
   }
-  return paginateEvents("merchantBotDetectionEvents", filter, f.page ?? 1, "detectedAt");
+  return { $and: clauses };
+}
+
+export async function getBotDetectionEvents(f: BotDetectionEventFilters): Promise<Paged<Document>> {
+  return paginateEvents(
+    "merchantBotDetectionEvents",
+    merchantEventFilter(f, "botDetection"),
+    f.page ?? 1,
+    "detectedAt"
+  );
+}
+
+export async function getScriptFailingEvents(f: BotDetectionEventFilters): Promise<Paged<Document>> {
+  return paginateEvents(
+    "merchantBotDetectionEvents",
+    merchantEventFilter(f, "scriptFailing"),
+    f.page ?? 1,
+    "detectedAt"
+  );
 }
 
 export interface ClientCsvEventFilters {
@@ -131,13 +171,26 @@ export function csvImportTurnaroundMs(
   return delivered - createdAt;
 }
 
-export async function getBotDetectionClientIds(): Promise<string[]> {
-  const rows = await botDetectionColl().aggregate<{ _id: string }>([
-    { $unwind: "$clientIds" },
-    { $group: { _id: "$clientIds" } },
-    { $sort: { _id: 1 } },
-  ]).toArray();
+async function getMerchantEventClientIds(
+  eventType: MerchantBotDetectionEventType
+): Promise<string[]> {
+  const rows = await botDetectionColl()
+    .aggregate<{ _id: string }>([
+      { $match: merchantEventTypeFilter(eventType) },
+      { $unwind: "$clientIds" },
+      { $group: { _id: "$clientIds" } },
+      { $sort: { _id: 1 } },
+    ])
+    .toArray();
   return rows.map((r) => r._id).filter(Boolean);
+}
+
+export async function getBotDetectionClientIds(): Promise<string[]> {
+  return getMerchantEventClientIds("botDetection");
+}
+
+export async function getScriptFailingClientIds(): Promise<string[]> {
+  return getMerchantEventClientIds("scriptFailing");
 }
 
 export async function getClientCsvClientIds(): Promise<string[]> {
