@@ -18,3 +18,9 @@ export async function requireClientSession(): Promise<{ clientId: string }> {
   if (!user || user.role !== "client" || !user.clientId) redirect("/login");
   return { clientId: user.clientId };
 }
+
+export async function requireInternalSession(): Promise<SessionUser> {
+  const user = await getSessionUser();
+  if (!user || user.role !== "internal") redirect("/login");
+  return user;
+}
