@@ -12,7 +12,7 @@ export const counterGroupThClass =
   "border-b border-slate-200 px-3 py-2 text-center normal-case tracking-normal";
 export const counterValidationsDividerClass = "border-l border-slate-200";
 
-export const PROMOTIONS_COL_SPAN = 5;
+export const PROMOTIONS_COL_SPAN = 6;
 export const VALIDATIONS_COL_SPAN = 5;
 export const COUNTER_COL_SPAN = PROMOTIONS_COL_SPAN + VALIDATIONS_COL_SPAN;
 
@@ -26,6 +26,7 @@ function CounterSubHeadings({ leadingDivider }: { leadingDivider?: boolean }) {
       <th className={counterThClass}>Client-facing</th>
       <th className={counterThClass}>Debug</th>
       <th className={counterThClass}>Cannot validate</th>
+      <th className={counterThClass}>Filtered</th>
       <th className={`${counterThClass} ${counterValidationsDividerClass}`}>Validations</th>
       <th className={counterThClass}>Conclusions</th>
       <th className={counterThClass}>Errors</th>
@@ -117,6 +118,7 @@ export function CounterCells({
         toneClass="text-red-600"
       />
       <td className="px-3 py-2">{formatCount(p.cannotValidateCount)}</td>
+      <td className="px-3 py-2">{formatCount(p.merchantAutomationIssuesCount)}</td>
       <td className={`px-3 py-2 ${counterValidationsDividerClass}`}>{formatCount(v.totalValidationsCount)}</td>
       <td className="px-3 py-2">{formatCount(v.conclusionsCount)}</td>
       <td className="px-3 py-2">{formatCount(v.errorsCount)}</td>
