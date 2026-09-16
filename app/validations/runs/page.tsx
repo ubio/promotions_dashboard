@@ -1,6 +1,7 @@
 import Link from "next/link";
 import Badge from "@/components/Badge";
 import ReportsFilterBar from "@/components/reports/ReportsFilterBar";
+import { LocalValidateLink, PromotionIdLink } from "@/components/TodayPromotionLinks";
 import {
   getFailCodeBreakdown,
   getReportClientIds,
@@ -9,10 +10,11 @@ import {
   parseReportSearch,
   reportQueryString,
   RUNS_PAGE_SIZE,
+  VALIDATION_RUNS_PATH,
   type Outcome,
 } from "@/lib/reports";
 import { isAutomationIssueRun, isClientFacingRun } from "@/lib/fail-codes";
-import { formatCount, formatDate, truncate } from "@/lib/format";
+import { formatCost, formatCount, formatDate, sumLlmCosts, truncate } from "@/lib/format";
 
 export const dynamic = "force-dynamic";
 
@@ -59,6 +61,11 @@ export default async function RunsPage({ searchParams }: { searchParams: Promise
     clientIds: undefined,
     domains: undefined,
   });
+  const runsHref = (extra = "") => `${VALIDATION_RUNS_PATH}?${qs}${extra}`;
+  const failCodeHref = (code?: string) =>
+    code
+      ? `${VALIDATION_RUNS_PATH}?${baseQs}&failCode=${encodeURIComponent(code)}`
+      : `${VALIDATION_RUNS_PATH}?${baseQs}`;
 
   const context = [
     filters.outcomes?.length
@@ -71,7 +78,7 @@ export default async function RunsPage({ searchParams }: { searchParams: Promise
     .join(" · ");
 
   return (
-    <div className="space-y-4">
+    <div data-full-width className="space-y-4">
       <div className="flex flex-wrap items-baseline justify-between gap-3">
         <div>
           <Link href={`/reports?${backQs}`} className="text-sm text-sky-700 hover:underline">
@@ -93,7 +100,7 @@ export default async function RunsPage({ searchParams }: { searchParams: Promise
       </div>
 
       <ReportsFilterBar
-        action="/reports/runs"
+        action={VALIDATION_RUNS_PATH}
         clientIds={clientIds}
         domains={domains}
         from={filters.from}
@@ -106,11 +113,11 @@ export default async function RunsPage({ searchParams }: { searchParams: Promise
 
       {failCodes.length > 0 && (
         <div className="rounded-lg border border-slate-200 bg-white p-3">
-          <p className="mb-2 text-xs uppercase tracking-wide text-slate-400">Reasons</p>
+          <p className="mb-2 text-xs uppercase tracking-wide text-slate-400">Fail codes</p>
           <div className="flex flex-wrap gap-1.5">
             {filters.failCode && (
               <Link
-                href={`/reports/runs?${baseQs}`}
+                href={failCodeHref()}
                 className="rounded-full bg-slate-900 px-2 py-0.5 text-xs font-medium text-white"
               >
                 {filters.failCode} ✕
@@ -120,7 +127,7 @@ export default async function RunsPage({ searchParams }: { searchParams: Promise
               failCodes.map((f) => (
                 <Link
                   key={f.code}
-                  href={`/reports/runs?${baseQs}&failCode=${encodeURIComponent(f.code)}`}
+                  href={failCodeHref(f.code)}
                   className="rounded-full bg-slate-100 px-2 py-0.5 font-mono text-xs text-slate-600 hover:bg-slate-200"
                 >
                   {f.code} <span className="text-slate-400">{f.runs}</span>
@@ -137,21 +144,24 @@ export default async function RunsPage({ searchParams }: { searchParams: Promise
               <th className="px-3 py-2">When</th>
               <th className="px-3 py-2">Customer</th>
               <th className="px-3 py-2">Merchant</th>
+              <th className="px-3 py-2">Promotion</th>
+              <th className="px-3 py-2">Validate</th>
               <th className="px-3 py-2">Outcome</th>
-              <th className="px-3 py-2">Reason</th>
+              <th className="px-3 py-2">Fail Codes</th>
+              <th className="px-3 py-2">LLM cost</th>
               <th className="px-3 py-2">What happened</th>
               <th className="px-3 py-2">Evidence</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-slate-100">
             {items.map((r) => {
-              const id = (r as { _id?: string })._id ?? "";
+              const id = r._id ?? "";
               const outcome = outcomeOf(r);
               return (
                 <tr key={id} className="hover:bg-sky-50/50">
                   <td className="whitespace-nowrap px-3 py-2">
                     <Link
-                      href={`/jobs/validation/${id}?back=${encodeURIComponent(`/reports/runs?${qs}`)}`}
+                      href={`/jobs/validation/${id}?back=${encodeURIComponent(runsHref())}`}
                       className="text-sky-700 hover:underline"
                     >
                       {formatDate(r.createdAt)}
@@ -159,6 +169,12 @@ export default async function RunsPage({ searchParams }: { searchParams: Promise
                   </td>
                   <td className="whitespace-nowrap px-3 py-2">{r.clientId ?? "—"}</td>
                   <td className="px-3 py-2 font-mono text-xs">{r.domain ?? "—"}</td>
+                  <td className="whitespace-nowrap px-3 py-2">
+                    <PromotionIdLink id={r.promotionId} />
+                  </td>
+                  <td className="whitespace-nowrap px-3 py-2">
+                    <LocalValidateLink id={r.promotionId} />
+                  </td>
                   <td className="px-3 py-2">
                     <Badge variant={outcome}>
                       {OUTCOME_LABEL[outcome].toLowerCase()}
@@ -173,6 +189,9 @@ export default async function RunsPage({ searchParams }: { searchParams: Promise
                       ))}
                       {(r.failCodes ?? []).length === 0 && "—"}
                     </div>
+                  </td>
+                  <td className="whitespace-nowrap px-3 py-2 text-slate-600">
+                    {formatCost(sumLlmCosts(r.llmCosts))}
                   </td>
                   <td className="min-w-80 max-w-lg px-3 py-2 text-xs text-slate-600">
                     {truncate(r.reasoning, 200) || "—"}
@@ -191,7 +210,7 @@ export default async function RunsPage({ searchParams }: { searchParams: Promise
             })}
             {items.length === 0 && (
               <tr>
-                <td colSpan={7} className="px-3 py-8 text-center text-slate-400">
+                <td colSpan={10} className="px-3 py-8 text-center text-slate-400">
                   No validations match this selection.
                 </td>
               </tr>
@@ -208,7 +227,7 @@ export default async function RunsPage({ searchParams }: { searchParams: Promise
           <span className="flex gap-2">
             {current > 1 && (
               <Link
-                href={`/reports/runs?${qs}&page=${current - 1}`}
+                href={runsHref(`&page=${current - 1}`)}
                 className="rounded border border-slate-300 bg-white px-3 py-1 hover:bg-slate-100"
               >
                 Previous
@@ -216,7 +235,7 @@ export default async function RunsPage({ searchParams }: { searchParams: Promise
             )}
             {current < pages && (
               <Link
-                href={`/reports/runs?${qs}&page=${current + 1}`}
+                href={runsHref(`&page=${current + 1}`)}
                 className="rounded border border-slate-300 bg-white px-3 py-1 hover:bg-slate-100"
               >
                 Next

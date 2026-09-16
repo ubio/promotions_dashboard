@@ -393,6 +393,7 @@ export async function getReportDomains(): Promise<string[]> {
 }
 
 export interface ValidationExportRow {
+  _id?: string;
   createdAt: number;
   clientId?: string;
   domain?: string;
@@ -543,6 +544,8 @@ export async function getFailCodeBreakdown(f: ReportFilters): Promise<FailCodeCo
     .toArray();
   return rows.filter((r) => r._id).map((r) => ({ code: r._id, runs: r.runs }));
 }
+
+export const VALIDATION_RUNS_PATH = "/validations/runs";
 
 export const RUNS_PAGE_SIZE = 50;
 

@@ -48,7 +48,7 @@ export async function buildValidationsCsv(filters: ReportFilters): Promise<strin
       r.time == null || r.time >= 86400000 ? "" : `${(r.time / 1000).toFixed(1)}s`;
     const cost = formatCost(sumLlmCosts(r.llmCosts));
     return [
-      (r as { _id?: string })._id ?? "",
+      r._id ?? "",
       formatDate(r.createdAt),
       r.clientId ?? "",
       r.domain ?? "",

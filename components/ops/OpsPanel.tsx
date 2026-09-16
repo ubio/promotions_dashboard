@@ -1,8 +1,8 @@
 "use client";
 
-import Link from "next/link";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import Badge from "@/components/Badge";
+import { LocalValidateLink, PromotionIdLink } from "@/components/TodayPromotionLinks";
 import type { ResetCandidateRow, ResetCandidatesPage } from "@/lib/ops-client";
 
 interface ActionState {
@@ -28,14 +28,19 @@ function truncateUrl(url: string, max = 48): string {
   return url.slice(0, max) + "…";
 }
 
-export default function OpsPanel() {
-  const [candidates, setCandidates] = useState<ResetCandidatesPage | null>(null);
-  const [page, setPage] = useState(1);
+export default function OpsPanel({
+  initialCandidates = null,
+}: {
+  initialCandidates?: ResetCandidatesPage | null;
+}) {
+  const [candidates, setCandidates] = useState<ResetCandidatesPage | null>(initialCandidates);
+  const [page, setPage] = useState(initialCandidates?.page ?? 1);
   const [listError, setListError] = useState<string | null>(null);
-  const [listLoading, setListLoading] = useState(true);
+  const [listLoading, setListLoading] = useState(initialCandidates == null);
   const [exportState, setExportState] = useState<ActionState>(idleState);
   const [resetState, setResetState] = useState<ActionState>(idleState);
   const [resettingId, setResettingId] = useState<string | null>(null);
+  const skipInitialFetch = useRef(initialCandidates != null);
 
   const loadCandidates = useCallback(async (targetPage: number) => {
     setListLoading(true);
@@ -69,6 +74,10 @@ export default function OpsPanel() {
   }, []);
 
   useEffect(() => {
+    if (skipInitialFetch.current) {
+      skipInitialFetch.current = false;
+      return;
+    }
     void loadCandidates(page);
   }, [loadCandidates, page]);
 
@@ -133,13 +142,9 @@ export default function OpsPanel() {
         body != null && typeof body === "object" && "resetCount" in body && typeof body.resetCount === "number"
           ? body.resetCount
           : 0;
-      const deletedLogs =
-        body != null && typeof body === "object" && "deletedLogs" in body && typeof body.deletedLogs === "number"
-          ? body.deletedLogs
-          : 0;
       setResetState({
         status: "success",
-        message: `Reset ${resetCount} promotion(s); removed ${deletedLogs} validation log(s).`,
+        message: `Reset ${resetCount} promotion(s).`,
       });
       await loadCandidates(1);
     } catch (error) {
@@ -169,13 +174,9 @@ export default function OpsPanel() {
             : "Reset failed";
         throw new Error(message);
       }
-      const deletedLogs =
-        body != null && typeof body === "object" && "deletedLogs" in body && typeof body.deletedLogs === "number"
-          ? body.deletedLogs
-          : 0;
       setResetState({
         status: "success",
-        message: `Reset ${row.domain}; removed ${deletedLogs} validation log(s).`,
+        message: `Reset ${row.domain}.`,
       });
       const nextPage =
         candidates && candidates.items.length === 1 && candidates.page > 1
@@ -271,6 +272,8 @@ export default function OpsPanel() {
                   <tr>
                     <th className="px-3 py-2">Client</th>
                     <th className="px-3 py-2">Domain</th>
+                    <th className="px-3 py-2">Promotion</th>
+                    <th className="px-3 py-2">Validate</th>
                     <th className="px-3 py-2">Country</th>
                     <th className="px-3 py-2">Validity</th>
                     <th className="px-3 py-2">Outcome</th>
@@ -282,13 +285,13 @@ export default function OpsPanel() {
                 <tbody className="divide-y divide-slate-100">
                   {listLoading && candidates.items.length === 0 ? (
                     <tr>
-                      <td colSpan={8} className="px-3 py-8 text-center text-slate-400">
+                      <td colSpan={10} className="px-3 py-8 text-center text-slate-400">
                         Loading…
                       </td>
                     </tr>
                   ) : candidates.items.length === 0 ? (
                     <tr>
-                      <td colSpan={8} className="px-3 py-8 text-center text-slate-400">
+                      <td colSpan={10} className="px-3 py-8 text-center text-slate-400">
                         No promotions eligible for reset today.
                       </td>
                     </tr>
@@ -301,6 +304,12 @@ export default function OpsPanel() {
                           {row.merchantName && (
                             <div className="text-xs text-slate-400">{row.merchantName}</div>
                           )}
+                        </td>
+                        <td className="whitespace-nowrap px-3 py-2">
+                          <PromotionIdLink id={row.id} />
+                        </td>
+                        <td className="whitespace-nowrap px-3 py-2">
+                          <LocalValidateLink id={row.id} />
                         </td>
                         <td className="whitespace-nowrap px-3 py-2 text-slate-600">{row.countryCode ?? "—"}</td>
                         <td className="px-3 py-2">
@@ -339,14 +348,6 @@ export default function OpsPanel() {
                         </td>
                         <td className="whitespace-nowrap px-3 py-2 text-right">
                           <div className="flex items-center justify-end gap-2">
-                            {row.detailId && (
-                              <Link
-                                href={`/promotions/${row.detailId}`}
-                                className="text-sky-700 hover:underline"
-                              >
-                                View
-                              </Link>
-                            )}
                             <button
                               type="button"
                               onClick={() => void runResetSingle(row)}

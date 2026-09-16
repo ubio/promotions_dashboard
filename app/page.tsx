@@ -110,13 +110,13 @@ export default async function Overview() {
           label="Validation runs"
           value={formatCount(t.runs)}
           sub={<Delta current={t.runs} previous={p.runs} />}
-          href={`/reports/runs?${qs}`}
+          href={`/validations/runs?${qs}`}
         />
         <Tile
           label="Validation Results Reached"
           value={successRate == null ? "—" : `${successRate.toFixed(0)}%`}
           sub={`${formatCount(t.resolved)} of ${formatCount(t.runs)} reached a result`}
-          href={`/reports/runs?${qs}`}
+          href={`/validations/runs?${qs}`}
         />
       </div>
 
@@ -142,7 +142,7 @@ export default async function Overview() {
           <div className="mb-3 flex items-baseline justify-between gap-3">
             <h2 className="text-sm font-semibold text-slate-700">Why runs could not reach a result</h2>
             <Link
-              href={`/reports/runs?${reportQueryString({ ...filters, outcomes: ["no_result"] })}`}
+              href={`/validations/runs?${reportQueryString({ ...filters, outcomes: ["no_result"] })}`}
               className="text-xs text-sky-700 hover:underline"
             >
               See them →
@@ -155,7 +155,7 @@ export default async function Overview() {
               {topReasons.map((r) => (
                 <li key={r.code}>
                   <Link
-                    href={`/reports/runs?${reportQueryString({ ...filters, outcomes: ["no_result"], failCode: r.code })}`}
+                    href={`/validations/runs?${reportQueryString({ ...filters, outcomes: ["no_result"], failCode: r.code })}`}
                     className="flex items-center justify-between gap-3 rounded px-2 py-1 text-sm hover:bg-slate-50"
                   >
                     <span className="font-mono text-xs text-slate-600">{r.code}</span>

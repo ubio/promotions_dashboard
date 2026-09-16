@@ -97,9 +97,9 @@ function rowHref(row: ReportRow, filters: ReportFilters): string | null {
       return `/reports?${reportQueryString({ ...filters, from: row.key, to: row.key, groupBy: "client" })}`;
     case "month":
     case "year":
-      return `/reports/runs?${reportQueryString({ ...filters, ...monthOrYearRange(row.key) })}`;
+      return `/validations/runs?${reportQueryString({ ...filters, ...monthOrYearRange(row.key) })}`;
     case "batch":
-      return row.key ? `/reports/runs?${reportQueryString(filters)}` : null;
+      return row.key ? `/validations/runs?${reportQueryString(filters)}` : null;
     default:
       return null;
   }
@@ -149,7 +149,7 @@ export default async function ReportsPage({ searchParams }: { searchParams: Prom
   const showRevenue = ratesConfigured();
 
   const drill = (rowKey: string, outcome?: Outcome) =>
-    `/reports/runs?${reportQueryString(drillFilters(filters, rowKey, outcome))}`;
+    `/validations/runs?${reportQueryString(drillFilters(filters, rowKey, outcome))}`;
 
   const t: ReportTotals = current.totals;
   const p: ReportTotals = comparison.totals;

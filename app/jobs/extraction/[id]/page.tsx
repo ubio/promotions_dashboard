@@ -11,13 +11,13 @@ export const dynamic = "force-dynamic";
 function backTarget(back?: string): { href: string; label: string } {
   // Only internal paths, so a crafted ?back= cannot bounce users off-site.
   if (back && back.startsWith("/") && !back.startsWith("//")) {
-    if (back.startsWith("/reports/runs")) return { href: back, label: "validations" };
+    if (back.startsWith("/validations/runs") || back.startsWith("/reports/runs")) return { href: back, label: "validations" };
     if (back.startsWith("/reports")) return { href: back, label: "report" };
     if (back.startsWith("/promotions/")) return { href: back, label: "promotion" };
     if (back.startsWith("/promotions")) return { href: back, label: "records" };
     return { href: back, label: "back" };
   }
-  return { href: "/reports/runs", label: "validations" };
+  return { href: "/validations/runs", label: "validations" };
 }
 
 export default async function ExtractionJobPage({ params, searchParams }: {

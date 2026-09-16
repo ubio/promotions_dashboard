@@ -5,19 +5,20 @@ import RawJson from "@/components/RawJson";
 import { Section, KVGrid } from "@/components/Section";
 import { getValidationJob, getPromotion, getPromotionByUniqId } from "@/lib/queries";
 import { formatDate, formatDuration } from "@/lib/format";
+import { LocalValidateLink, PromotionIdLink } from "@/components/TodayPromotionLinks";
 
 export const dynamic = "force-dynamic";
 
 function backTarget(back?: string): { href: string; label: string } {
   // Only internal paths, so a crafted ?back= cannot bounce users off-site.
   if (back && back.startsWith("/") && !back.startsWith("//")) {
-    if (back.startsWith("/reports/runs")) return { href: back, label: "validations" };
+    if (back.startsWith("/validations/runs") || back.startsWith("/reports/runs")) return { href: back, label: "validations" };
     if (back.startsWith("/reports")) return { href: back, label: "report" };
     if (back.startsWith("/promotions/")) return { href: back, label: "promotion" };
     if (back.startsWith("/promotions")) return { href: back, label: "records" };
     return { href: back, label: "back" };
   }
-  return { href: "/reports/runs", label: "validations" };
+  return { href: "/validations/runs", label: "validations" };
 }
 
 export default async function ValidationJobPage({ params, searchParams }: {
@@ -72,14 +73,9 @@ export default async function ValidationJobPage({ params, searchParams }: {
             ["Import bundle", job.importBundle],
             [
               "Promotion",
-              job.promotionId ? (
-                <Link href={`/promotions/${job.promotionId}`} className="text-sky-700 hover:underline">
-                  {job.promotionId}
-                </Link>
-              ) : (
-                "—"
-              ),
+              <PromotionIdLink key="p" id={job.promotionId} />,
             ],
+            ["Validate", <LocalValidateLink key="v" id={job.promotionId} />],
             ["Promotion uniq id", <code key="u" className="text-xs">{job.promotionUniqId ?? "—"}</code>],
             ["Exported to BigQuery", String(job.exportedToBigQuery ?? "—")],
           ]}

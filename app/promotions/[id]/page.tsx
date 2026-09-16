@@ -10,6 +10,7 @@ import {
   getMerchant,
 } from "@/lib/queries";
 import { formatDate, formatDuration, normalizeValidity, truncate } from "@/lib/format";
+import { LocalValidateLink } from "@/components/TodayPromotionLinks";
 
 export const dynamic = "force-dynamic";
 
@@ -36,12 +37,13 @@ export default async function PromotionPage({ params }: { params: Promise<{ id: 
   return (
     <div className="space-y-4">
       <div>
-        <Link href="/reports/runs" className="text-sm text-sky-700 hover:underline">
+        <Link href="/validations/runs" className="text-sm text-sky-700 hover:underline">
           ← Back to validations
         </Link>
         <div className="mt-1 flex flex-wrap items-center gap-3">
           <h1 className="text-xl font-semibold">Promotion</h1>
           <code className="rounded bg-slate-200 px-2 py-0.5 text-xs">{String(promotion._id)}</code>
+          <LocalValidateLink id={String(promotion._id)} />
           <Badge variant={status}>{status}</Badge>
         </div>
       </div>

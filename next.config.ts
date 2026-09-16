@@ -21,7 +21,8 @@ const nextConfig: NextConfig = {
         destination: "/stats/client-files",
         permanent: false,
       },
-      { source: "/promotions", destination: "/reports/runs", permanent: false },
+      { source: "/promotions", destination: "/validations/runs", permanent: false },
+      { source: "/reports/runs", destination: "/validations/runs", permanent: false },
       {
         source: "/events",
         has: [{ type: "query", key: "type", value: "csv" }],

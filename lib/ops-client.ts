@@ -27,7 +27,6 @@ export interface ResetCandidatesPage {
 export interface ResetResult {
   date: string;
   resetCount: number;
-  deletedLogs: number;
 }
 
 export interface ExportResult {

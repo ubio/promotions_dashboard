@@ -31,7 +31,7 @@ export default async function RootLayout({
     <html lang="en" className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}>
       <body className="min-h-full flex flex-col font-sans">
         <header className="bg-slate-900 text-white">
-          <div className="mx-auto max-w-7xl px-4 py-3 flex flex-wrap items-center gap-x-6 gap-y-1.5">
+          <div className="w-full px-4 py-3 flex flex-wrap items-center gap-x-6 gap-y-1.5">
             <Link href={user?.role === "client" ? "/portal" : "/"}>
               <Logo />
             </Link>

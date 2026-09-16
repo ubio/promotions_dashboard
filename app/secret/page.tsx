@@ -1,14 +1,27 @@
 import OpsPanel from "@/components/ops/OpsPanel";
 import { requireInternalSession } from "@/lib/auth";
+import { OpsClient, type ResetCandidatesPage } from "@/lib/ops-client";
 import { isOpsConfigured } from "@/lib/ops-config";
 
 export const dynamic = "force-dynamic";
 
+const INITIAL_PAGE_SIZE = 25;
+
+async function loadInitialCandidates(): Promise<ResetCandidatesPage | null> {
+  if (!isOpsConfigured()) return null;
+  try {
+    return await OpsClient.fromEnv().listResetCandidates(1, INITIAL_PAGE_SIZE);
+  } catch {
+    return null;
+  }
+}
+
 export default async function SecretOpsPage() {
   await requireInternalSession();
+  const initialCandidates = await loadInitialCandidates();
 
   return (
-    <div className="space-y-4">
+    <div data-full-width className="space-y-4">
       <div>
         <h1 className="text-xl font-semibold">Ops</h1>
         <p className="text-sm text-slate-500">
@@ -27,7 +40,7 @@ export default async function SecretOpsPage() {
           </p>
         </div>
       ) : (
-        <OpsPanel />
+        <OpsPanel initialCandidates={initialCandidates} />
       )}
     </div>
   );
