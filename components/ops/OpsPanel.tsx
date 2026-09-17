@@ -28,6 +28,13 @@ function truncateUrl(url: string, max = 48): string {
   return url.slice(0, max) + "…";
 }
 
+function formatCandidateRange(candidates: ResetCandidatesPage): string {
+  const from = candidates.from || candidates.date;
+  const to = candidates.to || candidates.date;
+  if (from === to) return from;
+  return `${from} to ${to}`;
+}
+
 export default function OpsPanel({
   initialCandidates = null,
 }: {
@@ -119,7 +126,7 @@ export default function OpsPanel({
     const count = candidates?.total ?? 0;
     if (
       !window.confirm(
-        `Reset validation state for all ${count} promotion(s) from today with non-client-facing failures? Manual locks (e.g. bot detection) are excluded.`
+        `Reset validation state for all ${count} promotion(s) from the past 7 days with non-client-facing failures? Manual locks (e.g. bot detection) are excluded.`
       )
     ) {
       return;
@@ -221,11 +228,11 @@ export default function OpsPanel({
       </section>
 
       <section className="rounded-lg border border-slate-200 bg-white p-5">
-        <h2 className="text-base font-semibold">Reset non-client-facing failures (today)</h2>
+        <h2 className="text-base font-semibold">Reset non-client-facing failures (past 7 days)</h2>
         <p className="mt-1 text-sm text-slate-500">
-          Re-queues today&apos;s promotions that failed with automation or internal fail codes. Skips manual locks
-          such as bot-detection merchants (shown as LOCK_WITHOUT_VALIDATION in spreadsheets). Clears validation logs
-          so they can be validated again.
+          Re-queues promotions from the past 7 days that failed with automation or internal fail codes. Skips manual
+          locks such as bot-detection merchants (shown as LOCK_WITHOUT_VALIDATION in spreadsheets). Clears validation
+          logs so they can be validated again.
         </p>
 
         {listError ? (
@@ -234,8 +241,8 @@ export default function OpsPanel({
           <>
             <div className="mt-4 flex flex-wrap items-center justify-between gap-3 text-sm text-slate-600">
               <p>
-                <span className="font-medium">{candidates.total.toLocaleString()}</span> promotion(s) eligible on{" "}
-                <span className="font-mono">{candidates.date}</span> (UTC)
+                <span className="font-medium">{candidates.total.toLocaleString()}</span> promotion(s) eligible from{" "}
+                <span className="font-mono">{formatCandidateRange(candidates)}</span> (UTC)
                 {Object.keys(candidates.byClient).length > 0 && (
                   <span className="text-slate-500">
                     {" "}
@@ -270,6 +277,7 @@ export default function OpsPanel({
               <table className="min-w-full text-sm">
                 <thead className="bg-slate-50 text-left text-xs uppercase tracking-wide text-slate-500">
                   <tr>
+                    <th className="px-3 py-2">Date</th>
                     <th className="px-3 py-2">Client</th>
                     <th className="px-3 py-2">Domain</th>
                     <th className="px-3 py-2">Promotion</th>
@@ -285,19 +293,22 @@ export default function OpsPanel({
                 <tbody className="divide-y divide-slate-100">
                   {listLoading && candidates.items.length === 0 ? (
                     <tr>
-                      <td colSpan={10} className="px-3 py-8 text-center text-slate-400">
+                      <td colSpan={11} className="px-3 py-8 text-center text-slate-400">
                         Loading…
                       </td>
                     </tr>
                   ) : candidates.items.length === 0 ? (
                     <tr>
-                      <td colSpan={10} className="px-3 py-8 text-center text-slate-400">
-                        No promotions eligible for reset today.
+                      <td colSpan={11} className="px-3 py-8 text-center text-slate-400">
+                        No promotions eligible for reset in the past 7 days.
                       </td>
                     </tr>
                   ) : (
                     candidates.items.map((row) => (
                       <tr key={row.id} className="hover:bg-sky-50/50">
+                        <td className="whitespace-nowrap px-3 py-2 font-mono text-slate-600">
+                          {row.createdAtDate ?? "—"}
+                        </td>
                         <td className="whitespace-nowrap px-3 py-2">{row.clientId}</td>
                         <td className="px-3 py-2">
                           <div>{row.domain}</div>

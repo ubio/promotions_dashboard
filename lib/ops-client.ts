@@ -9,6 +9,7 @@ export interface ResetCandidateRow {
   countryCode?: string;
   sourceUrl: string;
   uniqId: string;
+  createdAtDate?: string;
   validityStatus?: string;
   reportType?: string;
   failCodes: string[];
@@ -16,6 +17,8 @@ export interface ResetCandidateRow {
 
 export interface ResetCandidatesPage {
   date: string;
+  from: string;
+  to: string;
   total: number;
   page: number;
   pages: number;
