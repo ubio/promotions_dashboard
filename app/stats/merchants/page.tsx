@@ -1,15 +1,17 @@
 import Link from "next/link";
+import MerchantBotDetectionActions from "@/components/ops/MerchantBotDetectionActions";
 import Pagination from "@/components/Pagination";
 import { CounterCells, CounterTableHead, COUNTER_COL_SPAN, counterThClass } from "@/components/stats/CountersTable";
 import { PeriodToolbar, periodHref } from "@/components/stats/PeriodToolbar";
-import { firstParam, periodFromSearch } from "@/lib/stats-model";
-import { getMerchantFlags, getMerchantPeriodRows, isDayFinalized } from "@/lib/stats-queries";
 import {
   merchantHighlight,
   merchantHighlightClass,
   merchantHighlightLabel,
   parseMerchantStatus,
 } from "@/lib/merchant-status";
+import { isOpsConfigured } from "@/lib/ops-config";
+import { firstParam, periodFromSearch } from "@/lib/stats-model";
+import { getMerchantFlags, getMerchantPeriodRows, isDayFinalized } from "@/lib/stats-queries";
 
 export const dynamic = "force-dynamic";
 
@@ -27,6 +29,7 @@ export default async function MerchantStatsPage({ searchParams }: { searchParams
   ]);
   const pendingPromotionOutcomes = period.granularity === "day" && !dayFinalized;
   const flags = await getMerchantFlags(result.items.map((r) => r.merchantId));
+  const opsConfigured = isOpsConfigured();
   const queryParams: Record<string, string | undefined> = {
     granularity: period.granularity,
     date: period.granularity === "day" ? period.date : undefined,
@@ -65,6 +68,11 @@ export default async function MerchantStatsPage({ searchParams }: { searchParams
                   <th rowSpan={2} className={counterThClass}>
                     Status
                   </th>
+                  {opsConfigured && (
+                    <th rowSpan={2} className={counterThClass}>
+                      Actions
+                    </th>
+                  )}
                   <th rowSpan={2} className={counterThClass}>
                     Clients
                   </th>
@@ -74,7 +82,8 @@ export default async function MerchantStatsPage({ searchParams }: { searchParams
           </thead>
           <tbody className="divide-y divide-slate-100">
             {result.items.map((row) => {
-              const highlight = merchantHighlight(flags.get(row.merchantId) ?? {});
+              const merchantFlags = flags.get(row.merchantId) ?? {};
+              const highlight = merchantHighlight(merchantFlags);
               return (
               <tr key={row.merchantId} className={merchantHighlightClass(highlight)}>
                 <td className="px-3 py-2">
@@ -113,6 +122,16 @@ export default async function MerchantStatsPage({ searchParams }: { searchParams
                     </span>
                   </span>
                 </td>
+                {opsConfigured && (
+                  <td className="px-3 py-2">
+                    <MerchantBotDetectionActions
+                      merchantId={row.merchantId}
+                      domain={row.merchantDomain || row.merchantId}
+                      botDetected={highlight === "bot-detected"}
+                      botDetectionFixed={merchantFlags.fixedBotDetection === true}
+                    />
+                  </td>
+                )}
                 <td className="px-3 py-2">{row.clientCount}</td>
                 <CounterCells stats={row} leadingDivider pendingPromotionOutcomes={pendingPromotionOutcomes} />
               </tr>
@@ -120,7 +139,7 @@ export default async function MerchantStatsPage({ searchParams }: { searchParams
             })}
             {result.items.length === 0 && (
               <tr>
-                <td colSpan={3 + COUNTER_COL_SPAN} className="px-3 py-8 text-center text-slate-400">
+                <td colSpan={(opsConfigured ? 4 : 3) + COUNTER_COL_SPAN} className="px-3 py-8 text-center text-slate-400">
                   No merchants match these filters.
                 </td>
               </tr>

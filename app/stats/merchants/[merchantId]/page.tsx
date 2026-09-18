@@ -3,10 +3,16 @@ import { notFound } from "next/navigation";
 import { DailyCharts } from "@/components/stats/DailyCharts";
 import { CounterTiles } from "@/components/stats/CounterTiles";
 import { CounterCells, CounterTableHead, COUNTER_COL_SPAN, counterThClass, DailyRows, MonthlyRows } from "@/components/stats/CountersTable";
+import MerchantBotDetectionActions from "@/components/ops/MerchantBotDetectionActions";
 import { PeriodToolbar, periodHref } from "@/components/stats/PeriodToolbar";
 import { formatUtcDay, formatUtcMonth } from "@/lib/format";
-import { getClientNames, getDailySeries, getMerchantClientBreakdown, getMonthlySeries, getPeriodTotals, getStatMerchant } from "@/lib/stats-queries";
+import {
+  merchantHighlight,
+  merchantHighlightLabel,
+} from "@/lib/merchant-status";
+import { isOpsConfigured } from "@/lib/ops-config";
 import { isZeroPeriodStats, periodFromSearch, periodPromotionOutcomesPending } from "@/lib/stats-model";
+import { getClientNames, getDailySeries, getMerchantClientBreakdown, getMerchantFlags, getMonthlySeries, getPeriodTotals, getStatMerchant } from "@/lib/stats-queries";
 
 export const dynamic = "force-dynamic";
 
@@ -26,13 +32,17 @@ export default async function MerchantStatsDetailPage({
   if (!merchant) notFound();
 
   const match = { merchantId };
-  const [totals, daily, monthly, clients, names] = await Promise.all([
+  const [totals, daily, monthly, clients, names, flags] = await Promise.all([
     getPeriodTotals(period, match),
     getDailySeries(match),
     getMonthlySeries(match),
     getMerchantClientBreakdown(merchantId, period),
     getClientNames(),
+    getMerchantFlags([merchantId]),
   ]);
+  const merchantFlags = flags.get(merchantId) ?? {};
+  const highlight = merchantHighlight(merchantFlags);
+  const opsConfigured = isOpsConfigured();
   const pendingPromotionOutcomes = periodPromotionOutcomesPending(period, daily);
   const periodLabel =
     period.granularity === "day"
@@ -55,6 +65,40 @@ export default async function MerchantStatsDetailPage({
         <h1 className="mt-1 text-xl font-semibold">{title}</h1>
         <p className="text-xs text-slate-500 font-mono">{merchantId}</p>
         {merchant.merchantName && <p className="text-sm text-slate-500">{merchant.merchantName}</p>}
+        <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-2">
+          <span className="flex items-center gap-1.5 text-sm">
+            <span
+              aria-hidden
+              className={`inline-block h-2 w-2 rounded-full ${
+                highlight === "bot-detected"
+                  ? "bg-red-500"
+                  : highlight === "onboarded"
+                    ? "bg-green-600"
+                    : "bg-slate-300"
+              }`}
+            />
+            <span
+              className={
+                highlight === "bot-detected"
+                  ? "text-red-700"
+                  : highlight === "onboarded"
+                    ? "text-green-700"
+                    : "text-slate-500"
+              }
+            >
+              {merchantHighlightLabel(highlight)}
+            </span>
+          </span>
+          {opsConfigured && (
+            <MerchantBotDetectionActions
+              merchantId={merchantId}
+              domain={merchant.merchantDomain || merchantId}
+              botDetected={highlight === "bot-detected"}
+              botDetectionFixed={merchantFlags.fixedBotDetection === true}
+              layout="block"
+            />
+          )}
+        </div>
       </div>
 
       <PeriodToolbar

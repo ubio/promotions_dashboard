@@ -544,6 +544,21 @@ export interface MerchantFlags {
   scriptGenerated?: boolean;
   scriptReviewed?: boolean;
   botDetection?: boolean;
+  fixedBotDetection?: boolean;
+}
+
+function optionalBoolean(value: unknown): boolean | undefined {
+  return typeof value === "boolean" ? value : undefined;
+}
+
+function merchantFlagsFromRow(row: MerchantFlags): MerchantFlags {
+  return {
+    validationsAllowed: optionalBoolean(row.validationsAllowed),
+    scriptGenerated: optionalBoolean(row.scriptGenerated),
+    scriptReviewed: optionalBoolean(row.scriptReviewed),
+    botDetection: optionalBoolean(row.botDetection),
+    fixedBotDetection: optionalBoolean(row.fixedBotDetection),
+  };
 }
 
 // Stats rows come from the `stats` collection, which carries no merchant
@@ -554,9 +569,16 @@ export async function getMerchantFlags(
   const ids = merchantIds.filter(Boolean);
   if (ids.length === 0) return new Map();
   const rows = await db()
-    .collection<Document & { _id: string }>("merchants")
+    .collection<MerchantFlags & { _id: string }>("merchants")
     .find({ _id: { $in: ids } })
-    .project({ validationsAllowed: 1, scriptGenerated: 1, scriptReviewed: 1, botDetection: 1 })
+    .project<MerchantFlags & { _id: string }>({
+      _id: 1,
+      validationsAllowed: 1,
+      scriptGenerated: 1,
+      scriptReviewed: 1,
+      botDetection: 1,
+      fixedBotDetection: 1,
+    })
     .toArray();
-  return new Map(rows.map((r) => [String(r._id), r as MerchantFlags]));
+  return new Map(rows.map((r) => [r._id, merchantFlagsFromRow(r)]));
 }

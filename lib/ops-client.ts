@@ -37,6 +37,16 @@ export interface ExportResult {
   message: string;
 }
 
+export interface MerchantBotDetectionResult {
+  merchant: {
+    domain: string;
+    botDetection?: boolean;
+    validationsAllowed?: boolean;
+    fixedBotDetection?: boolean;
+    botDetectionCount?: number;
+  };
+}
+
 export class OpsClient {
   private baseUrl: string;
   private secret: string;
@@ -73,6 +83,19 @@ export class OpsClient {
 
   async resetSingleValidation(promotionId: string): Promise<ResetResult> {
     return this.post<ResetResult>("/Ops/resetNonClientFacingValidations/single", { promotionId });
+  }
+
+  async markMerchantBotDetected(merchantId: string): Promise<MerchantBotDetectionResult> {
+    return this.post<MerchantBotDetectionResult>("/Ops/merchants/markBotDetected", { merchantId });
+  }
+
+  async markMerchantBotDetectionFixed(
+    merchantId: string,
+    resolvedBy?: string
+  ): Promise<MerchantBotDetectionResult> {
+    const body: Record<string, string> = { merchantId };
+    if (resolvedBy) body.resolvedBy = resolvedBy;
+    return this.post<MerchantBotDetectionResult>("/Ops/merchants/markBotDetectionFixed", body);
   }
 
   private async get<T>(path: string): Promise<T> {

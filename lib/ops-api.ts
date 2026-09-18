@@ -41,3 +41,19 @@ export async function runOpsResetSingle(promotionId: string) {
   const result = await client.resetSingleValidation(promotionId);
   return NextResponse.json(result);
 }
+
+export async function runMarkMerchantBotDetected(merchantId: string) {
+  await requireInternalSession();
+  if (!isOpsConfigured()) return opsNotConfigured();
+  const client = OpsClient.fromEnv();
+  const result = await client.markMerchantBotDetected(merchantId);
+  return NextResponse.json(result);
+}
+
+export async function runMarkMerchantBotDetectionFixed(merchantId: string) {
+  const user = await requireInternalSession();
+  if (!isOpsConfigured()) return opsNotConfigured();
+  const client = OpsClient.fromEnv();
+  const result = await client.markMerchantBotDetectionFixed(merchantId, user.email);
+  return NextResponse.json(result);
+}
