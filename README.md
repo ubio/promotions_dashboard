@@ -87,8 +87,19 @@ listed is treated as internal and never labelled. The filters in
 `baseMatch()` apply the same client-facing/automation rule as the row
 classifier, so a filter can never surface a row it does not describe.
 
-Internal users are redirected out of `/portal`, and client users are redirected
-out of everything else — including the CSV endpoints under `/api/reports`.
+Client users are redirected out of everything outside `/portal`, including the
+CSV endpoints under `/api/reports`.
+
+### Previewing the client view
+
+Internal users can see exactly what a client sees: **Client view** in the nav
+(or `/portal/preview`) lists the clients and sets a `view_as` cookie via
+`/api/view-as`, which only an internal session may set. While previewing, an
+amber banner names the client and offers an exit.
+
+The cookie alone grants nothing. `requireClientSession()` returns a client's
+own `clientId` before it ever consults `view_as`, so a client who forges the
+cookie still sees only their own data — verified by test.
 
 ## Docker
 

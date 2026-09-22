@@ -22,8 +22,13 @@ export default async function proxy(req: NextRequest) {
   if (user.role === "client" && !path.startsWith("/portal")) {
     return NextResponse.redirect(new URL("/portal", req.url));
   }
+  // Internal users may enter the portal to preview a client, but only with an
+  // explicit selection; without one they are sent to the picker.
   if (user.role === "internal" && path.startsWith("/portal")) {
-    return NextResponse.redirect(new URL("/", req.url));
+    const previewing = req.cookies.get("view_as")?.value;
+    if (!previewing && path !== "/portal/preview") {
+      return NextResponse.redirect(new URL("/portal/preview", req.url));
+    }
   }
 
   return NextResponse.next();

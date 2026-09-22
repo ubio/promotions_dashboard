@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import Link from "next/link";
 import { Logo } from "@/components/Logo";
-import { getSessionUser } from "@/lib/auth";
+import { getPreviewClientId, getSessionUser } from "@/lib/auth";
 import { isAuthDisabled } from "@/lib/session";
 import "./globals.css";
 
@@ -27,16 +27,28 @@ export default async function RootLayout({
   children: React.ReactNode;
 }>) {
   const user = await getSessionUser();
+  const previewingClientId = await getPreviewClientId();
   return (
     <html lang="en" className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}>
       <body className="min-h-full flex flex-col font-sans">
+        {previewingClientId && (
+          <div className="flex flex-wrap items-center justify-center gap-3 bg-amber-400 px-4 py-1.5 text-xs font-medium text-amber-950">
+            <span>
+              Previewing the client view as <strong>{previewingClientId}</strong> — this is what
+              they see
+            </span>
+            <a href="/api/view-as" className="rounded bg-amber-950/10 px-2 py-0.5 hover:bg-amber-950/20">
+              Exit preview
+            </a>
+          </div>
+        )}
         <header className={user?.role === "client" ? "bg-sky-950 text-white" : "bg-slate-900 text-white"}>
           <div className="w-full px-4 py-3 flex flex-wrap items-center gap-x-6 gap-y-1.5">
-            <Link href={user?.role === "client" ? "/portal" : "/"}>
+            <Link href={user?.role === "client" || previewingClientId ? "/portal" : "/"}>
               <Logo />
             </Link>
             <nav className="flex flex-wrap gap-x-4 gap-y-1 text-sm text-slate-300">
-              {user?.role === "client" ? (
+              {user?.role === "client" || previewingClientId ? (
                 <>
                   <Link href="/portal" className="hover:text-white">
                     Overview
@@ -58,6 +70,9 @@ export default async function RootLayout({
                   </Link>
                   <Link href="/stats/clients" className="hover:text-white">
                     Stats
+                  </Link>
+                  <Link href="/portal/preview" className="text-slate-400 hover:text-white">
+                    Client view
                   </Link>
                 </>
               )}

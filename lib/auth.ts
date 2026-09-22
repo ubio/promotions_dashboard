@@ -11,12 +11,38 @@ export async function getSessionUser(): Promise<SessionUser | null> {
   return verifySession(token);
 }
 
+// Cookie letting an internal user preview the portal as a given client. It is
+// only ever honoured for role "internal" — a client cannot set it to reach
+// another client's data, because their own clientId always wins below.
+export const VIEW_AS_COOKIE = "view_as";
+
+export interface PortalAccess {
+  clientId: string;
+  // True when an internal user is previewing rather than a real client.
+  previewing: boolean;
+}
+
 // Defense in depth for portal pages: the proxy already fences routes by role,
-// but every portal page also re-derives the clientId from the session itself.
-export async function requireClientSession(): Promise<{ clientId: string }> {
+// but every portal page also re-derives the clientId server-side.
+export async function requireClientSession(): Promise<PortalAccess> {
   const user = await getSessionUser();
-  if (!user || user.role !== "client" || !user.clientId) redirect("/login");
-  return { clientId: user.clientId };
+  if (!user) redirect("/login");
+
+  if (user.role === "client") {
+    if (!user.clientId) redirect("/login");
+    return { clientId: user.clientId, previewing: false };
+  }
+
+  // Internal users may preview, but only with an explicit selection.
+  const viewAs = (await cookies()).get(VIEW_AS_COOKIE)?.value;
+  if (user.role === "internal" && viewAs) return { clientId: viewAs, previewing: true };
+  redirect("/portal/preview");
+}
+
+export async function getPreviewClientId(): Promise<string | null> {
+  const user = await getSessionUser();
+  if (!user || user.role !== "internal") return null;
+  return (await cookies()).get(VIEW_AS_COOKIE)?.value ?? null;
 }
 
 export async function requireInternalSession(): Promise<SessionUser> {
