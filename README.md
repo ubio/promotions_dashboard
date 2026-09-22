@@ -63,10 +63,32 @@ Users whose email domain appears in `CLIENT_EMAIL_DOMAINS` (e.g.
 - `/portal/promotions` (+ detail) — their promotions with validation history,
   reason codes, reasoning and screenshot evidence
 
-The portal hides internal surfaces entirely: LLM costs, merchants, raw JSON,
-errored runs and other clients' data. Every portal query filters by the
-session's clientId server-side, and promotion detail pages 404 on any
-cross-client id.
+Portal pages:
+
+- `/portal` — headline results and a plain-English breakdown of why offers did
+  not work, each reason linking into the filtered list
+- `/portal/validations` — every check, filterable by outcome, reason and
+  merchant, with what we found and screenshot evidence
+- `/portal/promotions` (+ detail) — their offers and validation history
+
+**All client-facing data goes through `lib/portal.ts`**, which enforces four
+rules in one place:
+
+1. Every query is scoped to the session's `clientId` — never a URL parameter.
+2. Only client-facing runs carry detail. Runs that failed on our side
+   (`AUTOMATION_FAILURE_FAIL_CODES` or `reportType: "error"`) are reported as
+   "could not complete" with no codes and no reasoning, because that text
+   contains our tooling names, local file paths and cost-limit messages.
+3. Reasoning is sanitised as a backstop even on client-facing runs.
+4. No cost fields are projected at all.
+
+Fail codes are translated to plain English via `REASON_LABELS`; anything not
+listed is treated as internal and never labelled. The filters in
+`baseMatch()` apply the same client-facing/automation rule as the row
+classifier, so a filter can never surface a row it does not describe.
+
+Internal users are redirected out of `/portal`, and client users are redirected
+out of everything else — including the CSV endpoints under `/api/reports`.
 
 ## Docker
 

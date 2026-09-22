@@ -30,7 +30,7 @@ export default async function RootLayout({
   return (
     <html lang="en" className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}>
       <body className="min-h-full flex flex-col font-sans">
-        <header className="bg-slate-900 text-white">
+        <header className={user?.role === "client" ? "bg-sky-950 text-white" : "bg-slate-900 text-white"}>
           <div className="w-full px-4 py-3 flex flex-wrap items-center gap-x-6 gap-y-1.5">
             <Link href={user?.role === "client" ? "/portal" : "/"}>
               <Logo />
@@ -41,8 +41,11 @@ export default async function RootLayout({
                   <Link href="/portal" className="hover:text-white">
                     Overview
                   </Link>
+                  <Link href="/portal/validations" className="hover:text-white">
+                    Validations
+                  </Link>
                   <Link href="/portal/promotions" className="hover:text-white">
-                    Promotions
+                    Offers
                   </Link>
                 </>
               ) : (
@@ -61,7 +64,9 @@ export default async function RootLayout({
             </nav>
             <div className="ml-auto flex items-center gap-3 text-xs text-slate-400">
               {user?.role === "client" ? (
-                <span className="rounded bg-slate-800 px-2 py-0.5 text-slate-300">{user.clientId}</span>
+                <span className="rounded bg-sky-900 px-2 py-0.5 text-sky-100">
+                  {user.clientId} · client view
+                </span>
               ) : (
                 <span className="hidden sm:inline text-slate-500">read-only</span>
               )}
