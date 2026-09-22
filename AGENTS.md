@@ -14,15 +14,13 @@ produced images into the same registry, and a stale `v0.2.12` deploy PR sat
 open in `ubio/infrastructure` that would have rolled production back and
 removed the client portal. Don't recreate that split.
 
-To release:
+To release, use `npm version`, which bumps `package.json`, commits and tags
+in one step — so the two can never disagree:
 
 ```bash
-# 1. bump package.json (patch/minor as appropriate), commit with your change
-# 2. push main first, and let it land
-git push origin main
-# 3. then tag that exact version — the tag push is what triggers CD
-git tag v$(node -p "require('./package.json').version")
-git push origin v$(node -p "require('./package.json').version")
+npm version patch        # or minor / major
+git push origin main     # push the commit first, and let it land
+git push origin --tags   # the tag push is what triggers CD
 ```
 
 The tag push builds `eu.gcr.io/automation-cloud-registry/promotions-dashboard`
