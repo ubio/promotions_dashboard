@@ -26,11 +26,13 @@ export async function proxy(req: NextRequest) {
     }
   }
 
+  const internalViewAsApi = user.role === "internal" && path === "/api/view-as";
+
   if (shouldFenceToPortal(user.role, previewing)) {
-    if (path.startsWith("/api/")) {
+    if (path.startsWith("/api/") && !internalViewAsApi) {
       return NextResponse.json({ error: "Not permitted" }, { status: 403 });
     }
-    if (!isClientPortalPath(path)) {
+    if (!isClientPortalPath(path) && !internalViewAsApi) {
       return NextResponse.redirect(new URL("/portal", req.url));
     }
   }
