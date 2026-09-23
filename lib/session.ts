@@ -2,6 +2,7 @@
 import { SignJWT, jwtVerify } from "jose";
 
 export const SESSION_COOKIE = "session";
+export const VIEW_AS_COOKIE = "view_as";
 export const SESSION_MAX_AGE_SECONDS = 8 * 60 * 60;
 
 export function isAuthDisabled(): boolean {
@@ -32,6 +33,19 @@ export const LOCAL_DEV_USER: SessionUser = {
   picture: "",
   role: "internal",
 };
+
+export function localDevUser(): SessionUser {
+  if (process.env.LOCAL_DEV_ROLE?.trim().toLowerCase() === "client") {
+    return {
+      email: "local-dev-client",
+      name: "Local Client",
+      picture: "",
+      role: "client",
+      clientId: process.env.LOCAL_DEV_CLIENT_ID?.trim() || "DevClient",
+    };
+  }
+  return LOCAL_DEV_USER;
+}
 
 export async function signSession(user: SessionUser): Promise<string> {
   return new SignJWT({ ...user })

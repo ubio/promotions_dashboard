@@ -15,6 +15,7 @@ import { db } from "./mongo";
 import {
   CLIENT_FACING_FAIL_CODES,
   isClientFacingPromotion,
+  NON_CLIENT_FACING_FAIL_CODES,
   validationIssueLabel,
 } from "./fail-codes";
 import { escapeRegex, normalizeValidity } from "./format";
@@ -97,6 +98,20 @@ function validationIssuesFilter(): Filter<PromoDoc> {
   return { $expr: { $not: [isClientFacingPromotionExpr()] } };
 }
 
+function clientIssuePromotionExpr(): Document {
+  return {
+    $and: [
+      isClientFacingPromotionExpr(),
+      { $gt: [clientFacingCountExpr(), 0] },
+      { $ne: ["$validityStatus", "valid"] },
+    ],
+  };
+}
+
+function clientIssuePromotionFilter(): Filter<PromoDoc> {
+  return { $expr: clientIssuePromotionExpr() };
+}
+
 function findingFromClientFacingFailCodes(failCodes: string[]): string {
   const clientFacing = clientFacingFailCodesFrom(failCodes);
   if (clientFacing.length === 0) return "—";
@@ -110,10 +125,28 @@ function findingFromValidationIssueFailCodes(failCodes: string[]): string {
 }
 
 
+const VALIDATION_ISSUE_NONE = "__none__";
+
+function failCodesMatchingValidationIssueLabel(label: string): string[] {
+  return NON_CLIENT_FACING_FAIL_CODES.filter((code) => validationIssueLabel(code) === label);
+}
+
+function nonClientFacingCountExpr(): Document {
+  return {
+    $size: {
+      $setIntersection: [
+        { $ifNull: [failCodesPath(), []] },
+        NON_CLIENT_FACING_FAIL_CODES,
+      ],
+    },
+  };
+}
+
 export interface PortalPromotionFilters {
   clientId: string;
   days?: number;
   reason?: string;
+  issue?: string;
   outcome?: "verified" | "validation_issues";
   finding?: "issue";
   domain?: string;
@@ -156,11 +189,26 @@ function basePromotionMatch(f: PortalPromotionFilters): Filter<PromoDoc> {
   }
 
   if (f.finding === "issue") {
-    match["latestValidation.failCodes"] = { $in: CLIENT_FACING_FAIL_CODES };
+    match.$and = [...(match.$and ?? []), clientIssuePromotionFilter()];
   }
 
   if (reason) {
     match["latestValidation.failCodes"] = reason;
+    match.$and = [...(match.$and ?? []), clientIssuePromotionFilter()];
+  }
+
+  const issue = f.issue?.trim();
+  if (issue) {
+    match.$and = [...(match.$and ?? []), validationIssuesFilter()];
+    const codes = failCodesMatchingValidationIssueLabel(issue);
+    if (codes.length > 0) {
+      match["latestValidation.failCodes"] = { $in: codes };
+    } else if (issue === validationIssueLabel(VALIDATION_ISSUE_NONE)) {
+      match.$and = [
+        ...(match.$and ?? []),
+        { $expr: { $eq: [nonClientFacingCountExpr(), 0] } },
+      ];
+    }
   }
 
   return match;
@@ -294,30 +342,64 @@ export interface ReasonCount {
   promotions: number;
 }
 
-export async function getPortalReasons(clientId: string, days: number): Promise<ReasonCount[]> {
+export async function getPortalValidationIssueReasons(
+  clientId: string,
+  days: number
+): Promise<ReasonCount[]> {
   const since = Date.now() - days * 86400000;
 
   const rows = await promotions()
-    .aggregate<{ _id: string; promotions: number }>([
+    .aggregate<{ _id: string; promos: string[] }>([
       {
         $match: {
           clientId,
           "latestValidation.createdAt": { $gte: since },
-          "latestValidation.failCodes": { $in: CLIENT_FACING_FAIL_CODES },
+          $expr: { $not: [isClientFacingPromotionExpr()] },
         },
       },
-      { $unwind: "$latestValidation.failCodes" },
-      { $match: { "latestValidation.failCodes": { $in: CLIENT_FACING_FAIL_CODES } } },
-      { $group: { _id: "$latestValidation.failCodes", promotions: { $sum: 1 } } },
-      { $sort: { promotions: -1 } },
+      {
+        $project: {
+          failCodes: {
+            $let: {
+              vars: {
+                matched: {
+                  $setIntersection: [
+                    { $ifNull: [failCodesPath(), []] },
+                    NON_CLIENT_FACING_FAIL_CODES,
+                  ],
+                },
+              },
+              in: {
+                $cond: [{ $gt: [{ $size: "$$matched" }, 0] }, "$$matched", [VALIDATION_ISSUE_NONE]],
+              },
+            },
+          },
+        },
+      },
+      { $unwind: "$failCodes" },
+      { $group: { _id: { promo: "$_id", code: "$failCodes" } } },
+      { $group: { _id: "$_id.code", promos: { $addToSet: "$_id.promo" } } },
     ])
     .toArray();
 
-  return rows.map((row) => ({
-    code: row._id,
-    label: reasonLabel(row._id),
-    promotions: row.promotions,
-  }));
+  const byLabel = new Map<string, Set<string>>();
+  for (const row of rows) {
+    const label =
+      row._id === VALIDATION_ISSUE_NONE
+        ? validationIssueLabel(VALIDATION_ISSUE_NONE)
+        : validationIssueLabel(row._id);
+    const promoIds = byLabel.get(label) ?? new Set<string>();
+    for (const id of row.promos) promoIds.add(String(id));
+    byLabel.set(label, promoIds);
+  }
+
+  return [...byLabel.entries()]
+    .map(([label, promoIds]) => ({
+      code: label,
+      label,
+      promotions: promoIds.size,
+    }))
+    .sort((a, b) => b.promotions - a.promotions);
 }
 
 export async function getPortalDomains(clientId: string, days?: number): Promise<string[]> {

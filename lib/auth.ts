@@ -1,20 +1,39 @@
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
-import { isAuthDisabled, LOCAL_DEV_USER, SESSION_COOKIE, verifySession, type SessionUser } from "./session";
+import { isClientPortalPath, shouldFenceToPortal } from "./client-portal-path";
+import {
+  isAuthDisabled,
+  localDevUser,
+  SESSION_COOKIE,
+  VIEW_AS_COOKIE,
+  verifySession,
+  type SessionUser,
+} from "./session";
+
+export { VIEW_AS_COOKIE };
+
+export { isClientPortalPath };
 
 export type { SessionUser };
 
 export async function getSessionUser(): Promise<SessionUser | null> {
-  if (isAuthDisabled()) return LOCAL_DEV_USER;
+  if (isAuthDisabled()) return localDevUser();
   const token = (await cookies()).get(SESSION_COOKIE)?.value;
   if (!token) return null;
   return verifySession(token);
 }
 
-// Cookie letting an internal user preview the portal as a given client. It is
-// only ever honoured for role "internal" — a client cannot set it to reach
-// another client's data, because their own clientId always wins below.
-export const VIEW_AS_COOKIE = "view_as";
+async function isPreviewingClient(): Promise<boolean> {
+  return Boolean((await cookies()).get(VIEW_AS_COOKIE)?.value);
+}
+
+export async function redirectIfPortalUser(): Promise<void> {
+  const user = await getSessionUser();
+  if (!user) return;
+  if (shouldFenceToPortal(user.role, await isPreviewingClient())) {
+    redirect("/portal");
+  }
+}
 
 export interface PortalAccess {
   clientId: string;
@@ -47,6 +66,8 @@ export async function getPreviewClientId(): Promise<string | null> {
 
 export async function requireInternalSession(): Promise<SessionUser> {
   const user = await getSessionUser();
-  if (!user || user.role !== "internal") redirect("/login");
+  if (!user) redirect("/login");
+  if (shouldFenceToPortal(user.role, await isPreviewingClient())) redirect("/portal");
+  if (user.role !== "internal") redirect("/login");
   return user;
 }

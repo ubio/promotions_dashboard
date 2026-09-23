@@ -1,4 +1,5 @@
 import { NextRequest } from "next/server";
+import { requireInternalSession } from "@/lib/auth";
 import { csvResponse } from "@/lib/csv";
 import { buildValidationsCsv } from "@/lib/report-validations-csv";
 import { parseReportSearch } from "@/lib/reports";
@@ -6,6 +7,8 @@ import { parseReportSearch } from "@/lib/reports";
 export const dynamic = "force-dynamic";
 
 export async function GET(req: NextRequest) {
+  await requireInternalSession();
+
   const sp = Object.fromEntries(req.nextUrl.searchParams.entries());
   const filters = parseReportSearch(sp);
   const body = await buildValidationsCsv(filters);

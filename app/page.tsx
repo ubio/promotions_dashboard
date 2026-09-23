@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { StackedSeriesChart, VALIDATION_OUTCOME_SERIES, ValidationSplitBar } from "@/components/charts";
+import { redirectIfPortalUser, requireInternalSession } from "@/lib/auth";
 import { TableHeaderLabel } from "@/components/HelpHint";
 import { REPORT_COLUMN_HINTS } from "@/lib/report-column-hints";
 import {
@@ -50,6 +51,9 @@ function Delta({ current, previous }: { current: number; previous: number }) {
 }
 
 export default async function Overview() {
+  await redirectIfPortalUser();
+  await requireInternalSession();
+
   const to = new Date().toISOString().slice(0, 10);
   const from = shiftDate(to, -29);
   const filters: ReportFilters = { from, to, groupBy: "client" };

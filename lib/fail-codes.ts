@@ -68,11 +68,12 @@ export const VALIDATION_ISSUE_LABELS: Record<string, string> = {
   REGISTRATION_REQUIRED: "Validation requires user account",
   PRODUCT_PERSONALIZATION_REQUIRED: "Product requires personalization",
   NEWSLETTERS_NOT_SUPPORTED: "Newsletter signup required",
-  WEBSITE_ISSUE: "Website issue prevented validation",
+  WEBSITE_ISSUE: "Website UI preventing validation",
   ACCOUNT_BLOCKED: "Account blocked on merchant site",
 };
 
 export function validationIssueLabel(code: string): string {
+  if (code === "__none__") return "Validation could not be completed";
   return VALIDATION_ISSUE_LABELS[code] ?? "Validation could not be completed";
 }
 

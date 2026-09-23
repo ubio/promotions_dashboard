@@ -1,6 +1,8 @@
 import { StatsNav } from "@/components/stats/StatsNav";
+import { requireInternalSession } from "@/lib/auth";
 
-export default function StatsLayout({ children }: { children: React.ReactNode }) {
+export default async function StatsLayout({ children }: { children: React.ReactNode }) {
+  await requireInternalSession();
   return (
     <div data-full-width className="space-y-4">
       <StatsNav />

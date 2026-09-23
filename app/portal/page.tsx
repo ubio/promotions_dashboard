@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { requireClientSession } from "@/lib/auth";
-import { getPortalReasons, getPortalSummary } from "@/lib/portal";
+import { getPortalSummary, getPortalValidationIssueReasons } from "@/lib/portal";
 import { formatCount } from "@/lib/format";
 
 export const dynamic = "force-dynamic";
@@ -48,9 +48,9 @@ export default async function PortalOverview({
     ? Number(sp.days)
     : 30;
 
-  const [summary, reasons] = await Promise.all([
+  const [summary, validationIssues] = await Promise.all([
     getPortalSummary(clientId, days),
-    getPortalReasons(clientId, days),
+    getPortalValidationIssueReasons(clientId, days),
   ]);
 
   const link = (extra: string) => `/portal/promotions?days=${days}${extra}`;
@@ -100,22 +100,24 @@ export default async function PortalOverview({
 
       <section className="rounded-lg border border-slate-200 bg-white p-4">
         <div className="mb-3 flex items-baseline justify-between gap-3">
-          <h2 className="text-sm font-semibold text-slate-700">Why offers did not work</h2>
+          <h2 className="text-sm font-semibold text-slate-700">Validation issues</h2>
           <Link
-            href={link("&outcome=verified&finding=issue")}
+            href={link("&outcome=validation_issues")}
             className="text-xs text-sky-700 hover:underline"
           >
             See all →
           </Link>
         </div>
-        {reasons.length === 0 ? (
-          <p className="text-sm text-slate-400">No issues reported in this period.</p>
+        {validationIssues.length === 0 ? (
+          <p className="text-sm text-slate-400">No validation issues in this period.</p>
         ) : (
           <ul className="space-y-1">
-            {reasons.map((r) => (
+            {validationIssues.map((r) => (
               <li key={r.code}>
                 <Link
-                  href={link(`&reason=${encodeURIComponent(r.code)}`)}
+                  href={link(
+                    `&outcome=validation_issues&issue=${encodeURIComponent(r.code)}`
+                  )}
                   className="flex items-center justify-between gap-3 rounded px-2 py-1.5 text-sm hover:bg-slate-50"
                 >
                   <span className="text-slate-700">{r.label}</span>

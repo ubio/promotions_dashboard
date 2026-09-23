@@ -2,8 +2,12 @@ import Link from "next/link";
 import Badge from "@/components/Badge";
 import Pagination from "@/components/Pagination";
 import { requireClientSession } from "@/lib/auth";
-import { getPortalDomains, getPortalPromotions, getPortalReasons } from "@/lib/portal";
-import { formatDate, truncate } from "@/lib/format";
+import {
+  getPortalDomains,
+  getPortalPromotions,
+  getPortalValidationIssueReasons,
+} from "@/lib/portal";
+import { formatCount, formatDate, truncate } from "@/lib/format";
 
 export const dynamic = "force-dynamic";
 
@@ -44,6 +48,7 @@ export default async function PortalPromotionsPage({
     : undefined;
   const finding = str(sp.finding) === "issue" ? ("issue" as const) : undefined;
   const reason = str(sp.reason);
+  const issue = str(sp.issue);
   const domain = str(sp.domain);
   const page = Number(str(sp.page) ?? "1") || 1;
 
@@ -54,17 +59,26 @@ export default async function PortalPromotionsPage({
     outcome,
     finding,
     reason,
+    issue,
     domain,
     page,
   };
 
-  const [result, reasons, domains] = await Promise.all([
+  const [result, validationIssues, domains] = await Promise.all([
     getPortalPromotions(filters),
-    days ? getPortalReasons(clientId, days) : Promise.resolve([]),
+    days ? getPortalValidationIssueReasons(clientId, days) : Promise.resolve([]),
     getPortalDomains(clientId, days),
   ]);
 
-  const base = { days, q, outcome, finding, domain, reason: undefined as string | undefined };
+  const base = {
+    days,
+    q,
+    outcome,
+    finding,
+    domain,
+    reason: undefined as string | undefined,
+    issue: undefined as string | undefined,
+  };
   const params: Record<string, string | undefined> = {};
   if (days) params.days = String(days);
   if (q) params.q = q;
@@ -72,6 +86,7 @@ export default async function PortalPromotionsPage({
   if (finding) params.finding = finding;
   if (domain) params.domain = domain;
   if (reason) params.reason = reason;
+  if (issue) params.issue = issue;
 
   return (
     <div data-full-width className="space-y-4">
@@ -121,21 +136,6 @@ export default async function PortalPromotionsPage({
             </option>
           ))}
         </select>
-        {reasons.length > 0 && (
-          <select
-            name="reason"
-            defaultValue={reason ?? ""}
-            className="max-w-full rounded border border-slate-300 px-2 py-1.5"
-            aria-label="Reason"
-          >
-            <option value="">All reasons</option>
-            {reasons.map((r) => (
-              <option key={r.code} value={r.code}>
-                {r.label} ({r.promotions})
-              </option>
-            ))}
-          </select>
-        )}
         <select
           name="domain"
           defaultValue={domain ?? ""}
@@ -158,19 +158,21 @@ export default async function PortalPromotionsPage({
         </Link>
       </form>
 
-      {reasons.length > 0 && !reason && days && (
+      {validationIssues.length > 0 && !issue && days && outcome !== "verified" && (
         <div className="rounded-lg border border-slate-200 bg-white p-3">
-          <p className="mb-2 text-xs uppercase tracking-wide text-slate-400">
-            Why offers did not work
-          </p>
+          <p className="mb-2 text-xs uppercase tracking-wide text-slate-400">Validation issues</p>
           <div className="flex flex-wrap gap-1.5">
-            {reasons.map((r) => (
+            {validationIssues.map((r) => (
               <Link
                 key={r.code}
-                href={`/portal/promotions?${qs({ ...base, reason: r.code })}`}
+                href={`/portal/promotions?${qs({
+                  ...base,
+                  outcome: "validation_issues",
+                  issue: r.code,
+                })}`}
                 className="rounded-full bg-slate-100 px-2.5 py-1 text-xs text-slate-700 hover:bg-slate-200"
               >
-                {r.label} <span className="text-slate-400">{r.promotions}</span>
+                {r.label} <span className="text-slate-400">{formatCount(r.promotions)}</span>
               </Link>
             ))}
           </div>
