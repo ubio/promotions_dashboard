@@ -53,9 +53,6 @@ export default async function RootLayout({
                   <Link href="/portal" className="hover:text-white">
                     Overview
                   </Link>
-                  <Link href="/portal/validations" className="hover:text-white">
-                    Validations
-                  </Link>
                   <Link href="/portal/promotions" className="hover:text-white">
                     Offers
                   </Link>

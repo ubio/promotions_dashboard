@@ -53,16 +53,14 @@ export default async function PortalOverview({
     getPortalReasons(clientId, days),
   ]);
 
-  const completed = summary.worked + summary.didNotWork;
-  const workedPct = completed > 0 ? Math.round((summary.worked / completed) * 100) : null;
-  const link = (extra: string) => `/portal/validations?days=${days}${extra}`;
+  const link = (extra: string) => `/portal/promotions?days=${days}${extra}`;
 
   return (
     <div className="space-y-5">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
           <h1 className="text-xl font-semibold">Your promotions</h1>
-          <p className="text-xs text-slate-500">Validation results for the last {days} days</p>
+          <p className="text-xs text-slate-500">Verification results for the last {days} days</p>
         </div>
         <div className="flex rounded-lg border border-slate-300 bg-white p-0.5 text-sm">
           {RANGES.map((r) => (
@@ -79,30 +77,24 @@ export default async function PortalOverview({
         </div>
       </div>
 
-      <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+      <div className="grid grid-cols-2 gap-3 lg:grid-cols-3">
         <Tile
           label="Offers checked"
-          value={formatCount(summary.runs)}
+          value={formatCount(summary.checked)}
           sub={`last ${days} days`}
           href={link("")}
         />
         <Tile
-          label="Worked"
-          value={formatCount(summary.worked)}
-          sub={workedPct == null ? undefined : `${workedPct}% of completed checks`}
-          href={link("&outcome=worked")}
+          label="Successfully verified"
+          value={formatCount(summary.verified)}
+          sub="with evidence we can share"
+          href={link("&outcome=verified")}
         />
         <Tile
-          label="Did not work"
-          value={formatCount(summary.didNotWork)}
-          sub="see the reason for each"
-          href={link("&outcome=did_not_work")}
-        />
-        <Tile
-          label="Checks incomplete"
-          value={formatCount(summary.incomplete)}
-          sub="on our side, not your offers"
-          href={link("&outcome=incomplete")}
+          label="Validation issues"
+          value={formatCount(summary.validationIssues)}
+          sub="could not complete verification"
+          href={link("&outcome=validation_issues")}
         />
       </div>
 
@@ -110,16 +102,14 @@ export default async function PortalOverview({
         <div className="mb-3 flex items-baseline justify-between gap-3">
           <h2 className="text-sm font-semibold text-slate-700">Why offers did not work</h2>
           <Link
-            href={link("&outcome=did_not_work")}
+            href={link("&outcome=verified&finding=issue")}
             className="text-xs text-sky-700 hover:underline"
           >
             See all →
           </Link>
         </div>
         {reasons.length === 0 ? (
-          <p className="text-sm text-slate-400">
-            No failed checks in this period.
-          </p>
+          <p className="text-sm text-slate-400">No issues reported in this period.</p>
         ) : (
           <ul className="space-y-1">
             {reasons.map((r) => (
@@ -129,7 +119,7 @@ export default async function PortalOverview({
                   className="flex items-center justify-between gap-3 rounded px-2 py-1.5 text-sm hover:bg-slate-50"
                 >
                   <span className="text-slate-700">{r.label}</span>
-                  <span className="text-slate-500">{formatCount(r.runs)}</span>
+                  <span className="text-slate-500">{formatCount(r.promotions)}</span>
                 </Link>
               </li>
             ))}
@@ -138,10 +128,9 @@ export default async function PortalOverview({
       </section>
 
       <p className="text-xs text-slate-400">
-        Every check is run against the live merchant site. &ldquo;Did not work&rdquo; means we
-        reached the checkout and the offer did not apply as supplied. &ldquo;Incomplete&rdquo;
-        means our automation could not finish the check — that is on us, and those offers are
-        retried.
+        Every offer is checked against the live merchant site. &ldquo;Successfully verified&rdquo;
+        means we finished the check and have evidence to share with you. &ldquo;Validation
+        issues&rdquo; means we could not finish the check; those offers are retried on our side.
       </p>
     </div>
   );

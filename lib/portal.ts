@@ -1,30 +1,31 @@
-// Client-facing data access. Everything a ZiffDavis user sees comes through
-// here, so the safety rules live in one place:
+// Client-facing data access. Everything a client user sees comes through here,
+// so the safety rules live in one place:
 //
 //  1. Every query is scoped to the caller's clientId — never a parameter the
 //     browser controls.
-//  2. Only client-facing runs carry detail. Runs that failed on our side
-//     (AUTOMATION_FAILURE_FAIL_CODES, or reportType "error") are reported as
-//     "could not complete" with no internal reasoning, because that text
-//     contains our tooling names, local file paths and cost-limit messages.
-//  3. Reasoning is sanitised as a backstop even on client-facing runs.
-//  4. No cost fields are selected at all.
+//  2. Clients see promotion outcomes from `todayPromotions`, not validation job
+//     rows from `validationLogs`.
+//  3. Successfully verified = client-facing promotion (promotions-service
+//     TodayPromotionStorage.isClientFacingPromotionExpr): valid, or
+//     invalid/cannotValidate with ClientFacingFailCodes.
+//  4. Validation issues = everything else checked in the period.
+//  5. No cost fields are selected at all.
 import type { Document, Filter } from "mongodb";
 import { db } from "./mongo";
 import {
-  AUTOMATION_FAILURE_FAIL_CODES,
   CLIENT_FACING_FAIL_CODES,
-  OTHER_FAIL_CODES,
+  isClientFacingPromotion,
+  validationIssueLabel,
 } from "./fail-codes";
+import { escapeRegex, normalizeValidity } from "./format";
 
-type LogDoc = Document & { _id: string };
+type PromoDoc = Document & { _id: string };
 
-function logs() {
-  return db().collection<LogDoc>("validationLogs");
+function promotions() {
+  return db().collection<PromoDoc>("todayPromotions");
 }
 
-// Plain English for the codes a client should see. Anything not listed is
-// treated as an internal issue and never labelled in the portal.
+// Plain English for ClientFacingFailCodes only.
 export const REASON_LABELS: Record<string, string> = {
   PROMO_CODE_IS_NOT_WORKING: "Code rejected at checkout",
   PROMO_CODE_NOT_APPLICABLE_TO_THIS_PRODUCT: "Code not valid for this product",
@@ -33,247 +34,320 @@ export const REASON_LABELS: Record<string, string> = {
   PRODUCT_OUT_OF_STOCK: "Product out of stock",
   SKU_PAGE_NOT_FOUND: "Product page not found",
   PROMOTION_CORRECTION: "Offer terms differ from those supplied",
-  WEBSITE_ISSUE: "Merchant site problem",
-  WEBSITE_LOADING_ISSUE: "Merchant site would not load",
-  WEBSITE_UI_ISSUE: "Merchant site behaved unexpectedly",
-  ACCOUNT_BLOCKED: "Merchant blocked the account",
 };
 
-export const PORTAL_REASON_CODES = Object.keys(REASON_LABELS);
+export const PORTAL_REASON_CODES = CLIENT_FACING_FAIL_CODES;
 
 export function reasonLabel(code: string): string {
-  return REASON_LABELS[code] ?? "Could not complete check";
+  return REASON_LABELS[code] ?? code;
 }
 
-// Codes whose detail must never reach a client.
-const INTERNAL_CODES = new Set(AUTOMATION_FAILURE_FAIL_CODES);
-
-export function isInternalIssue(r: { reportType?: string; failCodes?: string[] }): boolean {
-  if (r.reportType === "error") return true;
-  return (r.failCodes ?? []).some((c) => INTERNAL_CODES.has(c));
+function clientFacingFailCodesFrom(raw: string[]): string[] {
+  return raw.filter((code) => CLIENT_FACING_FAIL_CODES.includes(code));
 }
 
-// Backstop for LLM free text: strip anything that names our infrastructure.
-const REDACTIONS: [RegExp, string][] = [
-  [/\/Users\/[^\s,)'"]*/g, "[internal path]"],
-  [/\/(home|opt|var|tmp)\/[^\s,)'"]*/g, "[internal path]"],
-  [/[A-Za-z0-9_-]*cloakbrowser[^\s,)'"]*/gi, "[browser]"],
-  [/chromium[-\d.]*/gi, "browser"],
-  [/\bcost limit[^.]*/gi, "internal limit reached"],
-  [/\b(a3|agent)[ _-]?error\b/gi, "automation error"],
-  [/\bproxy\b/gi, "network"],
-  [/\b(claude|gpt-?\d*|gemini|anthropic|openai)\b/gi, "model"],
-];
-
-export function sanitiseReasoning(text: string | undefined | null): string {
-  if (!text) return "";
-  let out = String(text);
-  for (const [pattern, replacement] of REDACTIONS) out = out.replace(pattern, replacement);
-  return out;
+function nonClientFacingFailCodesFrom(raw: string[]): string[] {
+  return raw.filter((code) => !CLIENT_FACING_FAIL_CODES.includes(code));
 }
 
-export interface PortalRunFilters {
+function extractFailCodes(latestValidation: Document, row: Document): string[] {
+  if (Array.isArray(latestValidation.failCodes) && latestValidation.failCodes.length > 0) {
+    return latestValidation.failCodes;
+  }
+  if (typeof latestValidation.failCode === "string" && latestValidation.failCode !== "") {
+    return [latestValidation.failCode];
+  }
+  if (Array.isArray(row.failCodes) && row.failCodes.length > 0) {
+    return row.failCodes;
+  }
+  return [];
+}
+
+function failCodesPath(): string {
+  return "$latestValidation.failCodes";
+}
+
+function clientFacingCountExpr(): Document {
+  return {
+    $size: {
+      $setIntersection: [{ $ifNull: [failCodesPath(), []] }, CLIENT_FACING_FAIL_CODES],
+    },
+  };
+}
+
+function isClientFacingPromotionExpr(): Document {
+  return {
+    $or: [
+      { $eq: ["$validityStatus", "valid"] },
+      {
+        $and: [
+          { $in: ["$validityStatus", ["invalid", "cannotValidate"]] },
+          { $gt: [clientFacingCountExpr(), 0] },
+        ],
+      },
+    ],
+  };
+}
+
+function verifiedEvidenceFilter(): Filter<PromoDoc> {
+  return { $expr: isClientFacingPromotionExpr() };
+}
+
+function validationIssuesFilter(): Filter<PromoDoc> {
+  return { $expr: { $not: [isClientFacingPromotionExpr()] } };
+}
+
+function findingFromClientFacingFailCodes(failCodes: string[]): string {
+  const clientFacing = clientFacingFailCodesFrom(failCodes);
+  if (clientFacing.length === 0) return "—";
+  return [...new Set(clientFacing.map((code) => reasonLabel(code)))].join("; ");
+}
+
+function findingFromValidationIssueFailCodes(failCodes: string[]): string {
+  const issueCodes = nonClientFacingFailCodesFrom(failCodes);
+  if (issueCodes.length === 0) return "—";
+  return [...new Set(issueCodes.map((code) => validationIssueLabel(code)))].join("; ");
+}
+
+
+export interface PortalPromotionFilters {
   clientId: string;
-  days: number;
+  days?: number;
   reason?: string;
-  outcome?: "worked" | "did_not_work" | "incomplete";
+  outcome?: "verified" | "validation_issues";
+  finding?: "issue";
   domain?: string;
+  q?: string;
   page?: number;
 }
 
 export const PORTAL_PAGE_SIZE = 25;
 
-function baseMatch(f: PortalRunFilters): Filter<LogDoc> {
-  const match: Filter<LogDoc> = {
-    clientId: f.clientId,
-    createdAt: { $gte: Date.now() - f.days * 86400000 },
-  };
-  if (f.domain) match.domain = f.domain;
-  // A run can carry both a client-facing and an automation code. The classifier
-  // in toPortalRun treats any automation code as "incomplete", so the query has
-  // to apply exactly the same rule or the filters disagree with the rows.
-  const reason = f.reason && PORTAL_REASON_CODES.includes(f.reason) ? f.reason : undefined;
-  const notAutomation = { $nin: AUTOMATION_FAILURE_FAIL_CODES };
+function basePromotionMatch(f: PortalPromotionFilters): Filter<PromoDoc> {
+  const match: Filter<PromoDoc> = { clientId: f.clientId };
 
-  if (f.outcome === "incomplete") {
-    match.$or = [{ reportType: "error" }, { failCodes: { $in: AUTOMATION_FAILURE_FAIL_CODES } }];
-    return match;
+  if (f.days) {
+    match["latestValidation.createdAt"] = { $gte: Date.now() - f.days * 86400000 };
   }
 
-  if (f.outcome === "worked" || f.outcome === "did_not_work") {
-    match.reportType = "conclusion";
-    match.success = f.outcome === "worked";
+  if (f.domain) match.domain = f.domain;
+
+  if (f.q) {
+    const rx = { $regex: escapeRegex(f.q), $options: "i" };
+    match.$or = [
+      { domain: rx },
+      { sourceUrl: rx },
+      { description: rx },
+      { title: rx },
+      { textOnPage: rx },
+      { "conditions.code": rx },
+      { uniqId: f.q },
+      { _id: f.q },
+    ];
+  }
+
+  const reason =
+    f.reason && CLIENT_FACING_FAIL_CODES.includes(f.reason) ? f.reason : undefined;
+
+  if (f.outcome === "verified") {
+    match.$and = [...(match.$and ?? []), verifiedEvidenceFilter()];
+  } else if (f.outcome === "validation_issues") {
+    match.$and = [...(match.$and ?? []), validationIssuesFilter()];
+  }
+
+  if (f.finding === "issue") {
+    match["latestValidation.failCodes"] = { $in: CLIENT_FACING_FAIL_CODES };
   }
 
   if (reason) {
-    // Both conditions apply to failCodes, so combine them with $all + $nin.
-    match.failCodes = { $all: [reason], ...notAutomation };
-  } else if (f.outcome === "worked" || f.outcome === "did_not_work") {
-    match.failCodes = notAutomation;
-  }
-
-  if (f.outcome === "did_not_work" && !reason) {
-    match.failCodes = { $in: [...CLIENT_FACING_FAIL_CODES, ...OTHER_FAIL_CODES], ...notAutomation };
+    match["latestValidation.failCodes"] = reason;
   }
 
   return match;
 }
 
-export interface PortalRun {
+export interface PortalPromotion {
   id: string;
   createdAt: number;
   domain?: string;
   sourceUrl?: string;
+  countryCode?: string;
   code?: string;
-  outcome: "worked" | "did_not_work" | "incomplete";
+  title?: string;
+  description?: string;
+  expirationDate?: string;
+  discountPercent?: number;
+  discountCurrency?: string;
+  outcome: "verified" | "validation_issues";
+  validityStatus: string | null;
   reasons: string[];
-  explanation: string;
+  finding: string;
   screenshot?: string;
-  promotionId?: string;
 }
 
-function toPortalRun(r: Document): PortalRun {
-  const internal = isInternalIssue(r);
-  const outcome: PortalRun["outcome"] = internal
-    ? "incomplete"
-    : r.success === true
-      ? "worked"
-      : "did_not_work";
+function toPortalPromotion(r: Document): PortalPromotion {
+  const latestValidation = r.latestValidation ?? {};
+  const failCodes = extractFailCodes(latestValidation, r);
+  const validityStatus =
+    typeof r.validityStatus === "string" ? r.validityStatus : undefined;
+  const verified = isClientFacingPromotion(validityStatus, failCodes);
+  const reasons = clientFacingFailCodesFrom(failCodes);
+
   return {
     id: String(r._id),
-    createdAt: r.createdAt,
+    createdAt: latestValidation.createdAt ?? r.systemMeta?.createdAt ?? 0,
     domain: r.domain,
     sourceUrl: r.sourceUrl,
-    outcome,
-    // Internal issues expose neither their codes nor their reasoning.
-    reasons: internal ? [] : (r.failCodes ?? []).filter((c: string) => c in REASON_LABELS),
-    explanation: internal
-      ? "We could not complete this check. Our team is looking into it — it is not a problem with your offer."
-      : sanitiseReasoning(r.reasoning),
-    screenshot: internal ? undefined : r.screenshot,
-    promotionId: r.promotionId,
+    code: r.conditions?.code,
+    title: r.title,
+    description: r.description ?? r.title ?? r.textOnPage,
+    countryCode: r.countryCode,
+    expirationDate: r.conditions?.expirationDate,
+    discountPercent: r.benefits?.discountPercent,
+    discountCurrency: r.benefits?.discountCurrency
+      ? String(r.benefits.discountCurrency)
+      : undefined,
+    outcome: verified ? "verified" : "validation_issues",
+    validityStatus: r.validityStatus ? normalizeValidity(r.validityStatus) : null,
+    reasons,
+    finding: verified
+      ? validityStatus === "valid"
+        ? "—"
+        : findingFromClientFacingFailCodes(failCodes)
+      : findingFromValidationIssueFailCodes(failCodes),
+    screenshot: latestValidation.screenshot,
   };
 }
 
-export async function getPortalRuns(
-  f: PortalRunFilters
-): Promise<{ items: PortalRun[]; total: number; page: number; pages: number }> {
-  const match = baseMatch(f);
-  const total = await logs().countDocuments(match);
+export async function getPortalPromotions(
+  f: PortalPromotionFilters
+): Promise<{ items: PortalPromotion[]; total: number; page: number; pages: number }> {
+  const match = basePromotionMatch(f);
+  const total = await promotions().countDocuments(match);
   const pages = Math.max(1, Math.ceil(total / PORTAL_PAGE_SIZE));
   const page = Math.min(Math.max(1, f.page ?? 1), pages);
-  const rows = await logs()
+  const rows = await promotions()
     .find(match)
-    .sort({ createdAt: -1 })
+    .sort({ "latestValidation.createdAt": -1, _id: -1 })
     .skip((page - 1) * PORTAL_PAGE_SIZE)
     .limit(PORTAL_PAGE_SIZE)
-    // Cost fields are deliberately not projected.
     .project({
-      createdAt: 1,
       domain: 1,
       sourceUrl: 1,
-      success: 1,
-      reportType: 1,
+      countryCode: 1,
+      title: 1,
+      description: 1,
+      textOnPage: 1,
+      conditions: 1,
+      benefits: 1,
+      validityStatus: 1,
       failCodes: 1,
-      reasoning: 1,
-      screenshot: 1,
-      promotionId: 1,
+      latestValidation: 1,
+      systemMeta: 1,
     })
     .toArray();
-  return { items: rows.map(toPortalRun), total, page, pages };
+  return { items: rows.map(toPortalPromotion), total, page, pages };
 }
 
 export interface PortalSummary {
-  runs: number;
-  worked: number;
-  didNotWork: number;
-  incomplete: number;
+  checked: number;
+  verified: number;
+  validationIssues: number;
 }
 
 export async function getPortalSummary(clientId: string, days: number): Promise<PortalSummary> {
-  const rows = await logs()
-    .aggregate<{ _id: null; runs: number; worked: number; incomplete: number }>([
-      { $match: { clientId, createdAt: { $gte: Date.now() - days * 86400000 } } },
+  const since = Date.now() - days * 86400000;
+
+  const rows = await promotions()
+    .aggregate<{ _id: null; checked: number; verified: number; validationIssues: number }>([
+      { $match: { clientId, "latestValidation.createdAt": { $gte: since } } },
       {
         $group: {
           _id: null,
-          runs: { $sum: 1 },
-          worked: {
-            $sum: {
-              $cond: [{ $and: [{ $eq: ["$reportType", "conclusion"] }, "$success"] }, 1, 0],
-            },
+          checked: { $sum: 1 },
+          verified: {
+            $sum: { $cond: [isClientFacingPromotionExpr(), 1, 0] },
           },
-          incomplete: {
-            $sum: {
-              $cond: [
-                {
-                  $or: [
-                    { $eq: ["$reportType", "error"] },
-                    {
-                      $gt: [
-                        {
-                          $size: {
-                            $setIntersection: [
-                              { $ifNull: ["$failCodes", []] },
-                              AUTOMATION_FAILURE_FAIL_CODES,
-                            ],
-                          },
-                        },
-                        0,
-                      ],
-                    },
-                  ],
-                },
-                1,
-                0,
-              ],
-            },
+          validationIssues: {
+            $sum: { $cond: [{ $not: [isClientFacingPromotionExpr()] }, 1, 0] },
           },
         },
       },
     ])
     .toArray();
+
   const r = rows[0];
-  if (!r) return { runs: 0, worked: 0, didNotWork: 0, incomplete: 0 };
+  if (!r) return { checked: 0, verified: 0, validationIssues: 0 };
   return {
-    runs: r.runs,
-    worked: r.worked,
-    incomplete: r.incomplete,
-    didNotWork: Math.max(0, r.runs - r.worked - r.incomplete),
+    checked: r.checked,
+    verified: r.verified,
+    validationIssues: r.validationIssues,
   };
 }
 
 export interface ReasonCount {
   code: string;
   label: string;
-  runs: number;
+  promotions: number;
 }
 
-// Why offers are failing — client-facing reasons only.
 export async function getPortalReasons(clientId: string, days: number): Promise<ReasonCount[]> {
-  const rows = await logs()
-    .aggregate<{ _id: string; runs: number }>([
+  const since = Date.now() - days * 86400000;
+
+  const rows = await promotions()
+    .aggregate<{ _id: string; promotions: number }>([
       {
         $match: {
           clientId,
-          createdAt: { $gte: Date.now() - days * 86400000 },
-          reportType: "conclusion",
-          failCodes: { $in: PORTAL_REASON_CODES },
+          "latestValidation.createdAt": { $gte: since },
+          "latestValidation.failCodes": { $in: CLIENT_FACING_FAIL_CODES },
         },
       },
-      { $unwind: "$failCodes" },
-      { $match: { failCodes: { $in: PORTAL_REASON_CODES } } },
-      { $group: { _id: "$failCodes", runs: { $sum: 1 } } },
-      { $sort: { runs: -1 } },
+      { $unwind: "$latestValidation.failCodes" },
+      { $match: { "latestValidation.failCodes": { $in: CLIENT_FACING_FAIL_CODES } } },
+      { $group: { _id: "$latestValidation.failCodes", promotions: { $sum: 1 } } },
+      { $sort: { promotions: -1 } },
     ])
     .toArray();
-  return rows.map((r) => ({ code: r._id, label: reasonLabel(r._id), runs: r.runs }));
+
+  return rows.map((row) => ({
+    code: row._id,
+    label: reasonLabel(row._id),
+    promotions: row.promotions,
+  }));
 }
 
-export async function getPortalDomains(clientId: string, days: number): Promise<string[]> {
-  const rows = await logs().distinct("domain", {
-    clientId,
-    createdAt: { $gte: Date.now() - days * 86400000 },
-  });
+export async function getPortalDomains(clientId: string, days?: number): Promise<string[]> {
+  const filter: Filter<PromoDoc> = { clientId };
+  if (days) {
+    filter["latestValidation.createdAt"] = { $gte: Date.now() - days * 86400000 };
+  }
+  const rows = await promotions().distinct("domain", filter);
   return (rows as string[]).filter(Boolean).sort();
+}
+
+export async function getPortalPromotion(
+  clientId: string,
+  id: string
+): Promise<PortalPromotion | null> {
+  const row = await promotions().findOne(
+    { _id: id, clientId },
+    {
+      projection: {
+        domain: 1,
+        sourceUrl: 1,
+        countryCode: 1,
+        title: 1,
+        description: 1,
+        textOnPage: 1,
+        conditions: 1,
+        benefits: 1,
+        validityStatus: 1,
+        failCodes: 1,
+        latestValidation: 1,
+        systemMeta: 1,
+      },
+    }
+  );
+  return row ? toPortalPromotion(row) : null;
 }
