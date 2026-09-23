@@ -180,7 +180,7 @@ export interface PortalPromotion {
   discountCurrency?: string;
   outcome: "verified" | "validation_issues";
   validityStatus: string | null;
-  reasons: string[];
+  reason: string;
   finding: string;
   screenshot?: string;
 }
@@ -191,7 +191,10 @@ function toPortalPromotion(r: Document): PortalPromotion {
   const validityStatus =
     typeof r.validityStatus === "string" ? r.validityStatus : undefined;
   const verified = isClientFacingPromotion(validityStatus, failCodes);
-  const reasons = clientFacingFailCodesFrom(failCodes);
+  const reasoning =
+    typeof latestValidation.reasoning === "string" && latestValidation.reasoning !== ""
+      ? latestValidation.reasoning
+      : undefined;
 
   return {
     id: String(r._id),
@@ -209,7 +212,7 @@ function toPortalPromotion(r: Document): PortalPromotion {
       : undefined,
     outcome: verified ? "verified" : "validation_issues",
     validityStatus: r.validityStatus ? normalizeValidity(r.validityStatus) : null,
-    reasons,
+    reason: reasoning ?? "—",
     finding: verified
       ? validityStatus === "valid"
         ? "—"

@@ -3,7 +3,7 @@ import { notFound } from "next/navigation";
 import Badge from "@/components/Badge";
 import { Section, KVGrid } from "@/components/Section";
 import { requireClientSession } from "@/lib/auth";
-import { getPortalPromotion, reasonLabel } from "@/lib/portal";
+import { getPortalPromotion } from "@/lib/portal";
 import { formatDate } from "@/lib/format";
 
 export const dynamic = "force-dynamic";
@@ -80,9 +80,13 @@ export default async function PortalPromotionPage({
             ],
             [
               "Reason",
-              promotion.reasons.length > 0
-                ? promotion.reasons.map((c) => reasonLabel(c)).join(", ")
-                : "—",
+              promotion.reason !== "—" ? (
+                <span key="reason" className="whitespace-pre-wrap">
+                  {promotion.reason}
+                </span>
+              ) : (
+                "—"
+              ),
             ],
             ["What we found", promotion.finding],
             [
