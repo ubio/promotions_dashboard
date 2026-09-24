@@ -7,6 +7,7 @@ import {
   getReport,
   getDailySeriesForOverview,
   getFailCodeBreakdown,
+  getUniqueValidationStats,
   previousPeriod,
   reportQueryString,
   shiftDate,
@@ -22,18 +23,27 @@ function Tile({
   value,
   sub,
   href,
+  newBadge,
 }: {
   label: string;
   value: string;
   sub?: React.ReactNode;
   href: string;
+  newBadge?: boolean;
 }) {
   return (
     <Link
       href={href}
       className="rounded-lg border border-slate-200 bg-white px-4 py-3 transition hover:border-slate-300 hover:bg-slate-50"
     >
-      <p className="text-xs uppercase tracking-wide text-slate-400">{label}</p>
+      <p className="flex items-center gap-1.5 text-xs uppercase tracking-wide text-slate-400">
+        {label}
+        {newBadge && (
+          <span className="rounded bg-green-50 px-1 py-px text-[10px] font-medium normal-case tracking-normal text-green-600/60">
+            new
+          </span>
+        )}
+      </p>
       <p className="mt-1 text-2xl font-semibold text-slate-900">{value}</p>
       {sub && <p className="text-xs text-slate-500">{sub}</p>}
     </Link>
@@ -59,17 +69,21 @@ export default async function Overview() {
   const filters: ReportFilters = { from, to, groupBy: "client" };
   const prev = previousPeriod(from, to);
 
-  const [current, comparison, daily, failCodes] = await Promise.all([
-    getReport(filters),
-    getReport({ ...filters, ...prev }),
-    getDailySeriesForOverview(filters),
-    getFailCodeBreakdown({ ...filters, outcomes: ["no_result"] }),
-  ]);
+  const [current, comparison, daily, failCodes, uniqueValidations, prevUniqueValidations] =
+    await Promise.all([
+      getReport(filters),
+      getReport({ ...filters, ...prev }),
+      getDailySeriesForOverview(filters),
+      getFailCodeBreakdown({ ...filters, outcomes: ["no_result"] }),
+      getUniqueValidationStats(filters),
+      getUniqueValidationStats({ ...filters, ...prev }),
+    ]);
 
   const t = current.totals;
   const p = comparison.totals;
   // Success = we reached a verdict, whether the promotion proved valid or invalid.
   const successRate = t.runs > 0 ? (t.resolved / t.runs) * 100 : null;
+  const uniqueReachedPct = uniqueValidations.reachedPct;
   const qs = reportQueryString(filters);
   const topReasons = failCodes.slice(0, 5);
 
@@ -119,8 +133,27 @@ export default async function Overview() {
         <Tile
           label="Validation Results Reached"
           value={successRate == null ? "—" : `${successRate.toFixed(0)}%`}
-          sub={`${formatCount(t.resolved)} of ${formatCount(t.runs)} reached a result`}
+          sub={`${formatCount(t.resolved)} of ${formatCount(t.runs)} runs reached a result`}
           href={`/validations/runs?${qs}`}
+        />
+        <Tile
+          label="Unique validations"
+          value={formatCount(uniqueValidations.uniqueValidations)}
+          sub={
+            <Delta
+              current={uniqueValidations.uniqueValidations}
+              previous={prevUniqueValidations.uniqueValidations}
+            />
+          }
+          href={`/validations/runs?${qs}`}
+          newBadge
+        />
+        <Tile
+          label="Unique results reached"
+          value={uniqueReachedPct == null ? "—" : `${uniqueReachedPct.toFixed(0)}%`}
+          sub={`${formatCount(uniqueValidations.uniqueResolved)} of ${formatCount(uniqueValidations.uniqueValidations)} promotions reached a result`}
+          href={`/validations/runs?${qs}`}
+          newBadge
         />
       </div>
 

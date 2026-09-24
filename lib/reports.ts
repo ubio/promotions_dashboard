@@ -533,6 +533,52 @@ export interface FailCodeCount {
 
 // Why did these runs end up the way they did — the reason breakdown behind a
 // Passed / Failed / Errored count.
+export interface UniqueValidationStats {
+  uniqueValidations: number;
+  uniqueResolved: number;
+  reachedPct: number | null;
+}
+
+function uniqueValidationIdExpr(): Document {
+  return {
+    day: { $dateToString: { format: "%Y-%m-%d", date: { $toDate: "$createdAt" } } },
+    promotionId: { $ifNull: ["$promotionId", "$promotionUniqId"] },
+    importBundle: { $ifNull: ["$importBundle", ""] },
+  };
+}
+
+// One row per (day, promotion, import bundle). The same promotion in two bundles
+// counts twice; retries on the same bundle on the same day count once.
+export async function getUniqueValidationStats(f: ReportFilters): Promise<UniqueValidationStats> {
+  const rows = await logs()
+    .aggregate<{ _id: null; uniqueValidations: number; uniqueResolved: number }>([
+      { $match: buildMatch(f) },
+      {
+        $group: {
+          _id: uniqueValidationIdExpr(),
+          reached: { $max: { $cond: [{ $ne: ["$reportType", "error"] }, 1, 0] } },
+        },
+      },
+      {
+        $group: {
+          _id: null,
+          uniqueValidations: { $sum: 1 },
+          uniqueResolved: { $sum: "$reached" },
+        },
+      },
+    ])
+    .toArray();
+
+  const r = rows[0];
+  if (!r) return { uniqueValidations: 0, uniqueResolved: 0, reachedPct: null };
+  return {
+    uniqueValidations: r.uniqueValidations,
+    uniqueResolved: r.uniqueResolved,
+    reachedPct:
+      r.uniqueValidations > 0 ? (r.uniqueResolved / r.uniqueValidations) * 100 : null,
+  };
+}
+
 export async function getFailCodeBreakdown(f: ReportFilters): Promise<FailCodeCount[]> {
   const rows = await logs()
     .aggregate<{ _id: string; runs: number }>([
