@@ -43,6 +43,13 @@ export function reasonLabel(code: string): string {
   return REASON_LABELS[code] ?? code;
 }
 
+function portalReason(failCodes: string[], reasoning: string | undefined): string {
+  if (failCodes.includes("LLM_COST_LIMIT")) {
+    return "Workflow timeout";
+  }
+  return reasoning ?? "—";
+}
+
 function clientFacingFailCodesFrom(raw: string[]): string[] {
   return raw.filter((code) => CLIENT_FACING_FAIL_CODES.includes(code));
 }
@@ -260,7 +267,7 @@ function toPortalPromotion(r: Document): PortalPromotion {
       : undefined,
     outcome: verified ? "verified" : "validation_issues",
     validityStatus: r.validityStatus ? normalizeValidity(r.validityStatus) : null,
-    reason: reasoning ?? "—",
+    reason: portalReason(failCodes, reasoning),
     finding: verified
       ? validityStatus === "valid"
         ? "—"
