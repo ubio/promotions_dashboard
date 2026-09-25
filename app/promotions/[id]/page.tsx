@@ -37,12 +37,12 @@ export default async function PromotionPage({ params }: { params: Promise<{ id: 
   return (
     <div className="space-y-4">
       <div>
-        <Link href="/validations/runs" className="text-sm text-sky-700 hover:underline">
+        <Link href="/validations/runs" className="text-sm text-primary-ink hover:underline">
           ← Back to validations
         </Link>
         <div className="mt-1 flex flex-wrap items-center gap-3">
           <h1 className="text-xl font-semibold">Promotion</h1>
-          <code className="rounded bg-slate-200 px-2 py-0.5 text-xs">{String(promotion._id)}</code>
+          <code className="rounded bg-line px-2 py-0.5 text-xs">{String(promotion._id)}</code>
           <LocalValidateLink id={String(promotion._id)} />
           <Badge variant={status}>{status}</Badge>
         </div>
@@ -65,7 +65,7 @@ export default async function PromotionPage({ params }: { params: Promise<{ id: 
             [
               "Source URL",
               promotion.sourceUrl ? (
-                <a href={promotion.sourceUrl} target="_blank" className="text-sky-700 hover:underline break-all">
+                <a href={promotion.sourceUrl} target="_blank" className="text-primary-ink hover:underline break-all">
                   {promotion.sourceUrl}
                 </a>
               ) : (
@@ -85,7 +85,7 @@ export default async function PromotionPage({ params }: { params: Promise<{ id: 
               extractionJob ? (
                 <Link
                   href={`/jobs/extraction/${extractionJob._id}`}
-                  className="text-sky-700 hover:underline"
+                  className="text-primary-ink hover:underline"
                 >
                   {String(extractionJob._id)}
                 </Link>
@@ -102,35 +102,35 @@ export default async function PromotionPage({ params }: { params: Promise<{ id: 
           {objectRows(promotion.conditions).length > 0 ? (
             <KVGrid rows={objectRows(promotion.conditions)} />
           ) : (
-            <p className="text-sm text-slate-400">No conditions recorded.</p>
+            <p className="text-sm text-faint">No conditions recorded.</p>
           )}
         </Section>
         <Section title="Benefits">
           {objectRows(promotion.benefits).length > 0 ? (
             <KVGrid rows={objectRows(promotion.benefits)} />
           ) : (
-            <p className="text-sm text-slate-400">No benefits recorded.</p>
+            <p className="text-sm text-faint">No benefits recorded.</p>
           )}
         </Section>
       </div>
 
       <Section title="Applicability">
         {promotion.applicability ? (
-          <pre className="overflow-x-auto rounded bg-slate-50 p-3 text-xs">
+          <pre className="overflow-x-auto rounded bg-page p-3 text-xs">
             {JSON.stringify(promotion.applicability, null, 2)}
           </pre>
         ) : (
-          <p className="text-sm text-slate-400">No applicability data.</p>
+          <p className="text-sm text-faint">No applicability data.</p>
         )}
       </Section>
 
       <Section title={`Validation history (${validations.length})`}>
         {validations.length === 0 ? (
-          <p className="text-sm text-slate-400">No validation jobs recorded for this promotion.</p>
+          <p className="text-sm text-faint">No validation jobs recorded for this promotion.</p>
         ) : (
           <div className="overflow-x-auto">
             <table className="min-w-full text-sm">
-              <thead className="text-left text-xs uppercase text-slate-500">
+              <thead className="text-left text-xs uppercase text-muted">
                 <tr>
                   <th className="py-1.5 pr-4">Created</th>
                   <th className="py-1.5 pr-4">Result</th>
@@ -140,13 +140,13 @@ export default async function PromotionPage({ params }: { params: Promise<{ id: 
                   <th className="py-1.5 pr-4">Evidence</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-slate-100">
+              <tbody className="divide-y divide-rule">
                 {validations.map((v) => (
                   <tr key={String(v._id)}>
                     <td className="whitespace-nowrap py-1.5 pr-4">
                       <Link
                         href={`/jobs/validation/${v._id}?back=${encodeURIComponent(`/promotions/${promotion._id}`)}`}
-                        className="text-sky-700 hover:underline"
+                        className="text-primary-ink hover:underline"
                       >
                         {formatDate(v.createdAt)}
                       </Link>
@@ -166,11 +166,11 @@ export default async function PromotionPage({ params }: { params: Promise<{ id: 
                         ))}
                       </div>
                     </td>
-                    <td className="min-w-72 max-w-md py-1.5 pr-4 text-xs text-slate-600">{truncate(v.reasoning, 120)}</td>
+                    <td className="min-w-72 max-w-md py-1.5 pr-4 text-xs text-text">{truncate(v.reasoning, 120)}</td>
                     <td className="whitespace-nowrap py-1.5 pr-4">{formatDuration(v.time)}</td>
                     <td className="whitespace-nowrap py-1.5 pr-4 text-xs">
                       {v.screenshot ? (
-                        <a href={v.screenshot} target="_blank" className="text-sky-700 hover:underline">
+                        <a href={v.screenshot} target="_blank" className="text-primary-ink hover:underline">
                           screenshot
                         </a>
                       ) : (

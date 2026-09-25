@@ -58,14 +58,14 @@ main:has([data-full-width]) {
     -45deg,
     transparent 0,
     transparent 6px,
-    #f7f7f7 6px,
-    #f7f7f7 12px
+    var(--oss-rule) 6px,
+    var(--oss-rule) 12px
   );
   background-clip: padding-box;
 }
 
 td.pending-promotion-outcome {
-  border-bottom: 1px solid #f1f5f9;
+  border-bottom: 1px solid var(--oss-rule);
 }
 
 .pending-promotion-outcome:hover,
@@ -93,13 +93,13 @@ tr:has(.pending-promotion-outcome:focus-visible) {
   max-width: 16rem;
   transform: translateX(-50%);
   border-radius: 0.375rem;
-  background: #0f172a;
+  background: var(--oss-ink);
   padding: 0.25rem 0.5rem;
   font-size: 0.75rem;
   font-weight: 500;
   line-height: 1.25;
-  color: #fff;
-  box-shadow: 0 4px 12px rgb(15 23 42 / 0.18);
+  color: var(--oss-card);
+  box-shadow: 0 4px 12px var(--oss-shadow);
   pointer-events: none;
 }
 
@@ -121,7 +121,7 @@ tr:has(.pending-promotion-outcome:focus-visible) {
 
 .chart-hint:hover,
 .chart-hint:focus-visible {
-  background: rgb(15 23 42 / 0.04);
+  background: var(--oss-wash);
 }
 
 .chart-hint[data-hint]:hover::after,
@@ -135,15 +135,15 @@ tr:has(.pending-promotion-outcome:focus-visible) {
   max-width: 18rem;
   transform: translateX(-50%);
   border-radius: 0.375rem;
-  border: 1px solid #696969;
-  background: #fafafa;
+  border: 1px solid var(--oss-line);
+  background: var(--oss-card);
   padding: 0.3rem 0.5rem;
   font-size: 0.75rem;
   font-weight: 500;
   line-height: 1.35;
   white-space: pre-line;
-  color: #000;
-  box-shadow: 0 2px 8px rgb(15 23 42 / 0.1);
+  color: var(--oss-ink);
+  box-shadow: 0 2px 8px var(--oss-shadow);
   pointer-events: none;
 }
 
@@ -169,13 +169,13 @@ tr:has(.pending-promotion-outcome:focus-visible) {
   max-width: 18rem;
   transform: translateX(-50%);
   border-radius: 0.375rem;
-  border: 1px solid #696969;
-  background: #fafafa;
+  border: 1px solid var(--oss-line);
+  background: var(--oss-card);
   padding: 0.3rem 0.5rem;
   font-size: 0.75rem;
   font-weight: 500;
   line-height: 1.35;
-  box-shadow: 0 2px 8px rgb(15 23 42 / 0.1);
+  box-shadow: 0 2px 8px var(--oss-shadow);
   pointer-events: none;
 }
 
@@ -186,7 +186,7 @@ tr:has(.pending-promotion-outcome:focus-visible) {
 
 .chart-hint-headline {
   margin: 0;
-  color: #000;
+  color: var(--oss-ink);
 }
 
 .chart-hint-row {

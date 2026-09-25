@@ -5,7 +5,7 @@ import MultiSelect from "./MultiSelect";
 import { periodPresets, matchPreset } from "./PeriodPresets";
 
 const CONTROL =
-  "rounded border border-slate-300 bg-white px-2 py-1.5 text-sm text-slate-800 hover:bg-slate-50";
+  "rounded border border-line bg-card px-2 py-1.5 text-sm text-ink hover:bg-page";
 
 const OUTCOMES = [
   { value: "client_facing", label: "Client-facing" },
@@ -58,7 +58,7 @@ export default function ReportsFilterBar({
   }
 
   return (
-    <form ref={formRef} action={action} className="flex flex-wrap items-center gap-2 rounded-lg border border-slate-200 bg-white p-2.5">
+    <form ref={formRef} action={action} className="flex flex-wrap items-center gap-2 rounded-lg border border-line bg-card p-2.5">
       <select
         value={periodKey}
         onChange={(e) => onPeriodChange(e.target.value)}
@@ -84,7 +84,7 @@ export default function ReportsFilterBar({
             className={CONTROL}
             aria-label="From"
           />
-          <span className="text-slate-400">→</span>
+          <span className="text-faint">→</span>
           <input
             type="date"
             name="to"
@@ -138,9 +138,9 @@ export default function ReportsFilterBar({
 
       {/* Filters apply on selection; this keeps the form usable without JS. */}
       <noscript>
-        <button className="rounded bg-slate-900 px-4 py-1.5 text-sm text-white">Apply</button>
+        <button className="rounded bg-primary px-4 py-1.5 text-sm text-card">Apply</button>
       </noscript>
-      <a href={action} className="ml-auto px-1 text-sm text-slate-500 hover:text-slate-700">
+      <a href={action} className="ml-auto px-1 text-sm text-muted hover:text-text">
         Reset
       </a>
     </form>

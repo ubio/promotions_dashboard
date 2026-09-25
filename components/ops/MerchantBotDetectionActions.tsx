@@ -162,8 +162,8 @@ export default function MerchantBotDetectionActions({
         aria-label={detectLabel}
         className={
           layout === "block"
-            ? "inline-flex items-center justify-center rounded border border-red-300 bg-white p-1.5 text-red-800 hover:bg-red-50 disabled:opacity-50"
-            : "inline-flex items-center justify-center rounded border border-red-300 p-1 text-red-800 hover:bg-red-50 disabled:opacity-50"
+            ? "inline-flex items-center justify-center rounded border border-bad-line bg-card p-1.5 text-bad hover:bg-bad-bg disabled:opacity-50"
+            : "inline-flex items-center justify-center rounded border border-bad-line p-1 text-bad hover:bg-bad-bg disabled:opacity-50"
         }
       >
         {loading && state.action === "detected" ? (
@@ -180,8 +180,8 @@ export default function MerchantBotDetectionActions({
         aria-label={fixLabel}
         className={
           layout === "block"
-            ? "inline-flex items-center justify-center rounded border border-emerald-300 bg-white p-1.5 text-emerald-800 hover:bg-emerald-50 disabled:opacity-50"
-            : "inline-flex items-center justify-center rounded border border-emerald-300 p-1 text-emerald-800 hover:bg-emerald-50 disabled:opacity-50"
+            ? "inline-flex items-center justify-center rounded border border-ok-line bg-card p-1.5 text-ok hover:bg-ok-bg disabled:opacity-50"
+            : "inline-flex items-center justify-center rounded border border-ok-line p-1 text-ok hover:bg-ok-bg disabled:opacity-50"
         }
       >
         {loading && state.action === "fixed" ? (
@@ -198,7 +198,7 @@ export default function MerchantBotDetectionActions({
       <div className="flex items-center gap-1">
         {buttons}
         {state.message && (
-          <p className={`max-w-[12rem] text-[11px] ${state.status === "error" ? "text-red-600" : "text-emerald-700"}`}>
+          <p className={`max-w-[12rem] text-[11px] ${state.status === "error" ? "text-bad" : "text-ok"}`}>
             {state.message}
           </p>
         )}
@@ -210,7 +210,7 @@ export default function MerchantBotDetectionActions({
     <div className="space-y-2">
       <div className="flex flex-wrap gap-2">{buttons}</div>
       {state.message && (
-        <p className={`text-sm ${state.status === "error" ? "text-red-600" : "text-emerald-700"}`}>
+        <p className={`text-sm ${state.status === "error" ? "text-bad" : "text-ok"}`}>
           {state.message}
         </p>
       )}

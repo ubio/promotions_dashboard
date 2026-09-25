@@ -36,12 +36,12 @@ export default async function ExtractionJobPage({ params, searchParams }: {
   return (
     <div className="space-y-4">
       <div>
-        <Link href={back.href} className="text-sm text-sky-700 hover:underline">
+        <Link href={back.href} className="text-sm text-primary-ink hover:underline">
           ← Back to {back.label}
         </Link>
         <div className="mt-1 flex flex-wrap items-center gap-3">
           <h1 className="text-xl font-semibold">Discovery run</h1>
-          <code className="rounded bg-slate-200 px-2 py-0.5 text-xs">{String(job._id)}</code>
+          <code className="rounded bg-line px-2 py-0.5 text-xs">{String(job._id)}</code>
           <Badge variant={found.length > 0 ? "success" : "unknown"}>
             {found.length} promotion{found.length === 1 ? "" : "s"} found
           </Badge>
@@ -57,7 +57,7 @@ export default async function ExtractionJobPage({ params, searchParams }: {
             [
               "Source URL",
               job.sourceUrl ? (
-                <a href={job.sourceUrl} target="_blank" className="text-sky-700 hover:underline break-all">
+                <a href={job.sourceUrl} target="_blank" className="text-primary-ink hover:underline break-all">
                   {job.sourceUrl}
                 </a>
               ) : (
@@ -84,20 +84,20 @@ export default async function ExtractionJobPage({ params, searchParams }: {
       </Section>
 
       <Section title="Reasoning">
-        <p className="whitespace-pre-wrap text-sm text-slate-700">{job.reasoning || "No reasoning recorded."}</p>
+        <p className="whitespace-pre-wrap text-sm text-text">{job.reasoning || "No reasoning recorded."}</p>
       </Section>
 
       <Section title={`Visited URLs (${visited.length})`}>
         {visited.length === 0 ? (
-          <p className="text-sm text-slate-400">No visited URLs recorded.</p>
+          <p className="text-sm text-faint">No visited URLs recorded.</p>
         ) : (
           <ol className="space-y-2 text-sm">
             {visited.map((url, i) => (
-              <li key={i} className="rounded border border-slate-100 bg-slate-50 p-2">
-                <a href={url} target="_blank" className="break-all font-mono text-xs text-sky-700 hover:underline">
+              <li key={i} className="rounded border border-rule bg-page p-2">
+                <a href={url} target="_blank" className="break-all font-mono text-xs text-primary-ink hover:underline">
                   {url}
                 </a>
-                {visitReasoning[i] && <p className="mt-1 text-xs text-slate-600">{visitReasoning[i]}</p>}
+                {visitReasoning[i] && <p className="mt-1 text-xs text-text">{visitReasoning[i]}</p>}
               </li>
             ))}
           </ol>
@@ -106,23 +106,23 @@ export default async function ExtractionJobPage({ params, searchParams }: {
 
       <Section title={`Promotions found (${found.length})`}>
         {found.length === 0 ? (
-          <p className="text-sm text-slate-400">No promotions were extracted by this job.</p>
+          <p className="text-sm text-faint">No promotions were extracted by this job.</p>
         ) : (
           <div className="space-y-3">
             {found.map((p, i) => (
-              <div key={i} className="rounded border border-slate-200 p-3">
+              <div key={i} className="rounded border border-line p-3">
                 <div className="flex flex-wrap items-center gap-2 text-sm">
                   <span className="font-medium">{truncate(String(p.title || p.description || "Untitled"), 100)}</span>
                   {(p as { conditions?: { code?: string } }).conditions?.code && (
                     <Badge variant="code">{(p as { conditions?: { code?: string } }).conditions!.code}</Badge>
                   )}
                 </div>
-                <p className="mt-1 text-xs text-slate-500">
+                <p className="mt-1 text-xs text-muted">
                   uniqId: <code>{String(p.uniqId ?? "—")}</code>
                   {p.uniqId != null && (
                     <>
                       {" · "}
-                      <Link href={`/promotions?q=${p.uniqId}`} className="text-sky-700 hover:underline">
+                      <Link href={`/promotions?q=${p.uniqId}`} className="text-primary-ink hover:underline">
                         find in promotions →
                       </Link>
                     </>

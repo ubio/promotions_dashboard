@@ -42,7 +42,7 @@ export default async function MerchantStatsPage({ searchParams }: { searchParams
     <div className="space-y-4">
       <div>
         <h1 className="text-xl font-semibold">Merchant stats</h1>
-        <p className="text-sm text-slate-500">
+        <p className="text-sm text-muted">
           Counters from the stats collection, rolled up across every client for each merchant.
         </p>
       </div>
@@ -55,9 +55,9 @@ export default async function MerchantStatsPage({ searchParams }: { searchParams
         showAllPeriod
       />
 
-      <div className="overflow-x-auto rounded-lg border border-slate-200 bg-white">
+      <div className="overflow-x-auto rounded-lg border border-line bg-card">
         <table className="min-w-full text-sm [font-variant-numeric:tabular-nums]">
-          <thead className="bg-slate-50 text-left text-xs uppercase tracking-wide text-slate-500">
+          <thead className="bg-page text-left text-xs uppercase tracking-wide text-muted">
             <CounterTableHead
               leadingDivider
               leading={
@@ -80,7 +80,7 @@ export default async function MerchantStatsPage({ searchParams }: { searchParams
               }
             />
           </thead>
-          <tbody className="divide-y divide-slate-100">
+          <tbody className="divide-y divide-rule">
             {result.items.map((row) => {
               const merchantFlags = flags.get(row.merchantId) ?? {};
               const highlight = merchantHighlight(merchantFlags);
@@ -89,12 +89,12 @@ export default async function MerchantStatsPage({ searchParams }: { searchParams
                 <td className="px-3 py-2">
                   <Link
                     href={periodHref(`/stats/merchants/${encodeURIComponent(row.merchantId)}`, period)}
-                    className="font-mono text-xs text-sky-700 hover:underline"
+                    className="font-mono text-xs text-primary-ink hover:underline"
                   >
                     {row.merchantDomain || row.merchantId}
                   </Link>
                   {row.merchantName && (
-                    <div className="text-xs text-slate-500">{row.merchantName}</div>
+                    <div className="text-xs text-muted">{row.merchantName}</div>
                   )}
                 </td>
                 <td className="whitespace-nowrap px-3 py-2">
@@ -103,19 +103,19 @@ export default async function MerchantStatsPage({ searchParams }: { searchParams
                       aria-hidden
                       className={`inline-block h-2 w-2 rounded-full ${
                         highlight === "bot-detected"
-                          ? "bg-red-500"
+                          ? "bg-bad"
                           : highlight === "onboarded"
-                            ? "bg-green-600"
-                            : "bg-slate-300"
+                            ? "bg-ok"
+                            : "bg-line"
                       }`}
                     />
                     <span
                       className={
                         highlight === "bot-detected"
-                          ? "text-red-700"
+                          ? "text-bad"
                           : highlight === "onboarded"
-                            ? "text-green-700"
-                            : "text-slate-400"
+                            ? "text-ok"
+                            : "text-faint"
                       }
                     >
                       {merchantHighlightLabel(highlight)}
@@ -139,7 +139,7 @@ export default async function MerchantStatsPage({ searchParams }: { searchParams
             })}
             {result.items.length === 0 && (
               <tr>
-                <td colSpan={(opsConfigured ? 4 : 3) + COUNTER_COL_SPAN} className="px-3 py-8 text-center text-slate-400">
+                <td colSpan={(opsConfigured ? 4 : 3) + COUNTER_COL_SPAN} className="px-3 py-8 text-center text-faint">
                   No merchants match these filters.
                 </td>
               </tr>

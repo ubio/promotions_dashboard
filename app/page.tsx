@@ -34,27 +34,27 @@ function Tile({
   return (
     <Link
       href={href}
-      className="rounded-lg border border-slate-200 bg-white px-4 py-3 transition hover:border-slate-300 hover:bg-slate-50"
+      className="rounded-lg border border-line bg-card px-4 py-3 transition hover:border-line hover:bg-page"
     >
-      <p className="flex items-center gap-1.5 text-xs uppercase tracking-wide text-slate-400">
+      <p className="flex items-center gap-1.5 text-xs uppercase tracking-wide text-faint">
         {label}
         {newBadge && (
-          <span className="rounded bg-green-50 px-1 py-px text-[10px] font-medium normal-case tracking-normal text-green-600/60">
+          <span className="rounded bg-ok-bg px-1 py-px text-[10px] font-medium normal-case tracking-normal text-ok/60">
             new
           </span>
         )}
       </p>
-      <p className="mt-1 text-2xl font-semibold text-slate-900">{value}</p>
-      {sub && <p className="text-xs text-slate-500">{sub}</p>}
+      <p className="mt-1 text-2xl font-semibold text-ink">{value}</p>
+      {sub && <p className="text-xs text-muted">{sub}</p>}
     </Link>
   );
 }
 
 function Delta({ current, previous }: { current: number; previous: number }) {
-  if (previous === 0) return <span className="text-slate-400">no prior period</span>;
+  if (previous === 0) return <span className="text-faint">no prior period</span>;
   const pct = ((current - previous) / previous) * 100;
   return (
-    <span className={pct >= 0 ? "text-green-700" : "text-red-600"}>
+    <span className={pct >= 0 ? "text-ok" : "text-bad"}>
       {pct >= 0 ? "▲" : "▼"} {Math.abs(pct).toFixed(0)}% vs previous 30 days
     </span>
   );
@@ -91,7 +91,7 @@ export default async function Overview() {
     <div className="space-y-5">
       <div>
         <h1 className="text-xl font-semibold">Overview</h1>
-        <p className="text-xs text-slate-500">
+        <p className="text-xs text-muted">
           Last 30 days · {from} → {to}
         </p>
       </div>
@@ -157,10 +157,10 @@ export default async function Overview() {
         />
       </div>
 
-      <section className="rounded-lg border border-slate-200 bg-white p-4">
+      <section className="rounded-lg border border-line bg-card p-4">
         <div className="mb-3 flex items-baseline justify-between gap-3">
-          <h2 className="text-sm font-semibold text-slate-700">Validations per day</h2>
-          <Link href={`/reports?${qs}&groupBy=day`} className="text-xs text-sky-700 hover:underline">
+          <h2 className="text-sm font-semibold text-text">Validations per day</h2>
+          <Link href={`/reports?${qs}&groupBy=day`} className="text-xs text-primary-ink hover:underline">
             Break down in Reports →
           </Link>
         </div>
@@ -175,28 +175,28 @@ export default async function Overview() {
       </section>
 
       <div className="grid gap-4 lg:grid-cols-2">
-        <section className="rounded-lg border border-slate-200 bg-white p-4">
+        <section className="rounded-lg border border-line bg-card p-4">
           <div className="mb-3 flex items-baseline justify-between gap-3">
-            <h2 className="text-sm font-semibold text-slate-700">Why runs could not reach a result</h2>
+            <h2 className="text-sm font-semibold text-text">Why runs could not reach a result</h2>
             <Link
               href={`/validations/runs?${reportQueryString({ ...filters, outcomes: ["no_result"] })}`}
-              className="text-xs text-sky-700 hover:underline"
+              className="text-xs text-primary-ink hover:underline"
             >
               See them →
             </Link>
           </div>
           {topReasons.length === 0 ? (
-            <p className="text-sm text-slate-400">Nothing to report.</p>
+            <p className="text-sm text-faint">Nothing to report.</p>
           ) : (
             <ul className="space-y-1.5">
               {topReasons.map((r) => (
                 <li key={r.code}>
                   <Link
                     href={`/validations/runs?${reportQueryString({ ...filters, outcomes: ["no_result"], failCode: r.code })}`}
-                    className="flex items-center justify-between gap-3 rounded px-2 py-1 text-sm hover:bg-slate-50"
+                    className="flex items-center justify-between gap-3 rounded px-2 py-1 text-sm hover:bg-page"
                   >
-                    <span className="font-mono text-xs text-slate-600">{r.code}</span>
-                    <span className="text-slate-500">{formatCount(r.runs)}</span>
+                    <span className="font-mono text-xs text-text">{r.code}</span>
+                    <span className="text-muted">{formatCount(r.runs)}</span>
                   </Link>
                 </li>
               ))}
@@ -204,12 +204,12 @@ export default async function Overview() {
           )}
         </section>
 
-        <section className="rounded-lg border border-slate-200 bg-white p-4">
+        <section className="rounded-lg border border-line bg-card p-4">
           <div className="mb-3 flex items-baseline justify-between gap-3">
-            <h2 className="text-sm font-semibold text-slate-700">
+            <h2 className="text-sm font-semibold text-text">
               Validation runs — {formatCount(t.runs)}
             </h2>
-            <Link href={`/reports?${qs}`} className="text-xs text-sky-700 hover:underline">
+            <Link href={`/reports?${qs}`} className="text-xs text-primary-ink hover:underline">
               Full report →
             </Link>
           </div>
@@ -221,15 +221,15 @@ export default async function Overview() {
         </section>
       </div>
 
-      <section className="rounded-lg border border-slate-200 bg-white p-4">
+      <section className="rounded-lg border border-line bg-card p-4">
         <div className="mb-3 flex items-baseline justify-between gap-3">
-          <h2 className="text-sm font-semibold text-slate-700">By customer</h2>
-          <Link href={`/reports?${qs}`} className="text-xs text-sky-700 hover:underline">
+          <h2 className="text-sm font-semibold text-text">By customer</h2>
+          <Link href={`/reports?${qs}`} className="text-xs text-primary-ink hover:underline">
             Full report →
           </Link>
         </div>
         <table className="min-w-full text-sm [font-variant-numeric:tabular-nums]">
-          <thead className="text-left text-xs uppercase text-slate-500">
+          <thead className="text-left text-xs uppercase text-muted">
             <tr>
               <th className="py-1 pr-4">Customer</th>
               <th className="py-1 pr-4">
@@ -249,26 +249,26 @@ export default async function Overview() {
               </th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-slate-100">
+          <tbody className="divide-y divide-rule">
             {current.rows.map((row) => (
               <tr key={row.key}>
                 <td className="py-1.5 pr-4">
                   <Link
                     href={`/reports?${reportQueryString({ ...filters, clientIds: [row.key], groupBy: "month" })}`}
-                    className="text-sky-700 hover:underline"
+                    className="text-primary-ink hover:underline"
                   >
                     {row.key}
                   </Link>
                 </td>
                 <td className="py-1.5 pr-4">{formatCount(row.runs)}</td>
-                <td className="py-1.5 pr-4 text-green-700">{formatCount(row.resolved)}</td>
+                <td className="py-1.5 pr-4 text-ok">{formatCount(row.resolved)}</td>
                 <td className="py-1.5 pr-4">{formatCount(row.sentBack)}</td>
                 <td className="py-1.5 pr-4">{formatCost(row.cost)}</td>
               </tr>
             ))}
             {current.rows.length === 0 && (
               <tr>
-                <td colSpan={5} className="py-6 text-center text-slate-400">
+                <td colSpan={5} className="py-6 text-center text-faint">
                   No validations in the last 30 days.
                 </td>
               </tr>

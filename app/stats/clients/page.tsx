@@ -36,7 +36,7 @@ export default async function ClientStatsPage({ searchParams }: { searchParams: 
     <div className="space-y-4">
       <div>
         <h1 className="text-xl font-semibold">Client stats</h1>
-        <p className="text-sm text-slate-500">
+        <p className="text-sm text-muted">
           Counters from the stats collection, rolled up across every merchant for each client.
         </p>
       </div>
@@ -50,9 +50,9 @@ export default async function ClientStatsPage({ searchParams }: { searchParams: 
         pendingPromotionOutcomes={pendingPromotionOutcomes}
       />
 
-      <div className="overflow-x-auto rounded-lg border border-slate-200 bg-white">
+      <div className="overflow-x-auto rounded-lg border border-line bg-card">
         <table className="min-w-full text-sm [font-variant-numeric:tabular-nums]">
-          <thead className="bg-slate-50 text-left text-xs uppercase tracking-wide text-slate-500">
+          <thead className="bg-page text-left text-xs uppercase tracking-wide text-muted">
             <CounterTableHead
               leading={
                 <>
@@ -66,18 +66,18 @@ export default async function ClientStatsPage({ searchParams }: { searchParams: 
               }
             />
           </thead>
-          <tbody className="divide-y divide-slate-100">
+          <tbody className="divide-y divide-rule">
             {result.items.map((row) => (
-              <tr key={row.clientId} className="hover:bg-sky-50/50">
+              <tr key={row.clientId} className="hover:bg-tint">
                 <td className="px-3 py-2">
                   <Link
                     href={periodHref(`/stats/clients/${encodeURIComponent(row.clientId)}`, period)}
-                    className="font-medium text-sky-700 hover:underline"
+                    className="font-medium text-primary-ink hover:underline"
                   >
                     {row.clientId}
                   </Link>
                   {names.get(row.clientId) && names.get(row.clientId) !== row.clientId && (
-                    <div className="text-xs text-slate-500">{names.get(row.clientId)}</div>
+                    <div className="text-xs text-muted">{names.get(row.clientId)}</div>
                   )}
                 </td>
                 <td className="px-3 py-2">{row.merchantCount}</td>
@@ -86,7 +86,7 @@ export default async function ClientStatsPage({ searchParams }: { searchParams: 
             ))}
             {result.items.length === 0 && (
               <tr>
-                <td colSpan={2 + COUNTER_COL_SPAN} className="px-3 py-8 text-center text-slate-400">
+                <td colSpan={2 + COUNTER_COL_SPAN} className="px-3 py-8 text-center text-faint">
                   No client stats for this period.
                 </td>
               </tr>

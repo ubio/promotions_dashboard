@@ -21,7 +21,7 @@ export default async function PortalPromotionPage({
   return (
     <div className="space-y-4">
       <div>
-        <Link href="/portal/promotions" className="text-sm text-sky-700 hover:underline">
+        <Link href="/portal/promotions" className="text-sm text-primary-ink hover:underline">
           ← Back to offers
         </Link>
         <div className="mt-1 flex flex-wrap items-center gap-3">
@@ -47,7 +47,7 @@ export default async function PortalPromotionPage({
                 <a
                   href={promotion.sourceUrl}
                   target="_blank"
-                  className="text-sky-700 hover:underline break-all"
+                  className="text-primary-ink hover:underline break-all"
                 >
                   {promotion.sourceUrl}
                 </a>
@@ -96,7 +96,7 @@ export default async function PortalPromotionPage({
                   key="s"
                   href={promotion.screenshot}
                   target="_blank"
-                  className="text-sky-700 hover:underline"
+                  className="text-primary-ink hover:underline"
                 >
                   screenshot
                 </a>

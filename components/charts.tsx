@@ -1,19 +1,20 @@
 import { HelpHint } from "@/components/HelpHint";
 import { OTHER_FAIL_CODES } from "@/lib/fail-codes";
 
-// Server-rendered SVG charts. Colors follow the validated reference palette:
-// status good/critical for success/failed, sequential blue for magnitude.
+// Server-rendered SVG charts, drawn in the shared tokens rather than a palette
+// of their own. Presentation attributes are parsed as CSS, so a custom property
+// resolves in `fill` and `stroke` — the same way the house brand marks are drawn.
 const INK = {
-  secondary: "#52514e",
-  muted: "#898781",
-  grid: "#e1e0d9",
-  baseline: "#c3c2b7",
+  secondary: "var(--oss-text)",
+  muted: "var(--oss-muted)",
+  grid: "var(--oss-rule)",
+  baseline: "var(--oss-line)",
 };
-const GOOD = "#0ca30c";
-const CRITICAL = "#d03b3b";
-const WARNING = "#eda100";
-const NEUTRAL = "#898781";
-const BLUE = "#2a78d6";
+const GOOD = "var(--oss-ok)";
+const CRITICAL = "var(--oss-bad)";
+const WARNING = "var(--oss-warn)";
+const NEUTRAL = "var(--oss-faint)";
+const BLUE = "var(--oss-info)";
 
 export const CHART_COLORS = {
   good: GOOD,
@@ -274,7 +275,7 @@ export function ValidationSplitBar({
   clientFacing: number;
   automationIssues: number;
 }) {
-  if (runs === 0) return <p className="text-sm text-slate-400">No validations in this period.</p>;
+  if (runs === 0) return <p className="text-sm text-faint">No validations in this period.</p>;
   const other = Math.max(0, runs - clientFacing - automationIssues);
   const values: Record<(typeof VALIDATION_SPLIT_SEGMENTS)[number]["key"], number> = {
     "client-facing": clientFacing,
@@ -289,14 +290,14 @@ export function ValidationSplitBar({
   const pct = (n: number) => `${Math.round((n / runs) * 100)}%`;
   return (
     <div>
-      <ul className="mb-2 space-y-1 text-sm text-slate-700">
+      <ul className="mb-2 space-y-1 text-sm text-text">
         {segments.map((segment) => (
           <li key={segment.key} className="flex items-baseline justify-between gap-3">
             <span className="flex items-center gap-1">
               {segment.label}
               <HelpHint hint={segment.hint} />
             </span>
-            <span className="[font-variant-numeric:tabular-nums] text-slate-500">
+            <span className="[font-variant-numeric:tabular-nums] text-muted">
               {segment.value.toLocaleString()} ({pct(segment.value)})
             </span>
           </li>
@@ -330,11 +331,11 @@ export function ValidityBar({
     valid: GOOD,
     invalid: CRITICAL,
     cannot_validate: WARNING,
-    merchant_automation_issues: "#eb6834",
+    merchant_automation_issues: "var(--oss-dot-5)",
     insufficient_validations: NEUTRAL,
   };
   const total = counts.reduce((s, c) => s + c.value, 0);
-  if (total === 0) return <p className="text-sm text-slate-400">No promotions.</p>;
+  if (total === 0) return <p className="text-sm text-faint">No promotions.</p>;
   return (
     <div>
       <Legend
@@ -382,7 +383,7 @@ export function RateLineChart({
       {path && <path d={path} fill="none" stroke={BLUE} strokeWidth={2} strokeLinejoin="round" />}
       {points.map((p) => (
         <g key={p.d.date}>
-          {showDots && <circle cx={p.x} cy={p.y} r={3} fill={BLUE} stroke="#ffffff" strokeWidth={2} />}
+          {showDots && <circle cx={p.x} cy={p.y} r={3} fill={BLUE} stroke="var(--oss-card)" strokeWidth={2} />}
           <circle cx={p.x} cy={p.y} r={8} fill="transparent">
             <title>{`${shortDate(p.d.date)} — ${Math.round((p.d.rate ?? 0) * 100)}% conclusions`}</title>
           </circle>
@@ -440,7 +441,7 @@ export function StackedSeriesChart({
   series: { label: string; color: string }[];
   ariaLabel: string;
 }) {
-  if (data.length === 0) return <p className="text-sm text-slate-400">No daily data in the last 30 days.</p>;
+  if (data.length === 0) return <p className="text-sm text-faint">No daily data in the last 30 days.</p>;
   const total = (values: number[]) => values.reduce((sum, n) => sum + n, 0);
   const max = niceMax(Math.max(...data.map((d) => total(d.values)), 1));
   const slot = PLOT_W / data.length;
@@ -511,7 +512,7 @@ export function CountBarChart({
   ariaLabel: string;
   formatValue?: (v: number) => string;
 }) {
-  if (data.length === 0) return <p className="text-sm text-slate-400">No daily data in the last 30 days.</p>;
+  if (data.length === 0) return <p className="text-sm text-faint">No daily data in the last 30 days.</p>;
   const max = niceMax(Math.max(...data.map((d) => d.value), 1));
   const slot = PLOT_W / data.length;
   const bw = Math.max(2, slot - 2);

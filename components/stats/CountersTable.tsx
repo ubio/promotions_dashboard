@@ -9,8 +9,8 @@ import {
 
 export const counterThClass = "px-3 py-2";
 export const counterGroupThClass =
-  "border-b border-slate-200 px-3 py-2 text-center normal-case tracking-normal";
-export const counterValidationsDividerClass = "border-l border-slate-200";
+  "border-b border-line px-3 py-2 text-center normal-case tracking-normal";
+export const counterValidationsDividerClass = "border-l border-line";
 
 export const PROMOTIONS_COL_SPAN = 6;
 export const VALIDATIONS_COL_SPAN = 5;
@@ -110,12 +110,12 @@ export function CounterCells({
       <PendingCount
         value={formatCount(p.clientFacingCount)}
         pending={pendingPromotionOutcomes}
-        toneClass="text-green-700"
+        toneClass="text-ok"
       />
       <PendingCount
         value={formatCount(p.leftForDebugCount)}
         pending={pendingPromotionOutcomes}
-        toneClass="text-red-600"
+        toneClass="text-bad"
       />
       <td className="px-3 py-2">{formatCount(p.cannotValidateCount)}</td>
       <td className="px-3 py-2">{formatCount(p.merchantAutomationIssuesCount)}</td>
@@ -140,8 +140,8 @@ export function DayCounters({
   const pendingHint = pendingPromotionOutcomes ? PROMOTION_OUTCOMES_PENDING_HINT : undefined;
   return (
     <div className="grid gap-4 lg:grid-cols-2">
-      <div className="rounded-lg border border-slate-200 bg-white p-4">
-        <h2 className="mb-3 text-sm font-semibold text-slate-700">Promotions</h2>
+      <div className="rounded-lg border border-line bg-card p-4">
+        <h2 className="mb-3 text-sm font-semibold text-text">Promotions</h2>
         <KVGrid
           rows={[
             ["Received", formatCount(p.receivedPromotions)],
@@ -172,8 +172,8 @@ export function DayCounters({
           ]}
         />
       </div>
-      <div className="rounded-lg border border-slate-200 bg-white p-4">
-        <h2 className="mb-3 text-sm font-semibold text-slate-700">Validations</h2>
+      <div className="rounded-lg border border-line bg-card p-4">
+        <h2 className="mb-3 text-sm font-semibold text-text">Validations</h2>
         <KVGrid
           rows={[
             ["Total runs", formatCount(v.totalValidationsCount)],
@@ -205,10 +205,10 @@ export function PeriodSummaryTable({
 }) {
   return (
     <section className="space-y-2">
-      <h2 className="text-sm font-semibold text-slate-700">Period summary</h2>
-      <div className="overflow-x-auto rounded-lg border border-slate-200 bg-white">
+      <h2 className="text-sm font-semibold text-text">Period summary</h2>
+      <div className="overflow-x-auto rounded-lg border border-line bg-card">
         <table className="min-w-full text-sm [font-variant-numeric:tabular-nums]">
-          <thead className="bg-slate-50 text-left text-xs uppercase tracking-wide text-slate-500">
+          <thead className="bg-page text-left text-xs uppercase tracking-wide text-muted">
             <CounterTableHead
               leadingDivider
               leading={
@@ -226,7 +226,7 @@ export function PeriodSummaryTable({
           <tbody>
             <tr>
               <td className="whitespace-nowrap px-3 py-2">{label}</td>
-              <td className="px-3 py-2 text-xs text-slate-500">{status ?? "—"}</td>
+              <td className="px-3 py-2 text-xs text-muted">{status ?? "—"}</td>
               <CounterCells
                 stats={stats}
                 leadingDivider
@@ -248,9 +248,9 @@ export function DailyRows({
   dayHref: (date: string) => string;
 }) {
   return (
-    <div className="overflow-x-auto rounded-lg border border-slate-200 bg-white">
+    <div className="overflow-x-auto rounded-lg border border-line bg-card">
       <table className="min-w-full text-sm [font-variant-numeric:tabular-nums]">
-        <thead className="bg-slate-50 text-left text-xs uppercase tracking-wide text-slate-500">
+        <thead className="bg-page text-left text-xs uppercase tracking-wide text-muted">
           <CounterTableHead
             leadingDivider
             leading={
@@ -265,15 +265,15 @@ export function DailyRows({
             }
           />
         </thead>
-        <tbody className="divide-y divide-slate-100">
+        <tbody className="divide-y divide-rule">
           {[...series].reverse().map((row) => (
-            <tr key={row.date} className="hover:bg-sky-50/50">
+            <tr key={row.date} className="hover:bg-tint">
               <td className="whitespace-nowrap px-3 py-2">
-                <Link href={dayHref(row.date)} className="text-sky-700 hover:underline">
+                <Link href={dayHref(row.date)} className="text-primary-ink hover:underline">
                   {formatUtcDay(row.date)}
                 </Link>
               </td>
-              <td className="px-3 py-2 text-xs text-slate-500">
+              <td className="px-3 py-2 text-xs text-muted">
                 {row.finalized ? "finalized" : "open"}
               </td>
               <CounterCells
@@ -295,15 +295,15 @@ export function MonthlyRows({
   series: Array<PeriodStatsCounters & { yearMonth: string }>;
 }) {
   if (series.length === 0) {
-    return <p className="text-sm text-slate-400">No monthly totals yet.</p>;
+    return <p className="text-sm text-faint">No monthly totals yet.</p>;
   }
   return (
-    <div className="overflow-x-auto rounded-lg border border-slate-200 bg-white">
+    <div className="overflow-x-auto rounded-lg border border-line bg-card">
       <table className="min-w-full text-sm [font-variant-numeric:tabular-nums]">
-        <thead className="bg-slate-50 text-left text-xs uppercase tracking-wide text-slate-500">
+        <thead className="bg-page text-left text-xs uppercase tracking-wide text-muted">
           <CounterTableHead leadingDivider leading={<th rowSpan={2} className={counterThClass}>Month</th>} />
         </thead>
-        <tbody className="divide-y divide-slate-100">
+        <tbody className="divide-y divide-rule">
           {[...series].reverse().map((row) => (
             <tr key={row.yearMonth}>
               <td className="whitespace-nowrap px-3 py-2">{formatUtcMonth(row.yearMonth)}</td>

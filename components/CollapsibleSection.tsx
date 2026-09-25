@@ -45,7 +45,7 @@ export function CollapsibleGroup({ children }: { children: React.ReactNode }) {
             type="button"
             disabled={allClosed}
             onClick={() => setAll(false)}
-            className="text-sm text-slate-500 hover:text-slate-700 disabled:text-slate-300 disabled:hover:text-slate-300"
+            className="text-sm text-muted hover:text-text disabled:text-faint disabled:hover:text-faint"
           >
             Close all
           </button>
@@ -53,7 +53,7 @@ export function CollapsibleGroup({ children }: { children: React.ReactNode }) {
             type="button"
             disabled={allOpen}
             onClick={() => setAll(true)}
-            className="text-sm text-slate-500 hover:text-slate-700 disabled:text-slate-300 disabled:hover:text-slate-300"
+            className="text-sm text-muted hover:text-text disabled:text-faint disabled:hover:text-faint"
           >
             Open all
           </button>
@@ -92,13 +92,13 @@ export function CollapsibleSection({
     <details
       open={open}
       onToggle={handleToggle}
-      className="rounded-lg border border-slate-200 bg-white"
+      className="rounded-lg border border-line bg-card"
     >
-      <summary className="flex cursor-pointer list-none select-none items-center justify-between gap-3 px-4 py-2.5 hover:bg-slate-50 [&::-webkit-details-marker]:hidden">
-        <h2 className="text-sm font-semibold text-slate-700">{title}</h2>
-        <span className="text-xs font-medium text-slate-400">{open ? "Hide" : "Show"}</span>
+      <summary className="flex cursor-pointer list-none select-none items-center justify-between gap-3 px-4 py-2.5 hover:bg-page [&::-webkit-details-marker]:hidden">
+        <h2 className="text-sm font-semibold text-text">{title}</h2>
+        <span className="text-xs font-medium text-faint">{open ? "Hide" : "Show"}</span>
       </summary>
-      {open && <div className="border-t border-slate-200 p-4">{children}</div>}
+      {open && <div className="border-t border-line p-4">{children}</div>}
     </details>
   );
 }

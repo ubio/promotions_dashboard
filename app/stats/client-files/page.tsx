@@ -42,27 +42,27 @@ export default async function ClientFilesStatsPage({
     <div className="space-y-4">
       <div>
         <h1 className="text-xl font-semibold">Client files</h1>
-        <p className="text-sm text-slate-500">
+        <p className="text-sm text-muted">
           Audit log of CSV imports from S3 and promotions exports to the client bucket.
         </p>
       </div>
 
-      <form className="flex flex-wrap items-end gap-3 rounded-lg border border-slate-200 bg-white p-3 text-sm">
+      <form className="flex flex-wrap items-end gap-3 rounded-lg border border-line bg-card p-3 text-sm">
         <label className="flex max-w-full flex-col gap-1">
-          <span className="text-xs text-slate-500">Created date (UTC)</span>
+          <span className="text-xs text-muted">Created date (UTC)</span>
           <input
             name="date"
             type="date"
             defaultValue={date ?? ""}
-            className="rounded border border-slate-300 px-2 py-1.5"
+            className="rounded border border-line px-2 py-1.5"
           />
         </label>
         <label className="flex max-w-full flex-col gap-1">
-          <span className="text-xs text-slate-500">Client</span>
+          <span className="text-xs text-muted">Client</span>
           <select
             name="clientId"
             defaultValue={clientId ?? ""}
-            className="max-w-full rounded border border-slate-300 px-2 py-1.5"
+            className="max-w-full rounded border border-line px-2 py-1.5"
           >
             <option value="">All</option>
             {clientIds.map((c) => (
@@ -71,11 +71,11 @@ export default async function ClientFilesStatsPage({
           </select>
         </label>
         <label className="flex max-w-full flex-col gap-1">
-          <span className="text-xs text-slate-500">Event type</span>
+          <span className="text-xs text-muted">Event type</span>
           <select
             name="eventType"
             defaultValue={eventType ?? ""}
-            className="max-w-full rounded border border-slate-300 px-2 py-1.5"
+            className="max-w-full rounded border border-line px-2 py-1.5"
           >
             <option value="">All</option>
             {CLIENT_CSV_EVENT_TYPES.map((type) => (
@@ -85,24 +85,24 @@ export default async function ClientFilesStatsPage({
             ))}
           </select>
         </label>
-        <button className="rounded bg-slate-900 px-4 py-1.5 text-white hover:bg-slate-700">Apply</button>
-        <Link href="/stats/client-files" className="py-1.5 text-slate-500 hover:text-slate-700">
+        <button className="rounded bg-primary px-4 py-1.5 text-card hover:bg-primary-ink">Apply</button>
+        <Link href="/stats/client-files" className="py-1.5 text-muted hover:text-text">
           Reset
         </Link>
         <label className="ml-auto flex max-w-full flex-col gap-1">
-          <span className="text-xs text-slate-500">Search (CSV name, bundle id)</span>
+          <span className="text-xs text-muted">Search (CSV name, bundle id)</span>
           <input
             name="q"
             defaultValue={q ?? ""}
-            className="w-64 max-w-full rounded border border-slate-300 px-2 py-1.5"
+            className="w-64 max-w-full rounded border border-line px-2 py-1.5"
             placeholder="e.g. promotions-sku"
           />
         </label>
       </form>
 
-      <div className="overflow-x-auto rounded-lg border border-slate-200 bg-white">
+      <div className="overflow-x-auto rounded-lg border border-line bg-card">
         <table className="min-w-full text-sm">
-          <thead className="bg-slate-50 text-left text-xs uppercase tracking-wide text-slate-500">
+          <thead className="bg-page text-left text-xs uppercase tracking-wide text-muted">
             <tr>
               <th className="px-3 py-2">Created</th>
               <th className="px-3 py-2">Type</th>
@@ -115,12 +115,12 @@ export default async function ClientFilesStatsPage({
               <th className="px-3 py-2">Turnaround</th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-slate-100">
+          <tbody className="divide-y divide-rule">
             {result.items.map((event) => (
-              <tr key={String(event._id)} className="hover:bg-sky-50/50">
-                <td className="whitespace-nowrap px-3 py-2 text-slate-600">
+              <tr key={String(event._id)} className="hover:bg-tint">
+                <td className="whitespace-nowrap px-3 py-2 text-text">
                   <div>{formatDate(event.createdAt)}</div>
-                  <div className="text-xs text-slate-400">{formatUtcDay(event.createdAtDate)}</div>
+                  <div className="text-xs text-faint">{formatUtcDay(event.createdAtDate)}</div>
                 </td>
                 <td className="px-3 py-2">
                   <Badge variant={event.eventType === "client-record-import" ? "conclusion" : "success"}>
@@ -130,7 +130,7 @@ export default async function ClientFilesStatsPage({
                 <td className="px-3 py-2">{event.clientId}</td>
                 <td className="px-3 py-2 font-mono text-xs">{event.csvName}</td>
                 <td className="px-3 py-2 font-mono text-xs">{truncate(event.bundleId, 24)}</td>
-                <td className="whitespace-nowrap px-3 py-2 text-slate-600">
+                <td className="whitespace-nowrap px-3 py-2 text-text">
                   {formatUtcDay(event.bundleDate)}
                 </td>
                 <td className="px-3 py-2">
@@ -144,7 +144,7 @@ export default async function ClientFilesStatsPage({
             ))}
             {result.items.length === 0 && (
               <tr>
-                <td colSpan={9} className="px-3 py-8 text-center text-slate-400">
+                <td colSpan={9} className="px-3 py-8 text-center text-faint">
                   No CSV events match these filters.
                 </td>
               </tr>

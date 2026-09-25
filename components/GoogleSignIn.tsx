@@ -67,7 +67,7 @@ export default function GoogleSignIn({ clientId, next }: { clientId: string; nex
   return (
     <div className="flex flex-col items-center gap-3">
       <div ref={buttonRef} />
-      {error && <p className="text-sm text-red-600">{error}</p>}
+      {error && <p className="text-sm text-bad">{error}</p>}
     </div>
   );
 }

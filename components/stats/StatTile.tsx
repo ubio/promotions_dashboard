@@ -17,15 +17,15 @@ export function StatTile({
 }) {
   return (
     <div
-      className={`h-full rounded-lg border border-slate-200 px-4 py-3 ${
-        pending ? "pending-promotion-outcome" : "bg-white"
+      className={`h-full rounded-lg border border-line px-4 py-3 ${
+        pending ? "pending-promotion-outcome" : "bg-card"
       }`}
       data-hint={pending ? PROMOTION_OUTCOMES_PENDING_HINT : undefined}
       tabIndex={pending ? 0 : undefined}
     >
-      <p className="text-xs uppercase tracking-wide text-slate-400">{label}</p>
-      <p className="mt-1 text-2xl font-semibold text-slate-900">{value}</p>
-      {sub && <p className="text-xs text-slate-500">{sub}</p>}
+      <p className="text-xs uppercase tracking-wide text-faint">{label}</p>
+      <p className="mt-1 text-2xl font-semibold text-ink">{value}</p>
+      {sub && <p className="text-xs text-muted">{sub}</p>}
     </div>
   );
 }

@@ -24,19 +24,19 @@ export default async function SecretOpsPage() {
     <div data-full-width className="space-y-4">
       <div>
         <h1 className="text-xl font-semibold">Ops</h1>
-        <p className="text-sm text-slate-500">
+        <p className="text-sm text-muted">
           On-demand operations for the promotions pipeline. This page is not linked anywhere — bookmark the URL if you
           need it again.
         </p>
       </div>
 
       {!isOpsConfigured() ? (
-        <div className="rounded-lg border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900">
+        <div className="rounded-lg border border-warn-line bg-warn-bg p-4 text-sm text-warn">
           <p className="font-medium">Ops is not fully configured.</p>
           <p className="mt-1">
-            Set <code className="rounded bg-amber-100 px-1">PROMOTIONS_SERVICE_URL</code> and{" "}
-            <code className="rounded bg-amber-100 px-1">OPS_SECRET</code> in the environment (same{" "}
-            <code className="rounded bg-amber-100 px-1">OPS_SECRET</code> as on promotions-service).
+            Set <code className="rounded bg-warn-bg px-1">PROMOTIONS_SERVICE_URL</code> and{" "}
+            <code className="rounded bg-warn-bg px-1">OPS_SECRET</code> in the environment (same{" "}
+            <code className="rounded bg-warn-bg px-1">OPS_SECRET</code> as on promotions-service).
           </p>
         </div>
       ) : (

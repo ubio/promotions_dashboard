@@ -44,7 +44,7 @@ export function merchantHighlight(merchant: {
 export function merchantHighlightClass(highlight: MerchantHighlight | undefined): string {
   if (highlight === "bot-detected") return "bg-[#fff4f4] hover:bg-[#ffecec]";
   if (highlight === "onboarded") return "bg-[#f3faf4] hover:bg-[#eaf6ec]";
-  return "hover:bg-sky-50/50";
+  return "hover:bg-tint";
 }
 
 export function merchantHighlightLabel(highlight: MerchantHighlight | undefined): string {

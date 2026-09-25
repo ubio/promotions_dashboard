@@ -42,7 +42,7 @@ export function HelpHint({
       <button
         type="button"
         ref={triggerRef}
-        className="inline-flex h-3.5 w-3.5 shrink-0 cursor-help items-center justify-center rounded-full border border-slate-300 bg-white text-[10px] leading-none normal-case text-slate-400"
+        className="inline-flex h-3.5 w-3.5 shrink-0 cursor-help items-center justify-center rounded-full border border-line bg-card text-[10px] leading-none normal-case text-faint"
         aria-label={hint}
         aria-describedby={tooltip ? tipId : undefined}
         onMouseEnter={show}
@@ -57,7 +57,7 @@ export function HelpHint({
           <span
             id={tipId}
             role="tooltip"
-            className="help-hint-tooltip pointer-events-none fixed z-[9999] max-w-[16rem] rounded-md border border-[#696969] bg-[#fafafa] px-2 py-1.5 text-xs font-medium leading-snug text-black shadow-[0_2px_8px_rgb(15_23_42_/_0.1)]"
+            className="help-hint-tooltip pointer-events-none fixed z-[9999] max-w-[16rem] rounded-md border border-line bg-card px-2 py-1.5 text-xs font-medium leading-snug text-ink shadow-[0_2px_8px_var(--oss-shadow)]"
             style={{
               top: tooltip.top,
               left: tooltip.left,

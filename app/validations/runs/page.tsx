@@ -81,19 +81,19 @@ export default async function RunsPage({ searchParams }: { searchParams: Promise
     <div data-full-width className="space-y-4">
       <div className="flex flex-wrap items-baseline justify-between gap-3">
         <div>
-          <Link href={`/reports?${backQs}`} className="text-sm text-sky-700 hover:underline">
+          <Link href={`/reports?${backQs}`} className="text-sm text-primary-ink hover:underline">
             ← Back to report
           </Link>
           <h1 className="mt-1 text-xl font-semibold">
             {formatCount(total)} validation{total === 1 ? "" : "s"}
           </h1>
-          <p className="text-xs text-slate-500">
+          <p className="text-xs text-muted">
             {context} · {filters.from} → {filters.to}
           </p>
         </div>
         <a
           href={`/api/reports/validations?${qs}`}
-          className="rounded border border-slate-300 bg-white px-3 py-1.5 text-sm hover:bg-slate-100"
+          className="rounded border border-line bg-card px-3 py-1.5 text-sm hover:bg-rule"
         >
           ↓ Download these (CSV)
         </a>
@@ -112,13 +112,13 @@ export default async function RunsPage({ searchParams }: { searchParams: Promise
       />
 
       {failCodes.length > 0 && (
-        <div className="rounded-lg border border-slate-200 bg-white p-3">
-          <p className="mb-2 text-xs uppercase tracking-wide text-slate-400">Fail codes</p>
+        <div className="rounded-lg border border-line bg-card p-3">
+          <p className="mb-2 text-xs uppercase tracking-wide text-faint">Fail codes</p>
           <div className="flex flex-wrap gap-1.5">
             {filters.failCode && (
               <Link
                 href={failCodeHref()}
-                className="rounded-full bg-slate-900 px-2 py-0.5 text-xs font-medium text-white"
+                className="rounded-full bg-primary px-2 py-0.5 text-xs font-medium text-card"
               >
                 {filters.failCode} ✕
               </Link>
@@ -128,18 +128,18 @@ export default async function RunsPage({ searchParams }: { searchParams: Promise
                 <Link
                   key={f.code}
                   href={failCodeHref(f.code)}
-                  className="rounded-full bg-slate-100 px-2 py-0.5 font-mono text-xs text-slate-600 hover:bg-slate-200"
+                  className="rounded-full bg-rule px-2 py-0.5 font-mono text-xs text-text hover:bg-line"
                 >
-                  {f.code} <span className="text-slate-400">{f.runs}</span>
+                  {f.code} <span className="text-faint">{f.runs}</span>
                 </Link>
               ))}
           </div>
         </div>
       )}
 
-      <div className="overflow-x-auto rounded-lg border border-slate-200 bg-white">
+      <div className="overflow-x-auto rounded-lg border border-line bg-card">
         <table className="min-w-full text-sm">
-          <thead className="bg-slate-50 text-left text-xs uppercase tracking-wide text-slate-500">
+          <thead className="bg-page text-left text-xs uppercase tracking-wide text-muted">
             <tr>
               <th className="px-3 py-2">When</th>
               <th className="px-3 py-2">Customer</th>
@@ -153,16 +153,16 @@ export default async function RunsPage({ searchParams }: { searchParams: Promise
               <th className="px-3 py-2">Evidence</th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-slate-100">
+          <tbody className="divide-y divide-rule">
             {items.map((r) => {
               const id = r._id ?? "";
               const outcome = outcomeOf(r);
               return (
-                <tr key={id} className="hover:bg-sky-50/50">
+                <tr key={id} className="hover:bg-tint">
                   <td className="whitespace-nowrap px-3 py-2">
                     <Link
                       href={`/jobs/validation/${id}?back=${encodeURIComponent(runsHref())}`}
-                      className="text-sky-700 hover:underline"
+                      className="text-primary-ink hover:underline"
                     >
                       {formatDate(r.createdAt)}
                     </Link>
@@ -190,15 +190,15 @@ export default async function RunsPage({ searchParams }: { searchParams: Promise
                       {(r.failCodes ?? []).length === 0 && "—"}
                     </div>
                   </td>
-                  <td className="whitespace-nowrap px-3 py-2 text-slate-600">
+                  <td className="whitespace-nowrap px-3 py-2 text-text">
                     {formatCost(sumLlmCosts(r.llmCosts))}
                   </td>
-                  <td className="min-w-80 max-w-lg px-3 py-2 text-xs text-slate-600">
+                  <td className="min-w-80 max-w-lg px-3 py-2 text-xs text-text">
                     {truncate(r.reasoning, 200) || "—"}
                   </td>
                   <td className="whitespace-nowrap px-3 py-2 text-xs">
                     {r.screenshot ? (
-                      <a href={r.screenshot} target="_blank" className="text-sky-700 hover:underline">
+                      <a href={r.screenshot} target="_blank" className="text-primary-ink hover:underline">
                         screenshot
                       </a>
                     ) : (
@@ -210,7 +210,7 @@ export default async function RunsPage({ searchParams }: { searchParams: Promise
             })}
             {items.length === 0 && (
               <tr>
-                <td colSpan={10} className="px-3 py-8 text-center text-slate-400">
+                <td colSpan={10} className="px-3 py-8 text-center text-faint">
                   No validations match this selection.
                 </td>
               </tr>
@@ -220,7 +220,7 @@ export default async function RunsPage({ searchParams }: { searchParams: Promise
       </div>
 
       {pages > 1 && (
-        <div className="flex items-center justify-between py-1 text-sm text-slate-600">
+        <div className="flex items-center justify-between py-1 text-sm text-text">
           <span>
             Page {current} of {pages} · {formatCount(total)} runs
           </span>
@@ -228,7 +228,7 @@ export default async function RunsPage({ searchParams }: { searchParams: Promise
             {current > 1 && (
               <Link
                 href={runsHref(`&page=${current - 1}`)}
-                className="rounded border border-slate-300 bg-white px-3 py-1 hover:bg-slate-100"
+                className="rounded border border-line bg-card px-3 py-1 hover:bg-rule"
               >
                 Previous
               </Link>
@@ -236,7 +236,7 @@ export default async function RunsPage({ searchParams }: { searchParams: Promise
             {current < pages && (
               <Link
                 href={runsHref(`&page=${current + 1}`)}
-                className="rounded border border-slate-300 bg-white px-3 py-1 hover:bg-slate-100"
+                className="rounded border border-line bg-card px-3 py-1 hover:bg-rule"
               >
                 Next
               </Link>
@@ -244,7 +244,7 @@ export default async function RunsPage({ searchParams }: { searchParams: Promise
           </span>
         </div>
       )}
-      {total > RUNS_PAGE_SIZE * pages && <p className="text-xs text-slate-400">Showing first results.</p>}
+      {total > RUNS_PAGE_SIZE * pages && <p className="text-xs text-faint">Showing first results.</p>}
     </div>
   );
 }

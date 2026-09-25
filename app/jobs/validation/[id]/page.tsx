@@ -41,12 +41,12 @@ export default async function ValidationJobPage({ params, searchParams }: {
   return (
     <div className="space-y-4">
       <div>
-        <Link href={back.href} className="text-sm text-sky-700 hover:underline">
+        <Link href={back.href} className="text-sm text-primary-ink hover:underline">
           ← Back to {back.label}
         </Link>
         <div className="mt-1 flex flex-wrap items-center gap-3">
           <h1 className="text-xl font-semibold">Validation</h1>
-          <code className="rounded bg-slate-200 px-2 py-0.5 text-xs">{String(job._id)}</code>
+          <code className="rounded bg-line px-2 py-0.5 text-xs">{String(job._id)}</code>
           <Badge variant={job.success ? "success" : "fail"}>{job.success ? "success" : "failed"}</Badge>
           <Badge variant={job.reportType}>{job.reportType}</Badge>
         </div>
@@ -63,7 +63,7 @@ export default async function ValidationJobPage({ params, searchParams }: {
             [
               "Source URL",
               job.sourceUrl ? (
-                <a href={job.sourceUrl} target="_blank" className="text-sky-700 hover:underline break-all">
+                <a href={job.sourceUrl} target="_blank" className="text-primary-ink hover:underline break-all">
                   {job.sourceUrl}
                 </a>
               ) : (
@@ -90,9 +90,9 @@ export default async function ValidationJobPage({ params, searchParams }: {
                 {c}
               </Badge>
             ))}
-            {(job.failCodes ?? []).length === 0 && <span className="text-sm text-slate-400">No fail codes</span>}
+            {(job.failCodes ?? []).length === 0 && <span className="text-sm text-faint">No fail codes</span>}
           </div>
-          <p className="whitespace-pre-wrap text-sm text-slate-700">{job.reasoning || "No reasoning recorded."}</p>
+          <p className="whitespace-pre-wrap text-sm text-text">{job.reasoning || "No reasoning recorded."}</p>
         </div>
       </Section>
 
@@ -106,7 +106,7 @@ export default async function ValidationJobPage({ params, searchParams }: {
               ["Validity status", promotion.validityStatus],
             ]}
           />
-          <Link href={`/promotions/${promotion._id}`} className="mt-3 inline-block text-sm text-sky-700 hover:underline">
+          <Link href={`/promotions/${promotion._id}`} className="mt-3 inline-block text-sm text-primary-ink hover:underline">
             View full promotion →
           </Link>
         </Section>
@@ -116,36 +116,36 @@ export default async function ValidationJobPage({ params, searchParams }: {
         <div className="space-y-3">
           {job.screenshot ? (
             <div>
-              <a href={job.screenshot} target="_blank" className="text-sm text-sky-700 hover:underline">
+              <a href={job.screenshot} target="_blank" className="text-sm text-primary-ink hover:underline">
                 Open screenshot in new tab ↗
               </a>
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img
                 src={job.screenshot}
                 alt="Validation screenshot"
-                className="mt-2 max-h-[600px] rounded border border-slate-200"
+                className="mt-2 max-h-[600px] rounded border border-line"
               />
             </div>
           ) : (
-            <p className="text-sm text-slate-400">No screenshot.</p>
+            <p className="text-sm text-faint">No screenshot.</p>
           )}
           {job.video ? (
-            <a href={job.video} target="_blank" className="block text-sm text-sky-700 hover:underline">
+            <a href={job.video} target="_blank" className="block text-sm text-primary-ink hover:underline">
               Open video recording ↗
             </a>
           ) : (
-            <p className="text-sm text-slate-400">No video.</p>
+            <p className="text-sm text-faint">No video.</p>
           )}
         </div>
       </Section>
 
       <Section title={`LLM costs${totalLlmCost ? ` — $${totalLlmCost.toFixed(4)} total` : ""}`}>
         {llmCosts.length === 0 ? (
-          <p className="text-sm text-slate-400">No LLM cost records.</p>
+          <p className="text-sm text-faint">No LLM cost records.</p>
         ) : (
           <div className="overflow-x-auto">
             <table className="min-w-full text-sm">
-              <thead className="text-left text-xs uppercase text-slate-500">
+              <thead className="text-left text-xs uppercase text-muted">
                 <tr>
                   <th className="py-1 pr-4">Model</th>
                   <th className="py-1 pr-4">Input</th>
@@ -155,7 +155,7 @@ export default async function ValidationJobPage({ params, searchParams }: {
                   <th className="py-1 pr-4">Total</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-slate-100">
+              <tbody className="divide-y divide-rule">
                 {llmCosts.map((c, i) => (
                   <tr key={i}>
                     <td className="py-1 pr-4 font-mono text-xs">{String(c.model ?? "?")}</td>

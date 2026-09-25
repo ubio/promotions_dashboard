@@ -37,12 +37,12 @@ const GROUPS: { value: GroupBy; label: string }[] = (
 
 function Delta({ current, previous }: { current: number; previous: number }) {
   if (previous === 0) {
-    return <span className="text-slate-400">{current === 0 ? "no change" : "new"}</span>;
+    return <span className="text-faint">{current === 0 ? "no change" : "new"}</span>;
   }
   const pct = ((current - previous) / previous) * 100;
   const up = pct >= 0;
   return (
-    <span className={up ? "text-green-700" : "text-red-600"}>
+    <span className={up ? "text-ok" : "text-bad"}>
       {up ? "▲" : "▼"} {Math.abs(pct).toFixed(0)}% vs prev
     </span>
   );
@@ -58,10 +58,10 @@ function Tile({
   sub?: React.ReactNode;
 }) {
   return (
-    <div className="rounded-lg border border-slate-200 bg-white px-4 py-3">
-      <p className="text-xs uppercase tracking-wide text-slate-400">{label}</p>
-      <p className="mt-1 text-2xl font-semibold text-slate-900">{value}</p>
-      {sub && <p className="text-xs text-slate-500">{sub}</p>}
+    <div className="rounded-lg border border-line bg-card px-4 py-3">
+      <p className="text-xs uppercase tracking-wide text-faint">{label}</p>
+      <p className="mt-1 text-2xl font-semibold text-ink">{value}</p>
+      {sub && <p className="text-xs text-muted">{sub}</p>}
     </div>
   );
 }
@@ -76,7 +76,7 @@ function DrillCell({
   value: number;
   className?: string;
 }) {
-  if (value === 0) return <td className={`px-3 py-2 text-slate-300 ${className}`}>0</td>;
+  if (value === 0) return <td className={`px-3 py-2 text-faint ${className}`}>0</td>;
   return (
     <td className={`px-3 py-2 ${className}`}>
       <Link href={href} className="hover:underline">
@@ -163,13 +163,13 @@ export default async function ReportsPage({ searchParams }: { searchParams: Prom
         <div className="flex flex-wrap gap-2 text-sm">
           <a
             href={`/api/reports/summary?${qs}`}
-            className="rounded border border-slate-300 bg-white px-3 py-1.5 hover:bg-slate-100"
+            className="rounded border border-line bg-card px-3 py-1.5 hover:bg-rule"
           >
             ↓ Download report (CSV)
           </a>
           <a
             href={`/api/reports/validations?${qs}`}
-            className="rounded border border-slate-300 bg-white px-3 py-1.5 hover:bg-slate-100"
+            className="rounded border border-line bg-card px-3 py-1.5 hover:bg-rule"
           >
             ↓ Download validations (CSV)
           </a>
@@ -187,7 +187,7 @@ export default async function ReportsPage({ searchParams }: { searchParams: Prom
         selectedDomains={filters.domains ?? []}
       />
 
-      <p className="text-xs text-slate-500">
+      <p className="text-xs text-muted">
         {filters.from} → {filters.to} ({span} day{span === 1 ? "" : "s"}) · compared with{" "}
         {prev.from} → {prev.to}
       </p>
@@ -229,8 +229,8 @@ export default async function ReportsPage({ searchParams }: { searchParams: Prom
       </div>
 
       {t.runs > 0 && (
-        <div className="rounded-lg border border-slate-200 bg-white p-3">
-          <p className="mb-2 text-xs uppercase tracking-wide text-slate-400">
+        <div className="rounded-lg border border-line bg-card p-3">
+          <p className="mb-2 text-xs uppercase tracking-wide text-faint">
             Validation runs — {formatCount(t.runs)}
           </p>
           <ValidationSplitBar
@@ -242,16 +242,16 @@ export default async function ReportsPage({ searchParams }: { searchParams: Prom
       )}
 
       <div className="flex flex-wrap items-center gap-2">
-        <span className="text-xs text-slate-500">Break down by</span>
-        <div className="flex rounded-lg border border-slate-300 bg-white p-0.5 text-sm w-fit">
+        <span className="text-xs text-muted">Break down by</span>
+        <div className="flex rounded-lg border border-line bg-card p-0.5 text-sm w-fit">
           {GROUPS.map((g) => (
             <Link
               key={g.value}
               href={`/reports?${reportQueryString({ ...filters, groupBy: g.value })}`}
               className={`rounded-md px-3 py-1 ${
                 filters.groupBy === g.value
-                  ? "bg-slate-900 text-white"
-                  : "text-slate-600 hover:bg-slate-100"
+                  ? "bg-primary text-card"
+                  : "text-text hover:bg-rule"
               }`}
             >
               {g.label}
@@ -260,9 +260,9 @@ export default async function ReportsPage({ searchParams }: { searchParams: Prom
         </div>
       </div>
 
-      <div className="overflow-x-auto rounded-lg border border-slate-200 bg-white">
+      <div className="overflow-x-auto rounded-lg border border-line bg-card">
         <table className="min-w-full text-sm [font-variant-numeric:tabular-nums]">
-          <thead className="bg-slate-50 text-left text-xs uppercase tracking-wide text-slate-500">
+          <thead className="bg-page text-left text-xs uppercase tracking-wide text-muted">
             <tr>
               <th className="px-3 py-2">
                 {GROUPS.find((g) => g.value === filters.groupBy)?.label}
@@ -297,14 +297,14 @@ export default async function ReportsPage({ searchParams }: { searchParams: Prom
               {showRevenue && <th className="px-3 py-2">Revenue</th>}
             </tr>
           </thead>
-          <tbody className="divide-y divide-slate-100">
+          <tbody className="divide-y divide-rule">
             {rows.map((row) => {
               const href = rowHref(row, filters);
               return (
-              <tr key={row.key} className="hover:bg-sky-50/50">
+              <tr key={row.key} className="hover:bg-tint">
                 <td className="whitespace-nowrap px-3 py-2 font-medium">
                   {href ? (
-                    <Link href={href} className="text-sky-700 hover:underline">
+                    <Link href={href} className="text-primary-ink hover:underline">
                       {rowLabel(row, filters.groupBy, names)}
                     </Link>
                   ) : (
@@ -318,10 +318,10 @@ export default async function ReportsPage({ searchParams }: { searchParams: Prom
                       m?.receivedAt && m?.deliveredAt ? m.deliveredAt - m.receivedAt : null;
                     return (
                       <>
-                        <td className="whitespace-nowrap px-3 py-2 text-slate-600">
+                        <td className="whitespace-nowrap px-3 py-2 text-text">
                           {m?.receivedAt ? formatDate(m.receivedAt) : "—"}
                         </td>
-                        <td className="whitespace-nowrap px-3 py-2 text-slate-600">
+                        <td className="whitespace-nowrap px-3 py-2 text-text">
                           {m?.deliveredAt ? formatDate(m.deliveredAt) : "—"}
                         </td>
                         <td className="whitespace-nowrap px-3 py-2 font-medium">
@@ -335,15 +335,15 @@ export default async function ReportsPage({ searchParams }: { searchParams: Prom
                 <DrillCell
                   href={drill(row.key, "no_result")}
                   value={row.noResult}
-                  className="text-amber-700"
+                  className="text-warn"
                 />
-                <td className="px-3 py-2 text-green-700">{formatCount(row.clientFacing)}</td>
-                <td className="px-3 py-2 text-orange-700">{formatCount(row.automationIssues)}</td>
-                <td className="px-3 py-2 text-slate-600">{formatCount(row.other)}</td>
+                <td className="px-3 py-2 text-ok">{formatCount(row.clientFacing)}</td>
+                <td className="px-3 py-2 text-warn">{formatCount(row.automationIssues)}</td>
+                <td className="px-3 py-2 text-text">{formatCount(row.other)}</td>
                 <td className="whitespace-nowrap px-3 py-2">
                   {row.timedRuns === 0 ? "—" : `${(row.avgTimeMs / 1000).toFixed(1)}s`}
                   {row.timedRuns > 0 && row.timedRuns < row.runs && (
-                    <span className="ml-1 text-xs text-slate-400">({row.timedRuns})</span>
+                    <span className="ml-1 text-xs text-faint">({row.timedRuns})</span>
                   )}
                 </td>
                 <td className="whitespace-nowrap px-3 py-2">{formatCost(row.cost)}</td>
@@ -359,7 +359,7 @@ export default async function ReportsPage({ searchParams }: { searchParams: Prom
               <tr>
                 <td
                   colSpan={(showRevenue ? 10 : 9) + (isBatch ? 3 : 0)}
-                  className="px-3 py-8 text-center text-slate-400"
+                  className="px-3 py-8 text-center text-faint"
                 >
                   No validations in this range.
                 </td>
@@ -367,7 +367,7 @@ export default async function ReportsPage({ searchParams }: { searchParams: Prom
             )}
           </tbody>
           {rows.length > 0 && (
-            <tfoot className="border-t-2 border-slate-200 bg-slate-50 font-medium">
+            <tfoot className="border-t-2 border-line bg-page font-medium">
               <tr>
                 <td className="px-3 py-2">Total</td>
                 {isBatch && <td colSpan={3} className="px-3 py-2" />}
@@ -402,7 +402,7 @@ export default async function ReportsPage({ searchParams }: { searchParams: Prom
         />
       )}
 
-      <p className="text-xs text-slate-400">
+      <p className="text-xs text-faint">
         Click any count to see the individual validations behind it, with reasons and
         screenshots. Counts are validation runs from the job logs; “Client-facing” is a
         conclusion the client can act on (the promotion worked, or it failed with a

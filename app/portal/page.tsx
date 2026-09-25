@@ -20,14 +20,14 @@ function Tile({
 }) {
   const inner = (
     <>
-      <p className="text-xs uppercase tracking-wide text-slate-400">{label}</p>
-      <p className="mt-1 text-2xl font-semibold text-slate-900">{value}</p>
-      {sub && <p className="text-xs text-slate-500">{sub}</p>}
+      <p className="text-xs uppercase tracking-wide text-faint">{label}</p>
+      <p className="mt-1 text-2xl font-semibold text-ink">{value}</p>
+      {sub && <p className="text-xs text-muted">{sub}</p>}
     </>
   );
   const className =
-    "rounded-lg border border-slate-200 bg-white px-4 py-3" +
-    (href ? " transition hover:border-slate-300 hover:bg-slate-50" : "");
+    "rounded-lg border border-line bg-card px-4 py-3" +
+    (href ? " transition hover:border-line hover:bg-page" : "");
   return href ? (
     <Link href={href} className={className}>
       {inner}
@@ -60,15 +60,15 @@ export default async function PortalOverview({
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
           <h1 className="text-xl font-semibold">Your promotions</h1>
-          <p className="text-xs text-slate-500">Verification results for the last {days} days</p>
+          <p className="text-xs text-muted">Verification results for the last {days} days</p>
         </div>
-        <div className="flex rounded-lg border border-slate-300 bg-white p-0.5 text-sm">
+        <div className="flex rounded-lg border border-line bg-card p-0.5 text-sm">
           {RANGES.map((r) => (
             <Link
               key={r}
               href={`/portal?days=${r}`}
               className={`rounded-md px-3 py-1 ${
-                days === r ? "bg-slate-900 text-white" : "text-slate-600 hover:bg-slate-100"
+                days === r ? "bg-primary text-card" : "text-text hover:bg-rule"
               }`}
             >
               {r}d
@@ -98,18 +98,18 @@ export default async function PortalOverview({
         />
       </div>
 
-      <section className="rounded-lg border border-slate-200 bg-white p-4">
+      <section className="rounded-lg border border-line bg-card p-4">
         <div className="mb-3 flex items-baseline justify-between gap-3">
-          <h2 className="text-sm font-semibold text-slate-700">Validation issues</h2>
+          <h2 className="text-sm font-semibold text-text">Validation issues</h2>
           <Link
             href={link("&outcome=validation_issues")}
-            className="text-xs text-sky-700 hover:underline"
+            className="text-xs text-primary-ink hover:underline"
           >
             See all →
           </Link>
         </div>
         {validationIssues.length === 0 ? (
-          <p className="text-sm text-slate-400">No validation issues in this period.</p>
+          <p className="text-sm text-faint">No validation issues in this period.</p>
         ) : (
           <ul className="space-y-1">
             {validationIssues.map((r) => (
@@ -118,10 +118,10 @@ export default async function PortalOverview({
                   href={link(
                     `&outcome=validation_issues&issue=${encodeURIComponent(r.code)}`
                   )}
-                  className="flex items-center justify-between gap-3 rounded px-2 py-1.5 text-sm hover:bg-slate-50"
+                  className="flex items-center justify-between gap-3 rounded px-2 py-1.5 text-sm hover:bg-page"
                 >
-                  <span className="text-slate-700">{r.label}</span>
-                  <span className="text-slate-500">{formatCount(r.promotions)}</span>
+                  <span className="text-text">{r.label}</span>
+                  <span className="text-muted">{formatCount(r.promotions)}</span>
                 </Link>
               </li>
             ))}
@@ -129,7 +129,7 @@ export default async function PortalOverview({
         )}
       </section>
 
-      <p className="text-xs text-slate-400">
+      <p className="text-xs text-faint">
         Every offer is checked against the live merchant site. &ldquo;Successfully verified&rdquo;
         means we finished the check and have evidence to share with you. &ldquo;Validation
         issues&rdquo; means we could not finish the check; those offers are retried on our side.

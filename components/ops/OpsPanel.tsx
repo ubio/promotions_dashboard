@@ -202,9 +202,9 @@ export default function OpsPanel({
 
   return (
     <div className="space-y-6">
-      <section className="rounded-lg border border-slate-200 bg-white p-5">
+      <section className="rounded-lg border border-line bg-card p-5">
         <h2 className="text-base font-semibold">Export spreadsheets</h2>
-        <p className="mt-1 text-sm text-slate-500">
+        <p className="mt-1 text-sm text-muted">
           Runs the same export the scheduler uses: client-facing results and debug error sheets for ZiffDavis and
           Atoll. Use when you need spreadsheets before the next scheduled run.
         </p>
@@ -212,14 +212,14 @@ export default function OpsPanel({
           type="button"
           onClick={() => void runExport()}
           disabled={exportState.status === "loading"}
-          className="mt-4 rounded bg-slate-900 px-4 py-2 text-sm text-white hover:bg-slate-700 disabled:opacity-50"
+          className="mt-4 rounded bg-primary px-4 py-2 text-sm text-card hover:bg-primary-ink disabled:opacity-50"
         >
           {exportState.status === "loading" ? "Exporting…" : "Export spreadsheets now"}
         </button>
         {exportState.message && (
           <p
             className={`mt-3 text-sm ${
-              exportState.status === "error" ? "text-red-600" : "text-emerald-700"
+              exportState.status === "error" ? "text-bad" : "text-ok"
             }`}
           >
             {exportState.message}
@@ -227,24 +227,24 @@ export default function OpsPanel({
         )}
       </section>
 
-      <section className="rounded-lg border border-slate-200 bg-white p-5">
+      <section className="rounded-lg border border-line bg-card p-5">
         <h2 className="text-base font-semibold">Reset non-client-facing failures (past 7 days)</h2>
-        <p className="mt-1 text-sm text-slate-500">
+        <p className="mt-1 text-sm text-muted">
           Re-queues promotions from the past 7 days that failed with automation or internal fail codes. Skips manual
           locks such as bot-detection merchants (shown as LOCK_WITHOUT_VALIDATION in spreadsheets). Clears validation
           logs so they can be validated again.
         </p>
 
         {listError ? (
-          <p className="mt-4 text-sm text-red-600">{listError}</p>
+          <p className="mt-4 text-sm text-bad">{listError}</p>
         ) : candidates ? (
           <>
-            <div className="mt-4 flex flex-wrap items-center justify-between gap-3 text-sm text-slate-600">
+            <div className="mt-4 flex flex-wrap items-center justify-between gap-3 text-sm text-text">
               <p>
                 <span className="font-medium">{candidates.total.toLocaleString()}</span> promotion(s) eligible from{" "}
                 <span className="font-mono">{formatCandidateRange(candidates)}</span> (UTC)
                 {Object.keys(candidates.byClient).length > 0 && (
-                  <span className="text-slate-500">
+                  <span className="text-muted">
                     {" "}
                     ·{" "}
                     {Object.entries(candidates.byClient)
@@ -258,7 +258,7 @@ export default function OpsPanel({
                   type="button"
                   onClick={() => void loadCandidates(page)}
                   disabled={listLoading}
-                  className="rounded border border-slate-300 px-3 py-1 hover:bg-slate-50 disabled:opacity-50"
+                  className="rounded border border-line px-3 py-1 hover:bg-page disabled:opacity-50"
                 >
                   Refresh
                 </button>
@@ -266,16 +266,16 @@ export default function OpsPanel({
                   type="button"
                   onClick={() => void runResetAll()}
                   disabled={resetState.status === "loading" || candidates.total === 0}
-                  className="rounded bg-amber-700 px-3 py-1 text-white hover:bg-amber-600 disabled:opacity-50"
+                  className="rounded bg-warn px-3 py-1 text-card hover:bg-warn/85 disabled:opacity-50"
                 >
                   {resetState.status === "loading" ? "Resetting all…" : "Reset all"}
                 </button>
               </div>
             </div>
 
-            <div className="mt-3 overflow-x-auto rounded-lg border border-slate-200">
+            <div className="mt-3 overflow-x-auto rounded-lg border border-line">
               <table className="min-w-full text-sm">
-                <thead className="bg-slate-50 text-left text-xs uppercase tracking-wide text-slate-500">
+                <thead className="bg-page text-left text-xs uppercase tracking-wide text-muted">
                   <tr>
                     <th className="px-3 py-2">Date</th>
                     <th className="px-3 py-2">Client</th>
@@ -290,30 +290,30 @@ export default function OpsPanel({
                     <th className="px-3 py-2"></th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-slate-100">
+                <tbody className="divide-y divide-rule">
                   {listLoading && candidates.items.length === 0 ? (
                     <tr>
-                      <td colSpan={11} className="px-3 py-8 text-center text-slate-400">
+                      <td colSpan={11} className="px-3 py-8 text-center text-faint">
                         Loading…
                       </td>
                     </tr>
                   ) : candidates.items.length === 0 ? (
                     <tr>
-                      <td colSpan={11} className="px-3 py-8 text-center text-slate-400">
+                      <td colSpan={11} className="px-3 py-8 text-center text-faint">
                         No promotions eligible for reset in the past 7 days.
                       </td>
                     </tr>
                   ) : (
                     candidates.items.map((row) => (
-                      <tr key={row.id} className="hover:bg-sky-50/50">
-                        <td className="whitespace-nowrap px-3 py-2 font-mono text-slate-600">
+                      <tr key={row.id} className="hover:bg-tint">
+                        <td className="whitespace-nowrap px-3 py-2 font-mono text-text">
                           {row.createdAtDate ?? "—"}
                         </td>
                         <td className="whitespace-nowrap px-3 py-2">{row.clientId}</td>
                         <td className="px-3 py-2">
                           <div>{row.domain}</div>
                           {row.merchantName && (
-                            <div className="text-xs text-slate-400">{row.merchantName}</div>
+                            <div className="text-xs text-faint">{row.merchantName}</div>
                           )}
                         </td>
                         <td className="whitespace-nowrap px-3 py-2">
@@ -322,7 +322,7 @@ export default function OpsPanel({
                         <td className="whitespace-nowrap px-3 py-2">
                           <LocalValidateLink id={row.id} />
                         </td>
-                        <td className="whitespace-nowrap px-3 py-2 text-slate-600">{row.countryCode ?? "—"}</td>
+                        <td className="whitespace-nowrap px-3 py-2 text-text">{row.countryCode ?? "—"}</td>
                         <td className="px-3 py-2">
                           <Badge variant={normalizeValidity(row.validityStatus)}>
                             {normalizeValidity(row.validityStatus).replaceAll("_", " ")}
@@ -342,7 +342,7 @@ export default function OpsPanel({
                                 </Badge>
                               ))
                             ) : (
-                              <span className="text-slate-400">—</span>
+                              <span className="text-faint">—</span>
                             )}
                           </div>
                         </td>
@@ -351,7 +351,7 @@ export default function OpsPanel({
                             href={row.sourceUrl}
                             target="_blank"
                             rel="noopener noreferrer"
-                            className="break-all text-sky-700 hover:underline"
+                            className="break-all text-primary-ink hover:underline"
                             title={row.sourceUrl}
                           >
                             {truncateUrl(row.sourceUrl)}
@@ -363,7 +363,7 @@ export default function OpsPanel({
                               type="button"
                               onClick={() => void runResetSingle(row)}
                               disabled={resettingId === row.id || resetState.status === "loading"}
-                              className="rounded border border-amber-300 px-2 py-1 text-xs text-amber-800 hover:bg-amber-50 disabled:opacity-50"
+                              className="rounded border border-warn-line px-2 py-1 text-xs text-warn hover:bg-warn-bg disabled:opacity-50"
                             >
                               {resettingId === row.id ? "Resetting…" : "Reset"}
                             </button>
@@ -377,7 +377,7 @@ export default function OpsPanel({
             </div>
 
             {candidates.pages > 1 && (
-              <div className="mt-3 flex items-center justify-between text-sm text-slate-600">
+              <div className="mt-3 flex items-center justify-between text-sm text-text">
                 <span>
                   Page {candidates.page} of {candidates.pages}
                 </span>
@@ -386,7 +386,7 @@ export default function OpsPanel({
                     type="button"
                     onClick={() => setPage((p) => Math.max(1, p - 1))}
                     disabled={candidates.page <= 1 || listLoading}
-                    className="rounded border border-slate-300 bg-white px-3 py-1 hover:bg-slate-50 disabled:opacity-50"
+                    className="rounded border border-line bg-card px-3 py-1 hover:bg-page disabled:opacity-50"
                   >
                     ← Prev
                   </button>
@@ -394,7 +394,7 @@ export default function OpsPanel({
                     type="button"
                     onClick={() => setPage((p) => Math.min(candidates.pages, p + 1))}
                     disabled={candidates.page >= candidates.pages || listLoading}
-                    className="rounded border border-slate-300 bg-white px-3 py-1 hover:bg-slate-50 disabled:opacity-50"
+                    className="rounded border border-line bg-card px-3 py-1 hover:bg-page disabled:opacity-50"
                   >
                     Next →
                   </button>
@@ -403,12 +403,12 @@ export default function OpsPanel({
             )}
           </>
         ) : (
-          <p className="mt-4 text-sm text-slate-400">Loading…</p>
+          <p className="mt-4 text-sm text-faint">Loading…</p>
         )}
 
         {resetState.message && (
           <p
-            className={`mt-3 text-sm ${resetState.status === "error" ? "text-red-600" : "text-emerald-700"}`}
+            className={`mt-3 text-sm ${resetState.status === "error" ? "text-bad" : "text-ok"}`}
           >
             {resetState.message}
           </p>

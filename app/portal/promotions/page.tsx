@@ -93,20 +93,20 @@ export default async function PortalPromotionsPage({
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
           <h1 className="text-xl font-semibold">Your offers</h1>
-          <p className="text-xs text-slate-500">
+          <p className="text-xs text-muted">
             {days
               ? `Promotions verified in the last ${days} days`
               : "All promotions sent for verification"}
           </p>
         </div>
         {days && (
-          <div className="flex rounded-lg border border-slate-300 bg-white p-0.5 text-sm">
+          <div className="flex rounded-lg border border-line bg-card p-0.5 text-sm">
             {RANGES.map((r) => (
               <Link
                 key={r}
                 href={`/portal/promotions?${qs({ ...base, days: r })}`}
                 className={`rounded-md px-3 py-1 ${
-                  days === r ? "bg-slate-900 text-white" : "text-slate-600 hover:bg-slate-100"
+                  days === r ? "bg-primary text-card" : "text-text hover:bg-rule"
                 }`}
               >
                 {r}d
@@ -116,18 +116,18 @@ export default async function PortalPromotionsPage({
         )}
       </div>
 
-      <form className="flex flex-wrap items-center gap-2 rounded-lg border border-slate-200 bg-white p-2.5 text-sm">
+      <form className="flex flex-wrap items-center gap-2 rounded-lg border border-line bg-card p-2.5 text-sm">
         {days && <input type="hidden" name="days" value={days} />}
         <input
           name="q"
           defaultValue={q ?? ""}
           placeholder="Search domain, description, code"
-          className="min-w-48 max-w-full rounded border border-slate-300 px-2 py-1.5"
+          className="min-w-48 max-w-full rounded border border-line px-2 py-1.5"
         />
         <select
           name="outcome"
           defaultValue={outcome ?? ""}
-          className="rounded border border-slate-300 px-2 py-1.5"
+          className="rounded border border-line px-2 py-1.5"
           aria-label="Outcome"
         >
           {OUTCOMES.map((o) => (
@@ -139,7 +139,7 @@ export default async function PortalPromotionsPage({
         <select
           name="domain"
           defaultValue={domain ?? ""}
-          className="max-w-full rounded border border-slate-300 px-2 py-1.5"
+          className="max-w-full rounded border border-line px-2 py-1.5"
           aria-label="Merchant"
         >
           <option value="">All merchants</option>
@@ -147,20 +147,20 @@ export default async function PortalPromotionsPage({
             <option key={d}>{d}</option>
           ))}
         </select>
-        <button className="rounded bg-slate-900 px-4 py-1.5 text-white hover:bg-slate-700">
+        <button className="rounded bg-primary px-4 py-1.5 text-card hover:bg-primary-ink">
           Apply
         </button>
         <Link
           href={days ? `/portal/promotions?days=${days}` : "/portal/promotions"}
-          className="ml-auto px-1 text-slate-500 hover:text-slate-700"
+          className="ml-auto px-1 text-muted hover:text-text"
         >
           Reset
         </Link>
       </form>
 
       {validationIssues.length > 0 && !issue && days && outcome !== "verified" && (
-        <div className="rounded-lg border border-slate-200 bg-white p-3">
-          <p className="mb-2 text-xs uppercase tracking-wide text-slate-400">Validation issues</p>
+        <div className="rounded-lg border border-line bg-card p-3">
+          <p className="mb-2 text-xs uppercase tracking-wide text-faint">Validation issues</p>
           <div className="flex flex-wrap gap-1.5">
             {validationIssues.map((r) => (
               <Link
@@ -170,18 +170,18 @@ export default async function PortalPromotionsPage({
                   outcome: "validation_issues",
                   issue: r.code,
                 })}`}
-                className="rounded-full bg-slate-100 px-2.5 py-1 text-xs text-slate-700 hover:bg-slate-200"
+                className="rounded-full bg-rule px-2.5 py-1 text-xs text-text hover:bg-line"
               >
-                {r.label} <span className="text-slate-400">{formatCount(r.promotions)}</span>
+                {r.label} <span className="text-faint">{formatCount(r.promotions)}</span>
               </Link>
             ))}
           </div>
         </div>
       )}
 
-      <div className="overflow-x-auto rounded-lg border border-slate-200 bg-white">
+      <div className="overflow-x-auto rounded-lg border border-line bg-card">
         <table className="min-w-full text-sm">
-          <thead className="bg-slate-50 text-left text-xs uppercase tracking-wide text-slate-500">
+          <thead className="bg-page text-left text-xs uppercase tracking-wide text-muted">
             <tr>
               <th className="px-3 py-2">When</th>
               <th className="px-3 py-2">Merchant</th>
@@ -192,15 +192,15 @@ export default async function PortalPromotionsPage({
               <th className="px-3 py-2">Screenshot</th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-slate-100">
+          <tbody className="divide-y divide-rule">
             {result.items.map((p) => (
-              <tr key={p.id} className="hover:bg-sky-50/50">
-                <td className="whitespace-nowrap px-3 py-2 text-slate-600">
+              <tr key={p.id} className="hover:bg-tint">
+                <td className="whitespace-nowrap px-3 py-2 text-text">
                   {p.createdAt ? formatDate(p.createdAt) : "—"}
                 </td>
                 <td className="px-3 py-2 font-mono text-xs">
                   {p.sourceUrl ? (
-                    <a href={p.sourceUrl} target="_blank" className="text-sky-700 hover:underline">
+                    <a href={p.sourceUrl} target="_blank" className="text-primary-ink hover:underline">
                       {p.domain ?? "—"}
                     </a>
                   ) : (
@@ -208,7 +208,7 @@ export default async function PortalPromotionsPage({
                   )}
                 </td>
                 <td className="min-w-48 max-w-xs px-3 py-2">
-                  <Link href={`/portal/promotions/${p.id}`} className="text-sky-700 hover:underline">
+                  <Link href={`/portal/promotions/${p.id}`} className="text-primary-ink hover:underline">
                     {truncate(p.description || p.title || p.id, 80)}
                   </Link>
                   {p.code && (
@@ -221,16 +221,16 @@ export default async function PortalPromotionsPage({
                   {p.validityStatus ? (
                     <Badge variant={p.validityStatus}>{p.validityStatus}</Badge>
                   ) : (
-                    <span className="text-slate-400">—</span>
+                    <span className="text-faint">—</span>
                   )}
                 </td>
-                <td className="min-w-48 max-w-md px-3 py-2 text-xs text-slate-600">
+                <td className="min-w-48 max-w-md px-3 py-2 text-xs text-text">
                   {truncate(p.reason, 120)}
                 </td>
-                <td className="min-w-72 px-3 py-2 text-xs text-slate-600">{p.finding}</td>
+                <td className="min-w-72 px-3 py-2 text-xs text-text">{p.finding}</td>
                 <td className="whitespace-nowrap px-3 py-2 text-xs">
                   {p.screenshot ? (
-                    <a href={p.screenshot} target="_blank" className="text-sky-700 hover:underline">
+                    <a href={p.screenshot} target="_blank" className="text-primary-ink hover:underline">
                       screenshot
                     </a>
                   ) : (
@@ -241,7 +241,7 @@ export default async function PortalPromotionsPage({
             ))}
             {result.items.length === 0 && (
               <tr>
-                <td colSpan={7} className="px-3 py-8 text-center text-slate-400">
+                <td colSpan={7} className="px-3 py-8 text-center text-faint">
                   No promotions match this selection.
                 </td>
               </tr>

@@ -43,19 +43,19 @@ export default async function MerchantDayStatsPage({
       <div>
         <Link
           href={`/stats/merchants/${encodeURIComponent(merchantId)}?granularity=day&date=${date}`}
-          className="text-sm text-sky-700 hover:underline"
+          className="text-sm text-primary-ink hover:underline"
         >
           ← Back to {title}
         </Link>
         <h1 className="mt-1 text-xl font-semibold">
           {title}
-          <span className="ml-2 text-base font-normal text-slate-500">{formatUtcDay(date)}</span>
+          <span className="ml-2 text-base font-normal text-muted">{formatUtcDay(date)}</span>
         </h1>
-        <p className="text-xs text-slate-500 font-mono">{merchantId}</p>
+        <p className="text-xs text-muted font-mono">{merchantId}</p>
       </div>
 
       {!inWindow || totals == null ? (
-        <p className="rounded-lg border border-slate-200 bg-white px-4 py-6 text-sm text-slate-500">
+        <p className="rounded-lg border border-line bg-card px-4 py-6 text-sm text-muted">
           Daily detail is only stored for the last 30 days ({from} to {to}). Older totals live on the
           monthly view.
         </p>
@@ -64,24 +64,24 @@ export default async function MerchantDayStatsPage({
           <CounterTiles stats={totals} pendingPromotionOutcomes={pendingPromotionOutcomes} />
           <DayCounters stats={totals} pendingPromotionOutcomes={pendingPromotionOutcomes} />
           <section className="space-y-2">
-            <h2 className="text-sm font-semibold text-slate-700">Clients</h2>
-            <div className="overflow-x-auto rounded-lg border border-slate-200 bg-white">
+            <h2 className="text-sm font-semibold text-text">Clients</h2>
+            <div className="overflow-x-auto rounded-lg border border-line bg-card">
               <table className="min-w-full text-sm [font-variant-numeric:tabular-nums]">
-                <thead className="bg-slate-50 text-left text-xs uppercase tracking-wide text-slate-500">
+                <thead className="bg-page text-left text-xs uppercase tracking-wide text-muted">
                   <CounterTableHead leading={<th rowSpan={2} className={counterThClass}>Client</th>} />
                 </thead>
-                <tbody className="divide-y divide-slate-100">
+                <tbody className="divide-y divide-rule">
                   {clients.map((row) => (
-                    <tr key={row.clientId} className="hover:bg-sky-50/50">
+                    <tr key={row.clientId} className="hover:bg-tint">
                       <td className="px-3 py-2">
                         <Link
                           href={`/stats/clients/${encodeURIComponent(row.clientId)}/days/${date}`}
-                          className="font-medium text-sky-700 hover:underline"
+                          className="font-medium text-primary-ink hover:underline"
                         >
                           {row.clientId}
                         </Link>
                         {names.get(row.clientId) && names.get(row.clientId) !== row.clientId && (
-                          <div className="text-xs text-slate-500">{names.get(row.clientId)}</div>
+                          <div className="text-xs text-muted">{names.get(row.clientId)}</div>
                         )}
                       </td>
                       <CounterCells stats={row} pendingPromotionOutcomes={pendingPromotionOutcomes} />
@@ -89,7 +89,7 @@ export default async function MerchantDayStatsPage({
                   ))}
                   {clients.length === 0 && (
                     <tr>
-                      <td colSpan={1 + COUNTER_COL_SPAN} className="px-3 py-8 text-center text-slate-400">
+                      <td colSpan={1 + COUNTER_COL_SPAN} className="px-3 py-8 text-center text-faint">
                         No client activity on this day.
                       </td>
                     </tr>

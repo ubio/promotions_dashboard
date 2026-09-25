@@ -36,27 +36,27 @@ export default async function BotDetectionStatsPage({
     <div className="space-y-4">
       <div>
         <h1 className="text-xl font-semibold">Bot detection</h1>
-        <p className="text-sm text-slate-500">
+        <p className="text-sm text-muted">
           Audit log of merchants flagged for bot detection after repeated validation failures.
         </p>
       </div>
 
-      <form className="flex flex-wrap items-end gap-3 rounded-lg border border-slate-200 bg-white p-3 text-sm">
+      <form className="flex flex-wrap items-end gap-3 rounded-lg border border-line bg-card p-3 text-sm">
         <label className="flex max-w-full flex-col gap-1">
-          <span className="text-xs text-slate-500">Detected date (UTC)</span>
+          <span className="text-xs text-muted">Detected date (UTC)</span>
           <input
             name="date"
             type="date"
             defaultValue={date ?? ""}
-            className="rounded border border-slate-300 px-2 py-1.5"
+            className="rounded border border-line px-2 py-1.5"
           />
         </label>
         <label className="flex max-w-full flex-col gap-1">
-          <span className="text-xs text-slate-500">Client</span>
+          <span className="text-xs text-muted">Client</span>
           <select
             name="clientId"
             defaultValue={clientId ?? ""}
-            className="max-w-full rounded border border-slate-300 px-2 py-1.5"
+            className="max-w-full rounded border border-line px-2 py-1.5"
           >
             <option value="">All</option>
             {clientIds.map((c) => (
@@ -65,35 +65,35 @@ export default async function BotDetectionStatsPage({
           </select>
         </label>
         <label className="flex max-w-full flex-col gap-1">
-          <span className="text-xs text-slate-500">Status</span>
+          <span className="text-xs text-muted">Status</span>
           <select
             name="status"
             defaultValue={status ?? ""}
-            className="max-w-full rounded border border-slate-300 px-2 py-1.5"
+            className="max-w-full rounded border border-line px-2 py-1.5"
           >
             <option value="">All</option>
             <option value="open">Open</option>
             <option value="resolved">Resolved</option>
           </select>
         </label>
-        <button className="rounded bg-slate-900 px-4 py-1.5 text-white hover:bg-slate-700">Apply</button>
-        <Link href="/stats/bot-detection" className="py-1.5 text-slate-500 hover:text-slate-700">
+        <button className="rounded bg-primary px-4 py-1.5 text-card hover:bg-primary-ink">Apply</button>
+        <Link href="/stats/bot-detection" className="py-1.5 text-muted hover:text-text">
           Reset
         </Link>
         <label className="ml-auto flex max-w-full flex-col gap-1">
-          <span className="text-xs text-slate-500">Search (domain, merchant id, promotion id)</span>
+          <span className="text-xs text-muted">Search (domain, merchant id, promotion id)</span>
           <input
             name="q"
             defaultValue={q ?? ""}
-            className="w-64 max-w-full rounded border border-slate-300 px-2 py-1.5"
+            className="w-64 max-w-full rounded border border-line px-2 py-1.5"
             placeholder="e.g. bestbuy.com"
           />
         </label>
       </form>
 
-      <div className="overflow-x-auto rounded-lg border border-slate-200 bg-white">
+      <div className="overflow-x-auto rounded-lg border border-line bg-card">
         <table className="min-w-full text-sm">
-          <thead className="bg-slate-50 text-left text-xs uppercase tracking-wide text-slate-500">
+          <thead className="bg-page text-left text-xs uppercase tracking-wide text-muted">
             <tr>
               <th className="px-3 py-2">Detected</th>
               <th className="px-3 py-2">Domain</th>
@@ -106,12 +106,12 @@ export default async function BotDetectionStatsPage({
               <th className="px-3 py-2">Notes</th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-slate-100">
+          <tbody className="divide-y divide-rule">
             {result.items.map((event) => (
-              <tr key={String(event._id)} className="hover:bg-sky-50/50">
-                <td className="whitespace-nowrap px-3 py-2 text-slate-600">
+              <tr key={String(event._id)} className="hover:bg-tint">
+                <td className="whitespace-nowrap px-3 py-2 text-text">
                   <div>{formatDate(event.detectedAt)}</div>
-                  <div className="text-xs text-slate-400">{formatUtcDay(event.detectedDate)}</div>
+                  <div className="text-xs text-faint">{formatUtcDay(event.detectedDate)}</div>
                 </td>
                 <td className="px-3 py-2 font-mono text-xs">{event.domain}</td>
                 <td className="px-3 py-2">
@@ -125,7 +125,7 @@ export default async function BotDetectionStatsPage({
                   {event.triggerPromotionId ? (
                     <Link
                       href={`/promotions/${event.triggerPromotionId}`}
-                      className="text-sky-700 hover:underline"
+                      className="text-primary-ink hover:underline"
                     >
                       {truncate(event.triggerPromotionId, 16)}
                     </Link>
@@ -142,11 +142,11 @@ export default async function BotDetectionStatsPage({
                     ))}
                   </div>
                 </td>
-                <td className="whitespace-nowrap px-3 py-2 text-slate-600">
+                <td className="whitespace-nowrap px-3 py-2 text-text">
                   {event.resolvedAt ? (
                     <div>
                       <div>{formatBotDetectionResolution(event.resolution)}</div>
-                      <div className="text-xs text-slate-400">
+                      <div className="text-xs text-faint">
                         {formatDate(event.resolvedAt)}
                         {event.resolvedBy ? ` · ${event.resolvedBy}` : ""}
                       </div>
@@ -155,14 +155,14 @@ export default async function BotDetectionStatsPage({
                     "—"
                   )}
                 </td>
-                <td className="min-w-48 max-w-xs px-3 py-2 text-xs text-slate-600">
+                <td className="min-w-48 max-w-xs px-3 py-2 text-xs text-text">
                   {truncate(event.notes, 80)}
                 </td>
               </tr>
             ))}
             {result.items.length === 0 && (
               <tr>
-                <td colSpan={9} className="px-3 py-8 text-center text-slate-400">
+                <td colSpan={9} className="px-3 py-8 text-center text-faint">
                   No bot detection events match these filters.
                 </td>
               </tr>

@@ -56,11 +56,11 @@ export async function ValidationJobs(props: {
 
   return (
     <>
-      <form className="flex flex-wrap items-end gap-3 rounded-lg border border-slate-200 bg-white p-3 text-sm">
+      <form className="flex flex-wrap items-end gap-3 rounded-lg border border-line bg-card p-3 text-sm">
         {props.tab && <input type="hidden" name="tab" value={props.tab} />}
         <label className="flex max-w-full flex-col gap-1">
-          <span className="text-xs text-slate-500">Client</span>
-          <select name="clientId" defaultValue={props.clientId ?? ""} className="max-w-full rounded border border-slate-300 px-2 py-1.5">
+          <span className="text-xs text-muted">Client</span>
+          <select name="clientId" defaultValue={props.clientId ?? ""} className="max-w-full rounded border border-line px-2 py-1.5">
             <option value="">All</option>
             {clientIds.map((c) => (
               <option key={c}>{c}</option>
@@ -68,57 +68,57 @@ export async function ValidationJobs(props: {
           </select>
         </label>
         <label className="flex max-w-full flex-col gap-1">
-          <span className="text-xs text-slate-500">Report type</span>
-          <select name="reportType" defaultValue={props.reportType ?? ""} className="max-w-full rounded border border-slate-300 px-2 py-1.5">
+          <span className="text-xs text-muted">Report type</span>
+          <select name="reportType" defaultValue={props.reportType ?? ""} className="max-w-full rounded border border-line px-2 py-1.5">
             <option value="">All</option>
             <option value="conclusion">conclusion</option>
             <option value="error">error</option>
           </select>
         </label>
         <label className="flex max-w-full flex-col gap-1">
-          <span className="text-xs text-slate-500">Success</span>
-          <select name="success" defaultValue={props.success ?? ""} className="max-w-full rounded border border-slate-300 px-2 py-1.5">
+          <span className="text-xs text-muted">Success</span>
+          <select name="success" defaultValue={props.success ?? ""} className="max-w-full rounded border border-line px-2 py-1.5">
             <option value="">All</option>
             <option value="true">success</option>
             <option value="false">failed</option>
           </select>
         </label>
         <label className="flex max-w-full flex-col gap-1">
-          <span className="text-xs text-slate-500">Fail code</span>
-          <select name="failCode" defaultValue={props.failCode ?? ""} className="max-w-full rounded border border-slate-300 px-2 py-1.5">
+          <span className="text-xs text-muted">Fail code</span>
+          <select name="failCode" defaultValue={props.failCode ?? ""} className="max-w-full rounded border border-line px-2 py-1.5">
             <option value="">All</option>
             {failCodes.map((c) => (
               <option key={c}>{c}</option>
             ))}
           </select>
         </label>
-        <button className="rounded bg-slate-900 px-4 py-1.5 text-white hover:bg-slate-700">Apply</button>
-        <Link href={props.tab ? `/promotions?tab=${props.tab}` : "/jobs"} className="py-1.5 text-slate-500 hover:text-slate-700">
+        <button className="rounded bg-primary px-4 py-1.5 text-card hover:bg-primary-ink">Apply</button>
+        <Link href={props.tab ? `/promotions?tab=${props.tab}` : "/jobs"} className="py-1.5 text-muted hover:text-text">
           Reset
         </Link>
               <label className="ml-auto flex max-w-full flex-col gap-1">
-          <span className="text-xs text-slate-500">Search (domain, URL, promotion id)</span>
+          <span className="text-xs text-muted">Search (domain, URL, promotion id)</span>
           <input
             name="q"
             defaultValue={props.q ?? ""}
-            className="w-64 max-w-full rounded border border-slate-300 px-2 py-1.5"
+            className="w-64 max-w-full rounded border border-line px-2 py-1.5"
             placeholder="e.g. bestbuy.com"
           />
         </label>
                 <label className="ml-auto flex max-w-full flex-col gap-1">
-          <span className="text-xs text-slate-500">Search (domain, URL)</span>
+          <span className="text-xs text-muted">Search (domain, URL)</span>
           <input
             name="q"
             defaultValue={props.q ?? ""}
-            className="w-64 max-w-full rounded border border-slate-300 px-2 py-1.5"
+            className="w-64 max-w-full rounded border border-line px-2 py-1.5"
             placeholder="e.g. dominos.com"
           />
         </label>
         </form>
 
-      <div className="overflow-x-auto rounded-lg border border-slate-200 bg-white">
+      <div className="overflow-x-auto rounded-lg border border-line bg-card">
         <table className="min-w-full text-sm">
-          <thead className="bg-slate-50 text-left text-xs uppercase tracking-wide text-slate-500">
+          <thead className="bg-page text-left text-xs uppercase tracking-wide text-muted">
             <tr>
               <th className="px-3 py-2">Created</th>
               <th className="px-3 py-2">Client</th>
@@ -131,11 +131,11 @@ export async function ValidationJobs(props: {
               <th className="px-3 py-2">Evidence</th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-slate-100">
+          <tbody className="divide-y divide-rule">
             {result.items.map((job) => (
-              <tr key={String(job._id)} className="hover:bg-sky-50/50">
-                <td className="whitespace-nowrap px-3 py-2 text-slate-600">
-                  <Link href={`/jobs/validation/${job._id}`} className="text-sky-700 hover:underline">
+              <tr key={String(job._id)} className="hover:bg-tint">
+                <td className="whitespace-nowrap px-3 py-2 text-text">
+                  <Link href={`/jobs/validation/${job._id}`} className="text-primary-ink hover:underline">
                     {formatDate(job.createdAt)}
                   </Link>
                 </td>
@@ -158,14 +158,14 @@ export async function ValidationJobs(props: {
                     ))}
                   </div>
                 </td>
-                <td className="min-w-80 max-w-md px-3 py-2 text-xs text-slate-600">
+                <td className="min-w-80 max-w-md px-3 py-2 text-xs text-text">
                   {truncate(job.reasoning, 140)}
                 </td>
-                <td className="whitespace-nowrap px-3 py-2 text-slate-600">{formatDuration(job.time)}</td>
-                <td className="whitespace-nowrap px-3 py-2 text-slate-600">{formatCost(sumLlmCosts(job.llmCosts))}</td>
+                <td className="whitespace-nowrap px-3 py-2 text-text">{formatDuration(job.time)}</td>
+                <td className="whitespace-nowrap px-3 py-2 text-text">{formatCost(sumLlmCosts(job.llmCosts))}</td>
                 <td className="whitespace-nowrap px-3 py-2 text-xs">
                   {job.screenshot ? (
-                    <a href={job.screenshot} target="_blank" className="text-sky-700 hover:underline">
+                    <a href={job.screenshot} target="_blank" className="text-primary-ink hover:underline">
                       screenshot
                     </a>
                   ) : (
@@ -176,7 +176,7 @@ export async function ValidationJobs(props: {
             ))}
             {result.items.length === 0 && (
               <tr>
-                <td colSpan={9} className="px-3 py-8 text-center text-slate-400">
+                <td colSpan={9} className="px-3 py-8 text-center text-faint">
                   No validation jobs match these filters.
                 </td>
               </tr>
@@ -200,15 +200,15 @@ export async function ExtractionJobs(props: {
 
   return (
     <>
-      <form className="flex flex-wrap items-end gap-3 rounded-lg border border-slate-200 bg-white p-3 text-sm">
+      <form className="flex flex-wrap items-end gap-3 rounded-lg border border-line bg-card p-3 text-sm">
         {props.tab && <input type="hidden" name="tab" value={props.tab} />}
         <input type="hidden" name="type" value="extraction" />
         <label className="flex max-w-full flex-col gap-1">
-          <span className="text-xs text-slate-500">Discovery failure</span>
+          <span className="text-xs text-muted">Discovery failure</span>
           <select
             name="failedDiscoveryCode"
             defaultValue={props.failedDiscoveryCode ?? ""}
-            className="max-w-full rounded border border-slate-300 px-2 py-1.5"
+            className="max-w-full rounded border border-line px-2 py-1.5"
           >
             <option value="">All</option>
             {codes.map((c) => (
@@ -216,15 +216,15 @@ export async function ExtractionJobs(props: {
             ))}
           </select>
         </label>
-        <button className="rounded bg-slate-900 px-4 py-1.5 text-white hover:bg-slate-700">Apply</button>
-        <Link href={props.tab ? `/promotions?tab=${props.tab}` : "/jobs?type=extraction"} className="py-1.5 text-slate-500 hover:text-slate-700">
+        <button className="rounded bg-primary px-4 py-1.5 text-card hover:bg-primary-ink">Apply</button>
+        <Link href={props.tab ? `/promotions?tab=${props.tab}` : "/jobs?type=extraction"} className="py-1.5 text-muted hover:text-text">
           Reset
         </Link>
       </form>
 
-      <div className="overflow-x-auto rounded-lg border border-slate-200 bg-white">
+      <div className="overflow-x-auto rounded-lg border border-line bg-card">
         <table className="min-w-full text-sm">
-          <thead className="bg-slate-50 text-left text-xs uppercase tracking-wide text-slate-500">
+          <thead className="bg-page text-left text-xs uppercase tracking-wide text-muted">
             <tr>
               <th className="px-3 py-2">Created</th>
               <th className="px-3 py-2">Domain</th>
@@ -235,11 +235,11 @@ export async function ExtractionJobs(props: {
               <th className="px-3 py-2">Cost</th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-slate-100">
+          <tbody className="divide-y divide-rule">
             {result.items.map((job) => (
-              <tr key={String(job._id)} className="hover:bg-sky-50/50">
+              <tr key={String(job._id)} className="hover:bg-tint">
                 <td className="whitespace-nowrap px-3 py-2">
-                  <Link href={`/jobs/extraction/${job._id}`} className="text-sky-700 hover:underline">
+                  <Link href={`/jobs/extraction/${job._id}`} className="text-primary-ink hover:underline">
                     {formatDate(job.createdAt)}
                   </Link>
                 </td>
@@ -258,14 +258,14 @@ export async function ExtractionJobs(props: {
                     ))}
                   </div>
                 </td>
-                <td className="min-w-80 max-w-md px-3 py-2 text-xs text-slate-600">{truncate(job.reasoning, 140)}</td>
-                <td className="whitespace-nowrap px-3 py-2 text-slate-600">{formatDuration(job.time)}</td>
-                <td className="whitespace-nowrap px-3 py-2 text-slate-600">{formatCost(job.llmCost?.totalCost)}</td>
+                <td className="min-w-80 max-w-md px-3 py-2 text-xs text-text">{truncate(job.reasoning, 140)}</td>
+                <td className="whitespace-nowrap px-3 py-2 text-text">{formatDuration(job.time)}</td>
+                <td className="whitespace-nowrap px-3 py-2 text-text">{formatCost(job.llmCost?.totalCost)}</td>
               </tr>
             ))}
             {result.items.length === 0 && (
               <tr>
-                <td colSpan={7} className="px-3 py-8 text-center text-slate-400">
+                <td colSpan={7} className="px-3 py-8 text-center text-faint">
                   No extraction jobs match these filters.
                 </td>
               </tr>
