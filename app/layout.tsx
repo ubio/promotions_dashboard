@@ -42,13 +42,16 @@ export default async function RootLayout({
             </a>
           </div>
         )}
-        <header className={user?.role === "client" ? "bg-sky-950 text-white" : "bg-slate-900 text-white"}>
+        {/* Signed out (i.e. /login) shows no chrome at all — the nav names our
+            internal pages, which is more than a stranger at the door should see. */}
+        {user && (
+        <header className={user.role === "client" ? "bg-sky-950 text-white" : "bg-slate-900 text-white"}>
           <div className="w-full px-4 py-3 flex flex-wrap items-center gap-x-6 gap-y-1.5">
-            <Link href={user?.role === "client" || previewingClientId ? "/portal" : "/"}>
+            <Link href={user.role === "client" || previewingClientId ? "/portal" : "/"}>
               <Logo />
             </Link>
             <nav className="flex flex-wrap gap-x-4 gap-y-1 text-sm text-slate-300">
-              {user?.role === "client" || previewingClientId ? (
+              {user.role === "client" || previewingClientId ? (
                 <>
                   <Link href="/portal" className="hover:text-white">
                     Overview
@@ -75,7 +78,7 @@ export default async function RootLayout({
               )}
             </nav>
             <div className="ml-auto flex items-center gap-3 text-xs text-slate-400">
-              {user?.role === "client" ? (
+              {user.role === "client" ? (
                 <span className="rounded bg-sky-900 px-2 py-0.5 text-sky-100">
                   {user.clientId} · client view
                 </span>
@@ -99,6 +102,7 @@ export default async function RootLayout({
             </div>
           </div>
         </header>
+        )}
         <main className="mx-auto w-full max-w-7xl px-4 py-6 flex-1">{children}</main>
       </body>
     </html>
