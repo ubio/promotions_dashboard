@@ -35,6 +35,7 @@ Required environment variables:
 | `ALLOWED_EMAIL_DOMAINS`  | Comma-separated email domains allowed to sign in                 |
 | `JWT_SECRET`             | Random secret for signing session cookies (`openssl rand -hex 32`) |
 | `CLIENT_EMAIL_DOMAINS`   | Optional: `domain:ClientId` pairs granting client-portal access  |
+| `CLIENT_EMAIL_ALLOWLIST` | Optional: `email:ClientId` pairs, for one address rather than a whole domain |
 | `CLIENT_VALIDATION_RATES`| Optional: `ClientId:rate` pairs for the revenue estimate         |
 | `DEFAULT_VALIDATION_RATE`| Optional: fallback USD rate per promotion sent to the client    |
 
@@ -56,7 +57,10 @@ in `.env.local`. Never set it in production.
 
 Users whose email domain appears in `CLIENT_EMAIL_DOMAINS` (e.g.
 `ziffdavis.com:ZiffDavis`) sign in with the same Google button but get a
-`client` role scoped to that clientId. They are fenced into `/portal`:
+`client` role scoped to that clientId. `CLIENT_EMAIL_ALLOWLIST` does the same for
+a single address (e.g. `someone@gmail.com:ZiffDavis`) on a domain we would never
+grant wholesale; an exact address is matched before any domain rule. They are
+fenced into `/portal`:
 
 - `/portal` — overview KPIs, validations-per-day and validity breakdown, scoped
   to their promotions only
