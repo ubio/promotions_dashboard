@@ -1,6 +1,7 @@
 // The house mark, in the family used by Orbit, Beacon and the Hub: the same
 // hexagon shell (ubio/oss-os packages/ui/src/brand.tsx) with a glyph inside
-// that belongs to this product — a tag for the offer, a check for validated.
+// that belongs to this product — a check, for the offer we verified. Beacon
+// carries a waveform in the same place.
 export function LogoMark({ size = 24 }: { size?: number }) {
   return (
     <svg
@@ -18,16 +19,9 @@ export function LogoMark({ size = 24 }: { size?: number }) {
         strokeLinejoin="round"
       />
       <path
-        d="M17 27.5v-8a1.5 1.5 0 0 1 1.5-1.5h8"
-        stroke="currentColor"
-        strokeWidth="3"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-      <path
-        d="m19.5 26.5 4 4 8-9"
+        d="m16.8 24.3 5.4 5.4 10.2-11.1"
         stroke="var(--oss-primary)"
-        strokeWidth="3"
+        strokeWidth="3.6"
         strokeLinecap="round"
         strokeLinejoin="round"
       />

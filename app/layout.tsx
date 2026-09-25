@@ -6,7 +6,7 @@ import { isAuthDisabled } from "@/lib/session";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "Promotions Dashboard",
+  title: "UBIO Promotions",
   description: "UBIO promotions vertical — jobs, promotions and validation evidence",
 };
 
