@@ -1,0 +1,165 @@
+/* Vendored verbatim from ubio/oss-os packages/ui/src/theme.css.
+   Do not edit here — change the shared appearance upstream and re-copy. */
+/* Shared values use Orbit as the canonical application theme. */
+/*
+ * One place the colours are named.
+ *
+ * Both apps read this file, so a value fixed here is fixed in both. The greys
+ * that were scattered through the stylesheets as literals — a dozen shades of
+ * lilac, none of them the same and several failing contrast on white — are
+ * replaced by four steps that each have a job. `--muted` is the floor for
+ * anything a person has to read; `--faint` is for dividers and placeholders,
+ * and nothing meaningful may use it.
+ *
+ * The floor is measured against the darkest ground it lands on, which is the
+ * sidebar and not the card. `--muted` was set at 4.7:1 on white, which made it
+ * 4.02:1 on the sidebar and 4.29:1 on the page behind the cards -- so the one
+ * step with a contrast requirement failed it everywhere except the background
+ * it was checked against. It is now 4.6:1 on the sidebar, 4.9 on the page and
+ * 5.2 on a card.
+ */
+:root {
+  --oss-ink: #242635;
+  --oss-text: #454658;
+  --oss-text-2: #5b5d72;
+  --oss-muted: #696b7e;
+  --oss-faint: #9a9bad;
+  /*
+   * A little deeper than it was, so that what sits on it and what it writes
+   * can both be read. At oklch(0.6) white on a filled button was 4.17:1 and
+   * the colour as text on a card was the same, which is under the floor for
+   * either; at 0.56 it is 4.94:1 filled and 4.63:1 as text on the lilac wash.
+   * Same hue, same chroma -- the brand, one step down.
+   */
+  --oss-primary: oklch(0.56 0.2 274);
+  --oss-primary-tint: #eceafa;
+  --oss-primary-ink: #5045aa;
+  --oss-ok: #15803d;
+  --oss-ok-bg: #f0fdf4;
+  --oss-ok-line: #bbf7d0;
+  --oss-warn: #a16207;
+  --oss-warn-bg: #fffbeb;
+  --oss-warn-line: #fde68a;
+  --oss-bad: #b91c1c;
+  --oss-bad-bg: #fef2f2;
+  --oss-bad-line: #fecaca;
+  --oss-info: #1d4ed8;
+  --oss-info-bg: #eff6ff;
+  --oss-info-line: #bfdbfe;
+  /* A note or a message that belongs to one mailbox rather than to the team. */
+  --oss-note: #7c3aed;
+  --oss-note-bg: #f8f0fc;
+  --oss-note-line: #ddd0f5;
+  --oss-line: #e3e5ef;
+  --oss-rule: #f1f2f8;
+  --oss-bg: #f7f8fc;
+  --oss-card: #fff;
+  /* Two washes a shade off the card, for a row that is selected, quoted or
+     otherwise set apart without being given a colour of its own. */
+  --oss-tint: #faf6fd;
+  --oss-tint-2: #f4eefa;
+  /*
+   * The board's stage dots and the avatar fills. These are the one place a
+   * colour is chosen to be told apart from its neighbours rather than to mean
+   * something, so they are named by position and not by sentiment.
+   */
+  --oss-dot-0: #a0a8cc;
+  --oss-dot-1: #9b8ee3;
+  --oss-dot-2: #7b69d1;
+  --oss-dot-3: #b181ce;
+  --oss-dot-4: #5da786;
+  --oss-dot-5: #d4a762;
+  --oss-dot-6: #cc7d89;
+  /* Hover washes, shadows, and the divider inside the dark tooltip -- all of
+     which invert rather than lighten, and so have to be named to be themed. */
+  --oss-wash: #00000010;
+  /* Laid over the primary colour, so it inverts with it. */
+  --oss-on-primary-wash: rgb(255 255 255 / 22%);
+  --oss-wash-light: #ffffff8c;
+  --oss-tip-line: #ffffff33;
+  --oss-shadow: #2426351f;
+  --oss-shadow-lg: #48286116;
+  --oss-sidebar-bg: #f0f0fa;
+  --oss-sidebar-active: #e3e1f8;
+  --font-source: "Source Sans 3", Arial, sans-serif;
+  --oss-font-sans: var(--font-source), "Source Sans 3", Arial, sans-serif;
+  /*
+   * Code needs a fixed-width family with real fallbacks. `ui-monospace` alone
+   * names a font Chrome does not know, and an unmatched family list leaves the
+   * browser default — which is why every `<code>` and `<pre>` was rendering in
+   * Times rather than in anything monospaced.
+   */
+  --oss-font-mono: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas,
+    "Liberation Mono", monospace;
+  /* A warm tint, a shade off the page, so a snippet reads as quoted machine
+     text without becoming a block of colour. */
+  --oss-code-bg: #faf7f0;
+  --oss-code-line: #ece4d5;
+  --oss-code-ink: #3f3a33;
+  --oss-sidebar-width: 240px;
+  --oss-section-gap: 20px;
+  --oss-field-gap: 16px;
+  --oss-panel-inset: 21px;
+  --oss-accent: var(--oss-primary);
+  --oss-border: var(--oss-line);
+}
+
+/*
+ * The same jobs, after dark.
+ *
+ * Every value above has one here: a token defined only in light is a hole that
+ * shows up as black text on a black panel the first time somebody opens the
+ * page they forgot. The scale is inverted rather than dimmed -- the page is the
+ * darkest surface and cards sit above it, which is the way round that keeps a
+ * list of cards readable.
+ *
+ * Status colours are not simply reused. #15803d on #14141d is unreadable, so
+ * the ink lightens and the tint darkens: the pairing keeps its meaning, and
+ * `--oss-muted` stays above 4.5:1 on a card, which is what it is for.
+ */
+:root.dark {
+  --oss-ink: #eeeef5;
+  --oss-text: #dcdce6;
+  --oss-text-2: #b9b9c8;
+  --oss-muted: #9c9cb2;
+  /* Lifted to stay legible where it is used for a date or a count, which
+     light mode gets away with and a dark card does not. */
+  --oss-faint: #8e8ea6;
+  --oss-primary: oklch(0.72 0.18 274);
+  --oss-primary-tint: #272049;
+  --oss-primary-ink: #c8bef7;
+  --oss-ok: #4ade80;
+  --oss-ok-bg: #10231a;
+  --oss-ok-line: #1f4434;
+  --oss-warn: #fbbf24;
+  --oss-warn-bg: #251f0f;
+  --oss-warn-line: #4a3a16;
+  --oss-bad: #f87171;
+  --oss-bad-bg: #2a1618;
+  --oss-bad-line: #4d2427;
+  --oss-info: #93b4fc;
+  --oss-info-bg: #141d2e;
+  --oss-info-line: #27354f;
+  --oss-note: #c4b5fd;
+  --oss-note-bg: #1f1a2e;
+  --oss-note-line: #382f52;
+  --oss-line: #38384c;
+  --oss-rule: #2a2a3a;
+  --oss-bg: #181824;
+  --oss-card: #20202e;
+  --oss-tint: #262636;
+  --oss-tint-2: #2d2d40;
+  --oss-sidebar-bg: #1c1c2b;
+  --oss-sidebar-active: #2f2b4d;
+  --oss-code-bg: #24222c;
+  --oss-code-line: #3a3546;
+  --oss-code-ink: #d8d6e2;
+  /* A wash lightens here rather than darkens, and the tooltip -- which is the
+     page's foreground colour, so light after dark -- takes a dark divider. */
+  --oss-wash: #ffffff14;
+  --oss-on-primary-wash: rgb(0 0 0 / 20%);
+  --oss-wash-light: #ffffff14;
+  --oss-tip-line: #00000033;
+  --oss-shadow: #00000059;
+  --oss-shadow-lg: #00000073;
+}

@@ -1,13 +1,50 @@
 @import "tailwindcss";
+/* The shared UBIO appearance, as used by Orbit, Lens and Beacon. Vendored
+   from ubio/oss-os packages/ui — see the header of each file. */
+@import "./oss/fonts.css";
+@import "./oss/theme.css";
 
+/* Hand the OSS tokens to Tailwind so ordinary utilities resolve to them:
+   text-ink, bg-card, border-line, text-primary and so on. */
 @theme inline {
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  --font-sans: var(--oss-font-sans);
+  --font-mono: var(--oss-font-mono);
+
+  --color-ink: var(--oss-ink);
+  --color-text: var(--oss-text);
+  --color-text-2: var(--oss-text-2);
+  --color-muted: var(--oss-muted);
+  --color-faint: var(--oss-faint);
+  --color-line: var(--oss-line);
+  --color-rule: var(--oss-rule);
+  --color-page: var(--oss-bg);
+  --color-card: var(--oss-card);
+  --color-tint: var(--oss-tint);
+  --color-tint-2: var(--oss-tint-2);
+  --color-primary: var(--oss-primary);
+  --color-primary-tint: var(--oss-primary-tint);
+  --color-primary-ink: var(--oss-primary-ink);
+  --color-ok: var(--oss-ok);
+  --color-ok-bg: var(--oss-ok-bg);
+  --color-ok-line: var(--oss-ok-line);
+  --color-warn: var(--oss-warn);
+  --color-warn-bg: var(--oss-warn-bg);
+  --color-warn-line: var(--oss-warn-line);
+  --color-bad: var(--oss-bad);
+  --color-bad-bg: var(--oss-bad-bg);
+  --color-bad-line: var(--oss-bad-line);
+  --color-info: var(--oss-info);
+  --color-info-bg: var(--oss-info-bg);
+  --color-note: var(--oss-note);
+  --color-sidebar: var(--oss-sidebar-bg);
+  --color-sidebar-active: var(--oss-sidebar-active);
+
+  --radius: var(--radius, 0.5rem);
 }
 
 body {
-  background: #f8fafc;
-  color: #0f172a;
+  background: var(--oss-bg);
+  color: var(--oss-ink);
 }
 
 main:has([data-full-width]) {

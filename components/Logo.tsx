@@ -1,26 +1,33 @@
-// Placeholder brand mark: a tag (the offer) with a check (validated).
-// To use the official artwork instead, drop it in public/ and swap the <svg>
-// here for an <Image>; nothing else references the mark directly.
-export function LogoMark({ className = "h-6 w-6" }: { className?: string }) {
+// The house mark, in the family used by Orbit, Beacon and the Hub: the same
+// hexagon shell (ubio/oss-os packages/ui/src/brand.tsx) with a glyph inside
+// that belongs to this product — a tag for the offer, a check for validated.
+export function LogoMark({ size = 24 }: { size?: number }) {
   return (
     <svg
-      viewBox="0 0 24 24"
+      viewBox="0 0 48 48"
+      width={size}
+      height={size}
       fill="none"
-      className={className}
       role="img"
       aria-label="UBIO Promotions"
     >
       <path
-        d="M3.2 10.4V4.9A1.7 1.7 0 0 1 4.9 3.2h5.5c.45 0 .88.18 1.2.5l8.6 8.6a1.7 1.7 0 0 1 0 2.4l-5.5 5.5a1.7 1.7 0 0 1-2.4 0l-8.6-8.6a1.7 1.7 0 0 1-.5-1.2Z"
+        d="M24 3 42 13.5v21L24 45 6 34.5v-21Z"
         stroke="currentColor"
-        strokeWidth="1.7"
+        strokeWidth="3"
         strokeLinejoin="round"
       />
-      <circle cx="7.7" cy="7.7" r="1.35" fill="currentColor" />
       <path
-        d="m10.9 13.4 1.9 1.9 3.9-3.9"
+        d="M17 27.5v-8a1.5 1.5 0 0 1 1.5-1.5h8"
         stroke="currentColor"
-        strokeWidth="1.7"
+        strokeWidth="3"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+      <path
+        d="m19.5 26.5 4 4 8-9"
+        stroke="var(--oss-primary)"
+        strokeWidth="3"
         strokeLinecap="round"
         strokeLinejoin="round"
       />
@@ -28,12 +35,15 @@ export function LogoMark({ className = "h-6 w-6" }: { className?: string }) {
   );
 }
 
-export function Logo({ subdued = false }: { subdued?: boolean }) {
+// `UBIO` carries the weight, the product name sits back from it — the same
+// lockup the other platforms use in their sidebar and on their login card.
+export function Logo({ size = 24 }: { size?: number }) {
   return (
-    <span className="flex items-center gap-2">
-      <LogoMark className={`h-6 w-6 ${subdued ? "text-sky-600" : "text-sky-400"}`} />
-      <span className="font-semibold tracking-tight whitespace-nowrap">
-        UBIO <span className={subdued ? "text-sky-600" : "text-sky-400"}>Promotions</span>
+    <span className="flex items-center gap-2.5">
+      <LogoMark size={size} />
+      <span className="flex items-baseline gap-2 whitespace-nowrap">
+        <span className="font-bold tracking-tight">UBIO</span>
+        <span className="text-[0.95em] font-medium text-muted">Promotions</span>
       </span>
     </span>
   );
