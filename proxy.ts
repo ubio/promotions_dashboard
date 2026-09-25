@@ -13,7 +13,10 @@ import {
 // honoured for proxy.ts the way it was for middleware.ts — the compiled
 // bundle contains no trace of it — so the exclusion is made here, where it
 // demonstrably runs. Without this the login page loses its typeface.
-const PUBLIC_PREFIXES = ["/fonts/"];
+// `/icon.svg` is Next's own metadata route, not a public/ file, but it is
+// requested by the signed-out login page just the same. AUTH_DISABLED hides
+// this locally, so both entries are covered by a test rather than by looking.
+const PUBLIC_PREFIXES = ["/fonts/", "/icon.svg", "/favicon.ico"];
 
 export async function proxy(req: NextRequest) {
   const path = req.nextUrl.pathname;
