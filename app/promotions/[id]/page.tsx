@@ -11,6 +11,7 @@ import {
 } from "@/lib/queries";
 import { formatDate, formatDuration, normalizeValidity, truncate } from "@/lib/format";
 import { LocalValidateLink } from "@/components/TodayPromotionLinks";
+import { promotionOriginScope } from "@/lib/promotion-origin";
 
 export const dynamic = "force-dynamic";
 
@@ -52,6 +53,7 @@ export default async function PromotionPage({ params }: { params: Promise<{ id: 
         <KVGrid
           rows={[
             ["Client", promotion.clientId],
+            ["Origin", promotionOriginScope.originOf(promotion)],
             ["Domain", promotion.domain],
             [
               "Merchant",

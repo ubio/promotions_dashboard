@@ -10,8 +10,10 @@
 //     invalid/cannotValidate with ClientFacingFailCodes.
 //  4. Validation issues = everything else checked in the period.
 //  5. No cost fields are selected at all.
+//  6. Only client-imported promotions are shown; extracted ones are internal.
 import type { Document, Filter } from "mongodb";
 import { db } from "./mongo";
+import { promotionOriginScope } from "./promotion-origin";
 import {
   CLIENT_FACING_FAIL_CODES,
   isClientFacingPromotion,
@@ -164,7 +166,10 @@ export interface PortalPromotionFilters {
 export const PORTAL_PAGE_SIZE = 25;
 
 function basePromotionMatch(f: PortalPromotionFilters): Filter<PromoDoc> {
-  const match: Filter<PromoDoc> = { clientId: f.clientId };
+  const match: Filter<PromoDoc> = {
+    clientId: f.clientId,
+    $and: [promotionOriginScope.clientImport()],
+  };
 
   if (f.days) {
     match["latestValidation.createdAt"] = { $gte: Date.now() - f.days * 86400000 };
@@ -318,7 +323,13 @@ export async function getPortalSummary(clientId: string, days: number): Promise<
 
   const rows = await promotions()
     .aggregate<{ _id: null; checked: number; verified: number; validationIssues: number }>([
-      { $match: { clientId, "latestValidation.createdAt": { $gte: since } } },
+      {
+        $match: {
+          clientId,
+          "latestValidation.createdAt": { $gte: since },
+          ...promotionOriginScope.clientImport(),
+        },
+      },
       {
         $group: {
           _id: null,
@@ -362,6 +373,7 @@ export async function getPortalValidationIssueReasons(
           clientId,
           "latestValidation.createdAt": { $gte: since },
           $expr: { $not: [isClientFacingPromotionExpr()] },
+          ...promotionOriginScope.clientImport(),
         },
       },
       {
@@ -410,7 +422,7 @@ export async function getPortalValidationIssueReasons(
 }
 
 export async function getPortalDomains(clientId: string, days?: number): Promise<string[]> {
-  const filter: Filter<PromoDoc> = { clientId };
+  const filter: Filter<PromoDoc> = { clientId, ...promotionOriginScope.clientImport() };
   if (days) {
     filter["latestValidation.createdAt"] = { $gte: Date.now() - days * 86400000 };
   }
@@ -423,7 +435,7 @@ export async function getPortalPromotion(
   id: string
 ): Promise<PortalPromotion | null> {
   const row = await promotions().findOne(
-    { _id: id, clientId },
+    { _id: id, clientId, ...promotionOriginScope.clientImport() },
     {
       projection: {
         domain: 1,

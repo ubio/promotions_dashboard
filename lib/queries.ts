@@ -1,6 +1,7 @@
 import type { Document, Filter } from "mongodb";
 import { db } from "./mongo";
 import { escapeRegex, validityVariants } from "./format";
+import { promotionOriginScope } from "./promotion-origin";
 
 // These collections use string ids (nanoid-style), not ObjectId.
 type PromoDoc = Document & { _id: string };
@@ -90,7 +91,7 @@ export interface PromotionFilters {
 }
 
 export async function getPromotions(f: PromotionFilters) {
-  const filter: Filter<PromoDoc> = {};
+  const filter: Filter<PromoDoc> = { $and: [promotionOriginScope.clientImport()] };
   if (f.clientId) filter.clientId = f.clientId;
   if (f.validityStatus) filter.validityStatus = { $in: validityVariants(f.validityStatus) };
   if (f.q) {
@@ -238,7 +239,12 @@ export async function getDailyStats(days: number, clientId?: string): Promise<Da
 export async function getValidityBreakdown(clientId?: string): Promise<Map<string, number>> {
   const rows = await coll("todayPromotions")
     .aggregate([
-      ...(clientId ? [{ $match: { clientId } }] : []),
+      {
+        $match: {
+          ...promotionOriginScope.clientImport(),
+          ...(clientId ? { clientId } : {}),
+        },
+      },
       { $group: { _id: "$validityStatus", n: { $sum: 1 } } },
     ])
     .toArray();
@@ -304,7 +310,9 @@ export async function getClientIds(): Promise<string[]> {
 }
 
 export async function getPromotionClientIds(): Promise<string[]> {
-  return (await coll("todayPromotions").distinct("clientId")).filter(Boolean) as string[];
+  return (
+    await coll("todayPromotions").distinct("clientId", promotionOriginScope.clientImport())
+  ).filter(Boolean) as string[];
 }
 
 export async function getFailCodes(): Promise<string[]> {
