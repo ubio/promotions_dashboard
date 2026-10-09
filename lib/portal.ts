@@ -14,6 +14,7 @@
 import type { Document, Filter } from "mongodb";
 import { db } from "./mongo";
 import { promotionOriginScope } from "./promotion-origin";
+import { PromotionApplicability, promotionApplicabilityScope } from "./promotion-applicability";
 import {
   CLIENT_FACING_FAIL_CODES,
   isClientFacingPromotion,
@@ -159,6 +160,7 @@ export interface PortalPromotionFilters {
   outcome?: "verified" | "validation_issues";
   finding?: "issue";
   domain?: string;
+  applicability?: PromotionApplicability;
   q?: string;
   page?: number;
 }
@@ -176,6 +178,10 @@ function basePromotionMatch(f: PortalPromotionFilters): Filter<PromoDoc> {
   }
 
   if (f.domain) match.domain = f.domain;
+
+  if (f.applicability) {
+    match.$and = [...(match.$and ?? []), promotionApplicabilityScope.filter(f.applicability)];
+  }
 
   if (f.q) {
     const rx = { $regex: escapeRegex(f.q), $options: "i" };
@@ -238,6 +244,8 @@ export interface PortalPromotion {
   expirationDate?: string;
   discountPercent?: number;
   discountCurrency?: string;
+  applicability: PromotionApplicability;
+  productIds: string[];
   outcome: "verified" | "validation_issues";
   validityStatus: string | null;
   reason: string;
@@ -270,6 +278,8 @@ function toPortalPromotion(r: Document): PortalPromotion {
     discountCurrency: r.benefits?.discountCurrency
       ? String(r.benefits.discountCurrency)
       : undefined,
+    applicability: promotionApplicabilityScope.of(r),
+    productIds: promotionApplicabilityScope.productIds(r),
     outcome: verified ? "verified" : "validation_issues",
     validityStatus: r.validityStatus ? normalizeValidity(r.validityStatus) : null,
     reason: portalReason(failCodes, reasoning),
@@ -307,6 +317,9 @@ export async function getPortalPromotions(
       failCodes: 1,
       latestValidation: 1,
       systemMeta: 1,
+      applicability: 1,
+      productIds: 1,
+      productName: 1,
     })
     .toArray();
   return { items: rows.map(toPortalPromotion), total, page, pages };
@@ -450,6 +463,9 @@ export async function getPortalPromotion(
         failCodes: 1,
         latestValidation: 1,
         systemMeta: 1,
+        applicability: 1,
+        productIds: 1,
+        productName: 1,
       },
     }
   );

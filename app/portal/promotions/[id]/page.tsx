@@ -4,6 +4,7 @@ import Badge from "@/components/Badge";
 import { Section, KVGrid } from "@/components/Section";
 import { requireClientSession } from "@/lib/auth";
 import { getPortalPromotion } from "@/lib/portal";
+import { promotionApplicabilityScope } from "@/lib/promotion-applicability";
 import { formatDate } from "@/lib/format";
 
 export const dynamic = "force-dynamic";
@@ -38,6 +39,19 @@ export default async function PortalPromotionPage({
         <KVGrid
           rows={[
             ["Domain", promotion.domain],
+            [
+              "Applies to",
+              <span key="applicability" className="flex flex-wrap items-center gap-1.5">
+                <Badge variant={promotion.applicability}>
+                  {promotionApplicabilityScope.label(promotion.applicability)}
+                </Badge>
+                {promotion.productIds.map((sku) => (
+                  <Badge key={sku} variant="code">
+                    {sku}
+                  </Badge>
+                ))}
+              </span>,
+            ],
             ["Country", promotion.countryCode],
             ["Title", promotion.title],
             ["Description", promotion.description],

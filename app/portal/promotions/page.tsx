@@ -3,6 +3,10 @@ import Badge from "@/components/Badge";
 import Pagination from "@/components/Pagination";
 import { requireClientSession } from "@/lib/auth";
 import {
+  PROMOTION_APPLICABILITIES,
+  promotionApplicabilityScope,
+} from "@/lib/promotion-applicability";
+import {
   getPortalDomains,
   getPortalPromotions,
   getPortalValidationIssueReasons,
@@ -50,6 +54,7 @@ export default async function PortalPromotionsPage({
   const reason = str(sp.reason);
   const issue = str(sp.issue);
   const domain = str(sp.domain);
+  const applicability = promotionApplicabilityScope.parse(str(sp.applicability));
   const page = Number(str(sp.page) ?? "1") || 1;
 
   const filters = {
@@ -61,6 +66,7 @@ export default async function PortalPromotionsPage({
     reason,
     issue,
     domain,
+    applicability,
     page,
   };
 
@@ -76,6 +82,7 @@ export default async function PortalPromotionsPage({
     outcome,
     finding,
     domain,
+    applicability,
     reason: undefined as string | undefined,
     issue: undefined as string | undefined,
   };
@@ -85,6 +92,7 @@ export default async function PortalPromotionsPage({
   if (outcome) params.outcome = outcome;
   if (finding) params.finding = finding;
   if (domain) params.domain = domain;
+  if (applicability) params.applicability = applicability;
   if (reason) params.reason = reason;
   if (issue) params.issue = issue;
 
@@ -147,6 +155,19 @@ export default async function PortalPromotionsPage({
             <option key={d}>{d}</option>
           ))}
         </select>
+        <select
+          name="applicability"
+          defaultValue={applicability ?? ""}
+          className="rounded border border-line px-2 py-1.5"
+          aria-label="Applies to"
+        >
+          <option value="">All applicability</option>
+          {PROMOTION_APPLICABILITIES.map((a) => (
+            <option key={a} value={a}>
+              {promotionApplicabilityScope.label(a)}
+            </option>
+          ))}
+        </select>
         <button className="rounded bg-primary px-4 py-1.5 text-card hover:bg-primary-ink">
           Apply
         </button>
@@ -186,6 +207,7 @@ export default async function PortalPromotionsPage({
               <th className="px-3 py-2">When</th>
               <th className="px-3 py-2">Merchant</th>
               <th className="px-3 py-2">Offer</th>
+              <th className="px-3 py-2">Applies to</th>
               <th className="px-3 py-2">Validity</th>
               <th className="px-3 py-2">Reason</th>
               <th className="px-3 py-2">What we found</th>
@@ -217,6 +239,11 @@ export default async function PortalPromotionsPage({
                     </div>
                   )}
                 </td>
+                <td className="whitespace-nowrap px-3 py-2">
+                  <Badge variant={p.applicability}>
+                    {promotionApplicabilityScope.label(p.applicability)}
+                  </Badge>
+                </td>
                 <td className="px-3 py-2">
                   {p.validityStatus ? (
                     <Badge variant={p.validityStatus}>{p.validityStatus}</Badge>
@@ -241,7 +268,7 @@ export default async function PortalPromotionsPage({
             ))}
             {result.items.length === 0 && (
               <tr>
-                <td colSpan={7} className="px-3 py-8 text-center text-faint">
+                <td colSpan={8} className="px-3 py-8 text-center text-faint">
                   No promotions match this selection.
                 </td>
               </tr>

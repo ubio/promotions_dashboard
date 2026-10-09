@@ -14,6 +14,8 @@ const STYLES: Record<string, string> = {
   conclusion: "bg-primary-tint text-primary-ink",
   error: "bg-warn-bg text-warn",
   code: "bg-rule text-text font-mono",
+  "site-wide": "bg-primary-tint text-primary-ink",
+  sku: "bg-line text-text",
 };
 
 export default function Badge({
