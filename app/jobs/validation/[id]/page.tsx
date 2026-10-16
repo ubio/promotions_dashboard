@@ -3,9 +3,10 @@ import { notFound } from "next/navigation";
 import Badge from "@/components/Badge";
 import RawJson from "@/components/RawJson";
 import { Section, KVGrid } from "@/components/Section";
-import { getValidationJob, getPromotion, getPromotionByUniqId } from "@/lib/queries";
-import { formatDate, formatDuration } from "@/lib/format";
 import { LocalValidateLink, PromotionIdLink } from "@/components/TodayPromotionLinks";
+import ValidationRunSetup from "@/components/ValidationRunSetup";
+import { getValidationJob, getPromotion, getPromotionByUniqId, getMerchantBrowsersByDomain } from "@/lib/queries";
+import { formatDate, formatDuration } from "@/lib/format";
 
 export const dynamic = "force-dynamic";
 
@@ -34,6 +35,9 @@ export default async function ValidationJobPage({ params, searchParams }: {
     ? ((await getPromotion(job.promotionId)) ??
       (job.promotionUniqId ? await getPromotionByUniqId(job.promotionUniqId) : null))
     : null;
+  const browsers = typeof job.domain === "string" ? await getMerchantBrowsersByDomain([job.domain]) : new Map<string, string>();
+  const browser = typeof job.domain === "string" ? browsers.get(job.domain) : undefined;
+  const networkMode = typeof job.networkMode === "string" ? job.networkMode : undefined;
 
   const llmCosts: Record<string, unknown>[] = job.llmCosts ?? [];
   const totalLlmCost = llmCosts.reduce((s, c) => s + (Number(c.totalCost) || 0), 0);
@@ -59,6 +63,7 @@ export default async function ValidationJobPage({ params, searchParams }: {
             ["Duration", formatDuration(job.time)],
             ["Client", job.clientId],
             ["Domain", job.domain],
+            ["Browser", <ValidationRunSetup key="browser" browser={browser} networkMode={networkMode} />],
             ["Country", job.countryCode],
             [
               "Source URL",

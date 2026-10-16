@@ -147,6 +147,25 @@ export async function getMerchant(merchantId: string) {
   return coll("merchants").findOne({ _id: merchantId });
 }
 
+// Browser engine lives on the merchant, not the validation log. Prefer a row
+// that actually has one when a domain has more than one merchant document.
+export async function getMerchantBrowsersByDomain(domains: string[]): Promise<Map<string, string>> {
+  const unique = [...new Set(domains.filter((domain) => domain !== ""))];
+  const browsers = new Map<string, string>();
+  if (unique.length === 0) return browsers;
+  const rows = await coll("merchants")
+    .find({ domain: { $in: unique } })
+    .project({ domain: 1, browser: 1 })
+    .toArray();
+  for (const row of rows) {
+    if (typeof row.domain !== "string" || typeof row.browser !== "string" || row.browser === "") {
+      continue;
+    }
+    if (!browsers.has(row.domain)) browsers.set(row.domain, row.browser);
+  }
+  return browsers;
+}
+
 export interface DailyStat {
   date: string;
   success: number;

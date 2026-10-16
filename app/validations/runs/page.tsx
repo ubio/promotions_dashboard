@@ -2,6 +2,7 @@ import Link from "next/link";
 import Badge from "@/components/Badge";
 import ReportsFilterBar from "@/components/reports/ReportsFilterBar";
 import { LocalValidateLink, PromotionIdLink } from "@/components/TodayPromotionLinks";
+import ValidationRunSetup from "@/components/ValidationRunSetup";
 import {
   getFailCodeBreakdown,
   getReportClientIds,
@@ -15,6 +16,7 @@ import {
 } from "@/lib/reports";
 import { isAutomationIssueRun, isClientFacingRun } from "@/lib/fail-codes";
 import { formatCost, formatCount, formatDate, sumLlmCosts, truncate } from "@/lib/format";
+import { getMerchantBrowsersByDomain } from "@/lib/queries";
 
 export const dynamic = "force-dynamic";
 
@@ -50,6 +52,9 @@ export default async function RunsPage({ searchParams }: { searchParams: Promise
       getReportClientIds(),
       getReportDomains(),
     ]);
+  const browsers = await getMerchantBrowsersByDomain(
+    items.flatMap((run) => (run.domain ? [run.domain] : []))
+  );
 
   const qs = reportQueryString(filters);
   // Same filters minus the fail-code, for the "clear" chip and the code links.
@@ -144,6 +149,7 @@ export default async function RunsPage({ searchParams }: { searchParams: Promise
               <th className="px-3 py-2">When</th>
               <th className="px-3 py-2">Customer</th>
               <th className="px-3 py-2">Merchant</th>
+              <th className="px-3 py-2">Browser</th>
               <th className="px-3 py-2">Promotion</th>
               <th className="px-3 py-2">Validate</th>
               <th className="px-3 py-2">Outcome</th>
@@ -169,6 +175,12 @@ export default async function RunsPage({ searchParams }: { searchParams: Promise
                   </td>
                   <td className="whitespace-nowrap px-3 py-2">{r.clientId ?? "—"}</td>
                   <td className="px-3 py-2 font-mono text-xs">{r.domain ?? "—"}</td>
+                  <td className="whitespace-nowrap px-3 py-2">
+                    <ValidationRunSetup
+                      browser={r.domain ? browsers.get(r.domain) : undefined}
+                      networkMode={r.networkMode}
+                    />
+                  </td>
                   <td className="whitespace-nowrap px-3 py-2">
                     <PromotionIdLink id={r.promotionId} />
                   </td>
@@ -210,7 +222,7 @@ export default async function RunsPage({ searchParams }: { searchParams: Promise
             })}
             {items.length === 0 && (
               <tr>
-                <td colSpan={10} className="px-3 py-8 text-center text-faint">
+                <td colSpan={11} className="px-3 py-8 text-center text-faint">
                   No validations match this selection.
                 </td>
               </tr>
