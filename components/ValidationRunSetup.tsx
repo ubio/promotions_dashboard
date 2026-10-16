@@ -1,20 +1,14 @@
 import BrowserEngineIcon from "@/components/BrowserEngineIcon";
 import { networkTypeLabel, parseBrowserEngine } from "@/lib/validation-setup";
 
-export default function ValidationRunSetup({
-  browser,
-  networkMode,
-}: {
-  browser?: string;
-  networkMode?: string;
-}) {
+export function BrowserCell({ browser }: { browser?: string }) {
   const engine = parseBrowserEngine(browser);
-  const network = networkTypeLabel(networkMode);
-  if (!engine && !network) return <span className="text-faint">—</span>;
-  return (
-    <span className="inline-flex items-center gap-1.5 whitespace-nowrap">
-      {engine ? <BrowserEngineIcon engine={engine} /> : null}
-      <span className="text-xs text-text">{network ?? "—"}</span>
-    </span>
-  );
+  if (!engine) return <span className="text-faint">—</span>;
+  return <BrowserEngineIcon engine={engine} />;
+}
+
+export function ProxyTypeCell({ networkMode }: { networkMode?: string }) {
+  const label = networkTypeLabel(networkMode);
+  if (!label) return <span className="text-faint">—</span>;
+  return <span className="text-xs">{label}</span>;
 }

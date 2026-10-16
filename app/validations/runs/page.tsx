@@ -2,7 +2,7 @@ import Link from "next/link";
 import Badge from "@/components/Badge";
 import ReportsFilterBar from "@/components/reports/ReportsFilterBar";
 import { LocalValidateLink, PromotionIdLink } from "@/components/TodayPromotionLinks";
-import ValidationRunSetup from "@/components/ValidationRunSetup";
+import { BrowserCell, ProxyTypeCell } from "@/components/ValidationRunSetup";
 import {
   getFailCodeBreakdown,
   getReportClientIds,
@@ -150,6 +150,7 @@ export default async function RunsPage({ searchParams }: { searchParams: Promise
               <th className="px-3 py-2">Customer</th>
               <th className="px-3 py-2">Merchant</th>
               <th className="px-3 py-2">Browser</th>
+              <th className="px-3 py-2">Proxy type</th>
               <th className="px-3 py-2">Promotion</th>
               <th className="px-3 py-2">Validate</th>
               <th className="px-3 py-2">Outcome</th>
@@ -176,10 +177,10 @@ export default async function RunsPage({ searchParams }: { searchParams: Promise
                   <td className="whitespace-nowrap px-3 py-2">{r.clientId ?? "—"}</td>
                   <td className="px-3 py-2 font-mono text-xs">{r.domain ?? "—"}</td>
                   <td className="whitespace-nowrap px-3 py-2">
-                    <ValidationRunSetup
-                      browser={r.domain ? browsers.get(r.domain) : undefined}
-                      networkMode={r.networkMode}
-                    />
+                    <BrowserCell browser={r.domain ? browsers.get(r.domain) : undefined} />
+                  </td>
+                  <td className="whitespace-nowrap px-3 py-2">
+                    <ProxyTypeCell networkMode={r.networkMode} />
                   </td>
                   <td className="whitespace-nowrap px-3 py-2">
                     <PromotionIdLink id={r.promotionId} />
@@ -222,7 +223,7 @@ export default async function RunsPage({ searchParams }: { searchParams: Promise
             })}
             {items.length === 0 && (
               <tr>
-                <td colSpan={11} className="px-3 py-8 text-center text-faint">
+                <td colSpan={12} className="px-3 py-8 text-center text-faint">
                   No validations match this selection.
                 </td>
               </tr>
