@@ -3,10 +3,12 @@ import { StackedSeriesChart, VALIDATION_OUTCOME_SERIES, ValidationSplitBar } fro
 import { redirectIfPortalUser, requireInternalSession } from "@/lib/auth";
 import { TableHeaderLabel } from "@/components/HelpHint";
 import { REPORT_COLUMN_HINTS } from "@/lib/report-column-hints";
+import OverviewCustomerSelect from "@/components/OverviewCustomerSelect";
 import {
   getReport,
   getDailySeriesForOverview,
   getFailCodeBreakdown,
+  getReportClientIds,
   getUniqueValidationStats,
   previousPeriod,
   reportQueryString,
@@ -60,16 +62,22 @@ function Delta({ current, previous }: { current: number; previous: number }) {
   );
 }
 
-export default async function Overview() {
+type Search = { clientId?: string | string[] };
+
+export default async function Overview({ searchParams }: { searchParams: Promise<Search> }) {
   await redirectIfPortalUser();
   await requireInternalSession();
+
+  const requested = (await searchParams).clientId;
+  const clientId = typeof requested === "string" && requested !== "" ? requested : undefined;
 
   const to = new Date().toISOString().slice(0, 10);
   const from = shiftDate(to, -29);
   const filters: ReportFilters = { from, to, groupBy: "client" };
+  if (clientId) filters.clientIds = [clientId];
   const prev = previousPeriod(from, to);
 
-  const [current, comparison, daily, failCodes, uniqueValidations, prevUniqueValidations] =
+  const [current, comparison, daily, failCodes, uniqueValidations, prevUniqueValidations, clientIds] =
     await Promise.all([
       getReport(filters),
       getReport({ ...filters, ...prev }),
@@ -77,6 +85,7 @@ export default async function Overview() {
       getFailCodeBreakdown({ ...filters, outcomes: ["no_result"] }),
       getUniqueValidationStats(filters),
       getUniqueValidationStats({ ...filters, ...prev }),
+      getReportClientIds(),
     ]);
 
   const t = current.totals;
@@ -89,11 +98,14 @@ export default async function Overview() {
 
   return (
     <div className="space-y-5">
-      <div>
-        <h1 className="text-xl font-semibold">Overview</h1>
-        <p className="text-xs text-muted">
-          Last 30 days · {from} → {to}
-        </p>
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div>
+          <h1 className="text-xl font-semibold">Overview</h1>
+          <p className="text-xs text-muted">
+            Last 30 days{clientId ? ` · ${clientId}` : ""} · {from} → {to}
+          </p>
+        </div>
+        <OverviewCustomerSelect clientIds={clientIds} selected={clientId} />
       </div>
 
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
