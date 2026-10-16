@@ -409,6 +409,7 @@ export interface ValidationExportRow {
   sourceUrl?: string;
   importBundle?: string;
   networkMode?: string;
+  browser?: string;
 }
 
 // Streamed straight to CSV; capped so a wide range can't exhaust memory.

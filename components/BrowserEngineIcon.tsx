@@ -62,14 +62,9 @@ function ChromiumfishIcon() {
 
 function ChromatonIcon() {
   return (
-    <svg viewBox="0 0 16 16" width="16" height="16" aria-hidden="true">
-      <circle cx="8" cy="8" r="6.2" fill="#f4b400" />
-      <path fill="#db4437" d="M8 1.8A6.2 6.2 0 0 0 2.4 5.2L8 8z" />
-      <path fill="#0f9d58" d="M8 14.2A6.2 6.2 0 0 0 13.6 10.8L8 8z" />
-      <path fill="#4285f4" d="M2.4 10.8A6.2 6.2 0 0 0 8 14.2L8 8z" />
-      <circle cx="8" cy="8" r="2.3" fill="#f7f7fb" />
-      <circle cx="8" cy="8" r="1.3" fill="#4285f4" />
-    </svg>
+    // Favicon from the Chromaton repo (branding/chromaton/icon.png).
+    // eslint-disable-next-line @next/next/no-img-element
+    <img src="/browsers/chromaton.png" alt="" width={16} height={16} aria-hidden="true" />
   );
 }
 

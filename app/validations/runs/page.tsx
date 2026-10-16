@@ -53,7 +53,7 @@ export default async function RunsPage({ searchParams }: { searchParams: Promise
       getReportDomains(),
     ]);
   const browsers = await getMerchantBrowsersByDomain(
-    items.flatMap((run) => (run.domain ? [run.domain] : []))
+    items.flatMap((run) => (run.domain && !run.browser ? [run.domain] : []))
   );
 
   const qs = reportQueryString(filters);
@@ -177,7 +177,7 @@ export default async function RunsPage({ searchParams }: { searchParams: Promise
                   <td className="whitespace-nowrap px-3 py-2">{r.clientId ?? "—"}</td>
                   <td className="px-3 py-2 font-mono text-xs">{r.domain ?? "—"}</td>
                   <td className="whitespace-nowrap px-3 py-2">
-                    <BrowserCell browser={r.domain ? browsers.get(r.domain) : undefined} />
+                    <BrowserCell browser={r.browser || (r.domain ? browsers.get(r.domain) : undefined)} />
                   </td>
                   <td className="whitespace-nowrap px-3 py-2">
                     <ProxyTypeCell networkMode={r.networkMode} />

@@ -35,8 +35,11 @@ export default async function ValidationJobPage({ params, searchParams }: {
     ? ((await getPromotion(job.promotionId)) ??
       (job.promotionUniqId ? await getPromotionByUniqId(job.promotionUniqId) : null))
     : null;
-  const browsers = typeof job.domain === "string" ? await getMerchantBrowsersByDomain([job.domain]) : new Map<string, string>();
-  const browser = typeof job.domain === "string" ? browsers.get(job.domain) : undefined;
+  const logBrowser = typeof job.browser === "string" && job.browser !== "" ? job.browser : undefined;
+  const domain = typeof job.domain === "string" ? job.domain : undefined;
+  const merchantBrowser =
+    logBrowser || !domain ? undefined : (await getMerchantBrowsersByDomain([domain])).get(domain);
+  const browser = logBrowser ?? merchantBrowser;
   const networkMode = typeof job.networkMode === "string" ? job.networkMode : undefined;
 
   const llmCosts: Record<string, unknown>[] = job.llmCosts ?? [];
