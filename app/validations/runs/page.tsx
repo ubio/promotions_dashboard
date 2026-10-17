@@ -2,7 +2,7 @@ import Link from "next/link";
 import Badge from "@/components/Badge";
 import ReportsFilterBar from "@/components/reports/ReportsFilterBar";
 import { LocalValidateLink, PromotionIdLink } from "@/components/TodayPromotionLinks";
-import { BrowserCell, ProxyTypeCell } from "@/components/ValidationRunSetup";
+import { BrowserCell, BrowserSequence, ProxyTypeCell } from "@/components/ValidationRunSetup";
 import {
   getFailCodeBreakdown,
   getReportClientIds,
@@ -177,7 +177,11 @@ export default async function RunsPage({ searchParams }: { searchParams: Promise
                   <td className="whitespace-nowrap px-3 py-2">{r.clientId ?? "—"}</td>
                   <td className="px-3 py-2 font-mono text-xs">{r.domain ?? "—"}</td>
                   <td className="whitespace-nowrap px-3 py-2">
-                    <BrowserCell browser={r.browser || (r.domain ? browsers.get(r.domain) : undefined)} />
+                    {r.browsers && r.browsers.length > 0 ? (
+                      <BrowserSequence browsers={r.browsers} />
+                    ) : (
+                      <BrowserCell browser={r.browser || (r.domain ? browsers.get(r.domain) : undefined)} />
+                    )}
                   </td>
                   <td className="whitespace-nowrap px-3 py-2">
                     <ProxyTypeCell networkMode={r.networkMode} />

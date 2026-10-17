@@ -4,7 +4,7 @@ import Badge from "@/components/Badge";
 import RawJson from "@/components/RawJson";
 import { Section, KVGrid } from "@/components/Section";
 import { LocalValidateLink, PromotionIdLink } from "@/components/TodayPromotionLinks";
-import { BrowserCell, ProxyTypeCell } from "@/components/ValidationRunSetup";
+import { BrowserCell, BrowserSequence, ProxyTypeCell } from "@/components/ValidationRunSetup";
 import { getValidationJob, getPromotion, getPromotionByUniqId, getMerchantBrowsersByDomain } from "@/lib/queries";
 import { formatDate, formatDuration } from "@/lib/format";
 
@@ -66,7 +66,11 @@ export default async function ValidationJobPage({ params, searchParams }: {
             ["Duration", formatDuration(job.time)],
             ["Client", job.clientId],
             ["Domain", job.domain],
-            ["Browser", <BrowserCell key="browser" browser={browser} />],
+            ["Browser", Array.isArray(job.browsers) && job.browsers.length > 0 ? (
+              <BrowserSequence key="browser" browsers={job.browsers} />
+            ) : (
+              <BrowserCell key="browser" browser={browser} />
+            )],
             ["Proxy type", <ProxyTypeCell key="proxy" networkMode={networkMode} />],
             ["Country", job.countryCode],
             [
