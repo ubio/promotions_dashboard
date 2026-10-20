@@ -54,6 +54,9 @@ export default async function RootLayout({
                   <Link href="/" className="hover:text-ink">
                     Overview
                   </Link>
+                  <Link href="/billing/google" className="hover:text-ink">
+                    Google billing
+                  </Link>
                   <Link href="/reports" className="hover:text-ink">
                     Reports
                   </Link>
