@@ -1,8 +1,6 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { isClientPortalPath } from "@/lib/client-portal-path";
-
 declare global {
   interface Window {
     google?: {
@@ -30,7 +28,7 @@ export default function GoogleSignIn({ clientId, next }: { clientId: string; nex
             const res = await fetch("/api/auth/google", {
               method: "POST",
               headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({ credential: response.credential }),
+              body: JSON.stringify({ credential: response.credential, next }),
             });
             const body = await res.json().catch(() => ({}));
             if (!res.ok) {
@@ -38,7 +36,9 @@ export default function GoogleSignIn({ clientId, next }: { clientId: string; nex
               return;
             }
             const destination =
-              body.role === "client" && !isClientPortalPath(next) ? "/portal" : next;
+              typeof body.destination === "string" && body.destination.startsWith("/")
+                ? body.destination
+                : "/";
             window.location.assign(destination);
           } catch {
             setError("Sign-in failed. Please try again.");

@@ -1,6 +1,6 @@
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
-import { isClientPortalPath, shouldFenceToPortal } from "./client-portal-path";
+import { clientHome, GOOGLE_CLIENT_ID, isClientPortalPath } from "./client-portal-path";
 import {
   isAuthDisabled,
   localDevUser,
@@ -27,12 +27,36 @@ async function isPreviewingClient(): Promise<boolean> {
   return Boolean((await cookies()).get(VIEW_AS_COOKIE)?.value);
 }
 
-export async function redirectIfPortalUser(): Promise<void> {
+// Client sessions, and internal users previewing a client, leave the internal app.
+export async function fencedClientHome(): Promise<string | null> {
   const user = await getSessionUser();
-  if (!user) return;
-  if (shouldFenceToPortal(user.role, await isPreviewingClient())) {
-    redirect("/portal");
+  if (!user) return null;
+  if (user.role === "client") return clientHome(user.clientId);
+  if (user.role === "internal" && (await isPreviewingClient())) {
+    return clientHome((await cookies()).get(VIEW_AS_COOKIE)?.value);
   }
+  return null;
+}
+
+export async function redirectIfPortalUser(): Promise<void> {
+  const home = await fencedClientHome();
+  if (home) redirect(home);
+}
+
+// Internal staff see costs. A Google client, or an internal user previewing Google, does not.
+export async function requireGoogleBillingSession(): Promise<{ clientView: boolean }> {
+  const user = await getSessionUser();
+  if (!user) redirect("/login");
+
+  if (user.role === "internal") {
+    const preview = await getPreviewClientId();
+    if (!preview) return { clientView: false };
+    if (preview === GOOGLE_CLIENT_ID) return { clientView: true };
+    redirect(clientHome(preview));
+  }
+
+  if (user.clientId === GOOGLE_CLIENT_ID) return { clientView: true };
+  redirect(clientHome(user.clientId));
 }
 
 export interface PortalAccess {
@@ -49,12 +73,17 @@ export async function requireClientSession(): Promise<PortalAccess> {
 
   if (user.role === "client") {
     if (!user.clientId) redirect("/login");
+    if (user.clientId === GOOGLE_CLIENT_ID) redirect(clientHome(user.clientId));
     return { clientId: user.clientId, previewing: false };
   }
 
   // Internal users may preview, but only with an explicit selection.
+  // Google's client view is the billing page, so the offers portal stays closed.
   const viewAs = (await cookies()).get(VIEW_AS_COOKIE)?.value;
-  if (user.role === "internal" && viewAs) return { clientId: viewAs, previewing: true };
+  if (user.role === "internal" && viewAs) {
+    if (viewAs === GOOGLE_CLIENT_ID) redirect(clientHome(viewAs));
+    return { clientId: viewAs, previewing: true };
+  }
   redirect("/portal/preview");
 }
 
@@ -67,7 +96,8 @@ export async function getPreviewClientId(): Promise<string | null> {
 export async function requireInternalSession(): Promise<SessionUser> {
   const user = await getSessionUser();
   if (!user) redirect("/login");
-  if (shouldFenceToPortal(user.role, await isPreviewingClient())) redirect("/portal");
+  const home = await fencedClientHome();
+  if (home) redirect(home);
   if (user.role !== "internal") redirect("/login");
   return user;
 }

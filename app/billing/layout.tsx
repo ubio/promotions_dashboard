@@ -1,6 +1,6 @@
-import { requireInternalSession } from "@/lib/auth";
+import { requireGoogleBillingSession } from "@/lib/auth";
 
 export default async function BillingLayout({ children }: { children: React.ReactNode }) {
-  await requireInternalSession();
+  await requireGoogleBillingSession();
   return children;
 }

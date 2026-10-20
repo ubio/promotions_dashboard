@@ -3,10 +3,11 @@
 // that spend in USD at a fixed rate. The rate is the median GBP–USD over the
 // past 10 years, not a live quote.
 import type { Filter } from "mongodb";
+import { GOOGLE_CLIENT_ID } from "./client-portal-path";
 import { db } from "./mongo";
 import { matchPreset } from "@/components/reports/PeriodPresets";
 
-export const GOOGLE_CLIENT_ID = "Google";
+export { GOOGLE_CLIENT_ID };
 export const GBP_PER_EXPORTED_PROMOTION = 0.33;
 export const GBP_TO_USD = 1.3;
 export const GOOGLE_CONTRACT_BUDGET_GBP = 170_000;

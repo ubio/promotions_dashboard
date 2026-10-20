@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { isClientPortalPath, shouldFenceToPortal } from "./lib/client-portal-path";
+import { clientHome, isClientAllowedPath } from "./lib/client-portal-path";
 import {
   isAuthDisabled,
   localDevUser,
@@ -23,7 +23,8 @@ export async function proxy(req: NextRequest) {
   if (PUBLIC_PREFIXES.some((prefix) => path.startsWith(prefix))) {
     return NextResponse.next();
   }
-  const previewing = Boolean(req.cookies.get(VIEW_AS_COOKIE)?.value);
+  const viewAs = req.cookies.get(VIEW_AS_COOKIE)?.value;
+  const previewing = Boolean(viewAs);
 
   let user = null;
   if (isAuthDisabled()) {
@@ -40,13 +41,15 @@ export async function proxy(req: NextRequest) {
   }
 
   const internalViewAsApi = user.role === "internal" && path === "/api/view-as";
+  const fencedClientId =
+    user.role === "client" ? user.clientId : user.role === "internal" && viewAs ? viewAs : undefined;
 
-  if (shouldFenceToPortal(user.role, previewing)) {
+  if (fencedClientId) {
     if (path.startsWith("/api/") && !internalViewAsApi) {
       return NextResponse.json({ error: "Not permitted" }, { status: 403 });
     }
-    if (!isClientPortalPath(path) && !internalViewAsApi) {
-      return NextResponse.redirect(new URL("/portal", req.url));
+    if (!isClientAllowedPath(fencedClientId, path) && !internalViewAsApi) {
+      return NextResponse.redirect(new URL(clientHome(fencedClientId), req.url));
     }
   }
 

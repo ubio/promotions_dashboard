@@ -14,8 +14,8 @@ export default async function PortalPreviewPicker() {
       <div>
         <h1 className="text-xl font-semibold">Preview the client view</h1>
         <p className="mt-1 text-sm text-muted">
-          See the portal exactly as a client sees it. This is read-only and changes nothing for
-          them.
+          See exactly what that client sees. Google opens the billing page; everyone else opens
+          the offers portal. This is read-only and changes nothing for them.
         </p>
       </div>
 

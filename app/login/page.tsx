@@ -2,6 +2,7 @@ import { redirect } from "next/navigation";
 import GoogleSignIn from "@/components/GoogleSignIn";
 import { Logo } from "@/components/Logo";
 import { getSessionUser } from "@/lib/auth";
+import { clientHome } from "@/lib/client-portal-path";
 import { isAuthDisabled } from "@/lib/session";
 
 export const dynamic = "force-dynamic";
@@ -13,7 +14,7 @@ export default async function LoginPage({
 }) {
   const { next } = await searchParams;
   const user = await getSessionUser();
-  if (user?.role === "client") redirect("/portal");
+  if (user?.role === "client") redirect(clientHome(user.clientId));
 
   // Only allow internal redirect targets.
   const target = next && next.startsWith("/") && !next.startsWith("//") ? next : "/";

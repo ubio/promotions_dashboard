@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getSessionUser, VIEW_AS_COOKIE } from "@/lib/auth";
+import { clientHome } from "@/lib/client-portal-path";
 import { getReportClientIds } from "@/lib/reports";
 
 export const dynamic = "force-dynamic";
@@ -35,7 +36,7 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: "Unknown client" }, { status: 400 });
   }
 
-  const res = redirectTo("/portal");
+  const res = redirectTo(clientHome(requested));
   res.cookies.set(VIEW_AS_COOKIE, requested, {
     httpOnly: true,
     secure: process.env.NODE_ENV === "production",

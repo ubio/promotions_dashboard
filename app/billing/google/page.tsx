@@ -1,4 +1,5 @@
 import GoogleBillingFilterBar from "@/components/google/GoogleBillingFilterBar";
+import { requireGoogleBillingSession } from "@/lib/auth";
 import { formatCount } from "@/lib/format";
 import {
   GBP_PER_EXPORTED_PROMOTION,
@@ -100,6 +101,8 @@ function BudgetSlider({ promotionsSent }: { promotionsSent: number }) {
 }
 
 export default async function GoogleBillingPage({ searchParams }: { searchParams: Promise<Search> }) {
+  const { clientView } = await requireGoogleBillingSession();
+  const showInternalCosts = !clientView;
   const filters = parseGoogleBillingSearch(await searchParams);
   const contractPromise = googleBillingHasNarrowing(filters) ? getGoogleBilling({}) : null;
   const [report, countryCodes] = await Promise.all([
@@ -150,8 +153,12 @@ export default async function GoogleBillingPage({ searchParams }: { searchParams
           />
         </div>
         <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
-          <Tile label="Proxy" value={formatGigabytes(totals.proxyBytes)} sub="traffic used" />
-          <Tile label="LLM cost" value={formatUsd(totals.llmCostUsd)} sub="USD" />
+          {showInternalCosts && (
+            <>
+              <Tile label="Proxy" value={formatGigabytes(totals.proxyBytes)} sub="traffic used" />
+              <Tile label="LLM cost" value={formatUsd(totals.llmCostUsd)} sub="USD" />
+            </>
+          )}
           <Tile
             label="Export cost"
             value={formatUsd(exportCostUsd(totals.promotionsSent))}
@@ -171,9 +178,9 @@ export default async function GoogleBillingPage({ searchParams }: { searchParams
                 <th className="py-1 pr-4">Extracted</th>
                 <th className="py-1 pr-4">Qualified</th>
                 <th className="py-1 pr-4">Validated</th>
-                <th className="py-1 pr-4">Proxy</th>
+                {showInternalCosts && <th className="py-1 pr-4">Proxy</th>}
                 <th className="py-1 pr-4">Exported</th>
-                <th className="py-1 pr-4">LLM cost</th>
+                {showInternalCosts && <th className="py-1 pr-4">LLM cost</th>}
                 <th className="py-1">Export cost</th>
               </tr>
             </thead>
@@ -185,15 +192,17 @@ export default async function GoogleBillingPage({ searchParams }: { searchParams
                   <td className="py-1.5 pr-4">{formatCount(row.promotionsExtracted)}</td>
                   <td className="py-1.5 pr-4">{formatCount(row.promotionsQualified)}</td>
                   <td className="py-1.5 pr-4">{formatCount(row.validations)}</td>
-                  <td className="py-1.5 pr-4">{formatGigabytes(row.proxyBytes)}</td>
+                  {showInternalCosts && (
+                    <td className="py-1.5 pr-4">{formatGigabytes(row.proxyBytes)}</td>
+                  )}
                   <td className="py-1.5 pr-4">{formatCount(row.promotionsSent)}</td>
-                  <td className="py-1.5 pr-4">{formatUsd(row.llmCostUsd)}</td>
+                  {showInternalCosts && <td className="py-1.5 pr-4">{formatUsd(row.llmCostUsd)}</td>}
                   <td className="whitespace-nowrap py-1.5">{formatExportCost(row.promotionsSent)}</td>
                 </tr>
               ))}
               {report.countries.length === 0 && (
                 <tr>
-                  <td colSpan={9} className="py-6 text-center text-faint">
+                  <td colSpan={showInternalCosts ? 9 : 7} className="py-6 text-center text-faint">
                     No Google daily stats in this period.
                   </td>
                 </tr>
@@ -207,9 +216,11 @@ export default async function GoogleBillingPage({ searchParams }: { searchParams
                   <td className="py-2 pr-4">{formatCount(totals.promotionsExtracted)}</td>
                   <td className="py-2 pr-4">{formatCount(totals.promotionsQualified)}</td>
                   <td className="py-2 pr-4">{formatCount(totals.validations)}</td>
-                  <td className="py-2 pr-4">{formatGigabytes(totals.proxyBytes)}</td>
+                  {showInternalCosts && (
+                    <td className="py-2 pr-4">{formatGigabytes(totals.proxyBytes)}</td>
+                  )}
                   <td className="py-2 pr-4">{formatCount(totals.promotionsSent)}</td>
-                  <td className="py-2 pr-4">{formatUsd(totals.llmCostUsd)}</td>
+                  {showInternalCosts && <td className="py-2 pr-4">{formatUsd(totals.llmCostUsd)}</td>}
                   <td className="whitespace-nowrap py-2">{formatExportCost(totals.promotionsSent)}</td>
                 </tr>
               </tfoot>
@@ -220,8 +231,8 @@ export default async function GoogleBillingPage({ searchParams }: { searchParams
 
       <p className="text-xs text-faint">
         Export cost is {formatGbp(GBP_PER_EXPORTED_PROMOTION)} per promotion sent back, calculated in
-        GBP and shown in USD at a fixed rate of {GBP_TO_USD} ({formatUsd(GBP_TO_USD)} per £1). LLM
-        cost is the validation spend already stored in USD.
+        GBP and shown in USD at a fixed rate of {GBP_TO_USD} ({formatUsd(GBP_TO_USD)} per £1).
+        {showInternalCosts && " LLM cost is the validation spend already stored in USD."}
       </p>
     </div>
   );

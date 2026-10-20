@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { OAuth2Client } from "google-auth-library";
+import { clientDestination, safeInternalNext } from "@/lib/client-portal-path";
 import { resolveAccess } from "@/lib/clients";
 import { isAuthDisabled, SESSION_COOKIE, SESSION_MAX_AGE_SECONDS, signSession } from "@/lib/session";
 
@@ -13,7 +14,16 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "GOOGLE_OAUTH_CLIENT_ID is not configured" }, { status: 500 });
   }
 
-  const { credential } = await req.json().catch(() => ({}));
+  const parsed: unknown = await req.json().catch(() => null);
+  const credential =
+    parsed !== null &&
+    typeof parsed === "object" &&
+    "credential" in parsed &&
+    typeof parsed.credential === "string"
+      ? parsed.credential
+      : undefined;
+  const next =
+    parsed !== null && typeof parsed === "object" && "next" in parsed ? parsed.next : undefined;
   if (!credential) {
     return NextResponse.json({ error: "credential is required" }, { status: 400 });
   }
@@ -46,7 +56,9 @@ export async function POST(req: NextRequest) {
       clientId: access.role === "client" ? access.clientId : undefined,
     });
 
-    const res = NextResponse.json({ ok: true, role: access.role });
+    const destination =
+      access.role === "client" ? clientDestination(access.clientId, next) : safeInternalNext(next);
+    const res = NextResponse.json({ ok: true, role: access.role, destination });
     res.cookies.set(SESSION_COOKIE, token, {
       httpOnly: true,
       secure: process.env.NODE_ENV === "production",

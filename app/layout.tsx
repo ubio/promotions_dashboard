@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { Logo } from "@/components/Logo";
 import { getPreviewClientId, getSessionUser } from "@/lib/auth";
+import { GOOGLE_BILLING_PATH, GOOGLE_CLIENT_ID } from "@/lib/client-portal-path";
 import { isAuthDisabled } from "@/lib/session";
 import "./globals.css";
 
@@ -17,6 +18,11 @@ export default async function RootLayout({
 }>) {
   const user = await getSessionUser();
   const previewingClientId = await getPreviewClientId();
+  const googleClientView =
+    previewingClientId === GOOGLE_CLIENT_ID ||
+    (user?.role === "client" && user.clientId === GOOGLE_CLIENT_ID);
+  const clientView = user?.role === "client" || Boolean(previewingClientId);
+  const home = googleClientView ? GOOGLE_BILLING_PATH : clientView ? "/portal" : "/";
   return (
     <html lang="en" className="h-full antialiased">
       <body className="min-h-full flex flex-col font-sans">
@@ -36,11 +42,15 @@ export default async function RootLayout({
         {user && (
         <header className="border-b border-line bg-card text-ink">
           <div className="w-full px-4 py-3 flex flex-wrap items-center gap-x-6 gap-y-1.5">
-            <Link href={user.role === "client" || previewingClientId ? "/portal" : "/"}>
+            <Link href={home}>
               <Logo />
             </Link>
             <nav className="flex flex-wrap gap-x-4 gap-y-1 text-sm text-muted">
-              {user.role === "client" || previewingClientId ? (
+              {googleClientView ? (
+                <Link href={GOOGLE_BILLING_PATH} className="hover:text-ink">
+                  Billing
+                </Link>
+              ) : clientView ? (
                 <>
                   <Link href="/portal" className="hover:text-ink">
                     Overview
