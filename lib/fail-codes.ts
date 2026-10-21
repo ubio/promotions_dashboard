@@ -100,3 +100,42 @@ export function isClientFacingRun(r: {
 export function isAutomationIssueRun(r: { failCodes?: string[] }): boolean {
   return hasAny(r.failCodes, AUTOMATION_FAILURE_FAIL_CODES);
 }
+
+// Plain-English explanations shown to clients beside each issue label.
+//
+// Keyed by LABEL, not by fail code: getPortalValidationIssueReasons groups the
+// codes by their label and returns the label as `code`, so several fail codes
+// arrive here as one row. Keying by code silently fell through to the generic
+// text for every row.
+//
+// Written for someone outside UBIO: say what happened on the merchant's site
+// and what it means for their offer, without naming our tooling, our costs or
+// the internals of how a check runs. An issue is never a verdict on the offer
+// — say so where it could be mistaken for one.
+const VALIDATION_ISSUE_HINTS_BY_LABEL: Record<string, string> = {
+  "Bot detection":
+    "The merchant's site identified our check as automated traffic and blocked it, so the offer could not be verified. It tells you nothing about whether the offer works.",
+  "Automation issue":
+    "Our check did not finish on this merchant's site. The offer has not been judged either way — these are retried on our side.",
+  "Website UI preventing validation":
+    "The page behaved in a way the check could not follow — a layout change, a popup, or a step that did not load.",
+  "Validation requires user account":
+    "The offer could only be reached from inside a signed-in account. We do not create accounts on merchant sites, so it could not be checked.",
+  "Product requires personalization":
+    "The product needed options chosen — a size or a configuration — before the offer could be applied, so the check could not complete.",
+  "Newsletter signup required":
+    "The offer is only released after subscribing to the merchant's newsletter, which we do not do on your behalf.",
+  "Account blocked on merchant site":
+    "The merchant's site blocked the account the check was using, so the offer could not be verified.",
+  "Validation could not be completed":
+    "The check stopped before reaching a verdict and did not record a specific reason. These are retried on our side.",
+};
+
+// Takes the label the portal groups by, or a raw fail code as a fallback.
+export function validationIssueHint(labelOrCode: string): string {
+  const direct = VALIDATION_ISSUE_HINTS_BY_LABEL[labelOrCode];
+  if (direct) return direct;
+  const viaCode = VALIDATION_ISSUE_HINTS_BY_LABEL[validationIssueLabel(labelOrCode)];
+  if (viaCode) return viaCode;
+  return "Our check could not finish for this offer. It has not been judged either way — these are retried on our side.";
+}

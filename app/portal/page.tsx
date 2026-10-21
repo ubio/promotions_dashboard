@@ -1,5 +1,7 @@
 import Link from "next/link";
+import { HelpHint } from "@/components/HelpHint";
 import { requireClientSession } from "@/lib/auth";
+import { validationIssueHint } from "@/lib/fail-codes";
 import { getPortalSummary, getPortalValidationIssueReasons } from "@/lib/portal";
 import { formatCount } from "@/lib/format";
 
@@ -12,15 +14,20 @@ function Tile({
   value,
   sub,
   href,
+  hint,
 }: {
   label: string;
   value: string;
   sub?: string;
   href?: string;
+  hint?: string;
 }) {
   const inner = (
     <>
-      <p className="text-xs uppercase tracking-wide text-faint">{label}</p>
+      <p className="flex items-center gap-1.5 text-xs uppercase tracking-wide text-faint">
+        {label}
+        {hint && <HelpHint hint={hint} placement="below" />}
+      </p>
       <p className="mt-1 text-2xl font-semibold text-ink">{value}</p>
       {sub && <p className="text-xs text-muted">{sub}</p>}
     </>
@@ -80,18 +87,21 @@ export default async function PortalOverview({
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-3">
         <Tile
           label="Offers checked"
+          hint="Promotions you sent us that we attempted to verify in this period."
           value={formatCount(summary.checked)}
           sub={`last ${days} days`}
           href={link("")}
         />
         <Tile
           label="Successfully verified"
+          hint="Offers where we finished the check and have evidence to share with you — the result and a screenshot of what we saw."
           value={formatCount(summary.verified)}
           sub="with evidence we can share"
           href={link("&outcome=verified")}
         />
         <Tile
           label="Validation issues"
+          hint="Offers where we could not finish the check. These are not judged invalid; they are retried on our side."
           value={formatCount(summary.validationIssues)}
           sub="could not complete verification"
           href={link("&outcome=validation_issues")}
@@ -120,7 +130,10 @@ export default async function PortalOverview({
                   )}
                   className="flex items-center justify-between gap-3 rounded px-2 py-1.5 text-sm hover:bg-page"
                 >
-                  <span className="text-text">{r.label}</span>
+                  <span className="flex items-center gap-1.5 text-text">
+                    {r.label}
+                    <HelpHint hint={validationIssueHint(r.code)} placement="below" />
+                  </span>
                   <span className="text-muted">{formatCount(r.promotions)}</span>
                 </Link>
               </li>
