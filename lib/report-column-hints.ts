@@ -4,12 +4,12 @@ export const REPORT_COLUMN_HINTS = {
   runs: "Total validation runs in the selected period.",
   validations: "Total validation runs in the selected period.",
   reachedResult:
-    "Runs that finished with a conclusion — the promotion was judged valid or invalid.",
+    "Runs that finished with a conclusion. The promotion was judged valid or invalid.",
   noResult: "Runs that ended as errors before reaching a conclusion.",
   clientFacing:
-    "Conclusions the client can act on — a successful run, or a failed conclusion with a client-facing fail code.",
+    "Conclusions the client can act on: a successful run, or a failed conclusion with a client-facing fail code.",
   automationIssues:
-    "Runs tagged with automation fail codes — bot detection, agent errors, proxy issues, timeouts, and similar.",
+    "Runs tagged with automation fail codes: bot detection, agent errors, proxy issues, timeouts, and similar.",
   other: OTHER_FAIL_CODES.join(", "),
   promotionsSentToClient:
     "Promotions delivered to the client in export files during the selected period.",
@@ -19,8 +19,8 @@ export const REPORT_COLUMN_HINTS = {
 } as const;
 
 // The Overview tiles. These are the first numbers anyone sees and the ones
-// most often asked about in Slack, so each says what it counts and — where
-// two tiles look alike — how it differs from its neighbour.
+// most often asked about in Slack, so each says what it counts and, where
+// two tiles look alike, how it differs from its neighbour.
 export const OVERVIEW_HINTS = {
   recordsReceived:
     "Promotions clients sent us to check, from their import files, in the selected period.",
@@ -32,7 +32,7 @@ export const OVERVIEW_HINTS = {
   validationRuns:
     "How many times we ran a check. Higher than the number of promotions, because a promotion is often retried.",
   resultsReached:
-    "The share of runs that finished with a verdict. The rest stopped before reaching one — bot detection, timeouts and similar.",
+    "The share of runs that finished with a verdict. The rest stopped before reaching one, through bot detection, timeouts and similar.",
   uniqueValidations:
     "Distinct promotions we attempted, counting each one once however many times it was retried.",
   uniqueResultsReached:

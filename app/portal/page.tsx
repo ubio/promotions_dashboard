@@ -94,7 +94,7 @@ export default async function PortalOverview({
         />
         <Tile
           label="Successfully verified"
-          hint="Offers where we finished the check and have evidence to share with you — the result and a screenshot of what we saw."
+          hint="Offers where we finished the check and have evidence to share with you: the result, and a screenshot of what we saw."
           value={formatCount(summary.verified)}
           sub="with evidence we can share"
           href={link("&outcome=verified")}

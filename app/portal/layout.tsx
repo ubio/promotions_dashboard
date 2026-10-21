@@ -8,7 +8,7 @@ export default function PortalLayout({ children }: { children: React.ReactNode }
       <footer className="mt-8 border-t border-line pt-4 text-xs text-faint">
         This view comes from UBIO&rsquo;s internal validation tooling, shared so you can see
         results and evidence first-hand. It is not a supported product, so please raise anything
-        you need — questions, data requests or changes — with your usual UBIO contact rather than
+        you need, whether questions, data requests or changes, with your usual UBIO contact rather than
         here.
       </footer>
     </div>

@@ -300,7 +300,7 @@ export const GOOGLE_BILLING_HINTS = {
   extracted:
     "Offers we found on those pages. Higher than the number of pages, because a page often carries more than one offer.",
   qualified:
-    "Offers meeting the Google promotion criteria — structure, benefit type and conditions. Offers that do not qualify are never sent.",
+    "Offers meeting the Google promotion criteria for structure, benefit type and conditions. Offers that do not qualify are never sent.",
   validated: "Qualified offers we ran a check on. Internal figure.",
   sent: "Offers we checked, found valid, and sent back to you. These are the ones charged for.",
   proxy: "Network traffic used running the checks. Internal figure.",

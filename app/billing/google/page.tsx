@@ -103,7 +103,7 @@ function BudgetSlider({ promotionsSent }: { promotionsSent: number }) {
       <p className="mt-3 text-xs text-muted">
         {formatBudgetPercent(percent)} of the {formatGbp(GOOGLE_CONTRACT_BUDGET_GBP)} budget spent
         exporting promotions
-        {over ? ` — ${formatGbp(spentGbp - GOOGLE_CONTRACT_BUDGET_GBP)} over budget` : ""}. The bar is
+        {over ? `, ${formatGbp(spentGbp - GOOGLE_CONTRACT_BUDGET_GBP)} over budget` : ""}. The bar is
         the budget still left. All time, every country.
       </p>
     </section>
