@@ -28,11 +28,10 @@ export const dynamic = "force-dynamic";
 
 type Search = { [key: string]: string | string[] | undefined };
 
-function qualifiedSub(qualified: number, extracted: number): string {
-  const extractedLabel = `${formatCount(extracted)} extracted`;
+function shareOfExtracted(qualified: number, extracted: number): string {
   const share = qualifiedSharePercent(qualified, extracted);
-  if (share == null) return extractedLabel;
-  return `${extractedLabel} · ${formatSharePercent(share)}`;
+  if (share == null) return "no promotions extracted";
+  return `${formatSharePercent(share)} of extracted`;
 }
 
 function shareOfQualified(count: number, qualified: number): string {
@@ -63,8 +62,9 @@ function BudgetSlider({ promotionsSent }: { promotionsSent: number }) {
   const spentGbp = exportCostGbp(promotionsSent);
   const spentUsd = exportCostUsd(promotionsSent);
   const percent = budgetUsedPercent(spentGbp);
-  const filled = Math.min(100, Math.max(0, percent));
   const over = spentGbp > GOOGLE_CONTRACT_BUDGET_GBP;
+  const remainingGbp = Math.max(0, GOOGLE_CONTRACT_BUDGET_GBP - spentGbp);
+  const remaining = over ? 0 : Math.min(100, Math.max(0, 100 - percent));
 
   return (
     <section className="rounded-lg border border-line bg-card p-4">
@@ -78,23 +78,23 @@ function BudgetSlider({ promotionsSent }: { promotionsSent: number }) {
       <div
         className="relative h-3 rounded-full bg-tint"
         role="meter"
-        aria-label="Export spend against the Google contract budget"
+        aria-label="Contract budget remaining"
         aria-valuemin={0}
         aria-valuemax={GOOGLE_CONTRACT_BUDGET_GBP}
-        aria-valuenow={Math.min(spentGbp, GOOGLE_CONTRACT_BUDGET_GBP)}
-        aria-valuetext={`${formatGbp(spentGbp)} of ${formatGbp(GOOGLE_CONTRACT_BUDGET_GBP)}`}
+        aria-valuenow={remainingGbp}
+        aria-valuetext={`${formatGbp(remainingGbp)} remaining of ${formatGbp(GOOGLE_CONTRACT_BUDGET_GBP)}`}
       >
-        <div className="absolute inset-y-0 left-0 rounded-full bg-ok" style={{ width: `${filled}%` }} />
+        <div className="absolute inset-y-0 left-0 rounded-full bg-ok" style={{ width: `${remaining}%` }} />
         <div
           className="absolute top-1/2 h-5 w-5 -translate-y-1/2 rounded-full border-2 border-card bg-ok shadow"
-          style={{ left: `clamp(0px, calc(${filled}% - 10px), calc(100% - 20px))` }}
+          style={{ left: `clamp(0px, calc(${remaining}% - 10px), calc(100% - 20px))` }}
         />
       </div>
       <p className="mt-3 text-xs text-muted">
         {formatBudgetPercent(percent)} of the {formatGbp(GOOGLE_CONTRACT_BUDGET_GBP)} budget spent
         exporting promotions
-        {over ? ` — ${formatGbp(spentGbp - GOOGLE_CONTRACT_BUDGET_GBP)} over budget` : ""}. All time,
-        every country.
+        {over ? ` — ${formatGbp(spentGbp - GOOGLE_CONTRACT_BUDGET_GBP)} over budget` : ""}. The bar is
+        the budget still left. All time, every country.
       </p>
     </section>
   );
@@ -135,19 +135,22 @@ export default async function GoogleBillingPage({ searchParams }: { searchParams
           value={formatCount(totals.sourcesImported)}
           sub="SKU URLs imported"
         />
-        <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
+        <div className={`grid grid-cols-1 gap-3 ${showInternalCosts ? "md:grid-cols-4" : "md:grid-cols-3"}`}>
+          <Tile label="Promotions extracted" value={formatCount(totals.promotionsExtracted)} />
           <Tile
             label="Promotions qualified"
             value={formatCount(totals.promotionsQualified)}
-            sub={qualifiedSub(totals.promotionsQualified, totals.promotionsExtracted)}
+            sub={shareOfExtracted(totals.promotionsQualified, totals.promotionsExtracted)}
           />
+          {showInternalCosts && (
+            <Tile
+              label="Promotions validated"
+              value={formatCount(totals.validations)}
+              sub={shareOfQualified(totals.validations, totals.promotionsQualified)}
+            />
+          )}
           <Tile
-            label="Promotions validated"
-            value={formatCount(totals.validations)}
-            sub={shareOfQualified(totals.validations, totals.promotionsQualified)}
-          />
-          <Tile
-            label="Promotions exported"
+            label="Valid - Sent"
             value={formatCount(totals.promotionsSent)}
             sub={shareOfQualified(totals.promotionsSent, totals.promotionsQualified)}
           />
@@ -177,7 +180,7 @@ export default async function GoogleBillingPage({ searchParams }: { searchParams
                 <th className="py-1 pr-4">Sources</th>
                 <th className="py-1 pr-4">Extracted</th>
                 <th className="py-1 pr-4">Qualified</th>
-                <th className="py-1 pr-4">Validated</th>
+                {showInternalCosts && <th className="py-1 pr-4">Validated</th>}
                 {showInternalCosts && <th className="py-1 pr-4">Proxy</th>}
                 <th className="py-1 pr-4">Exported</th>
                 {showInternalCosts && <th className="py-1 pr-4">LLM cost</th>}
@@ -191,7 +194,9 @@ export default async function GoogleBillingPage({ searchParams }: { searchParams
                   <td className="py-1.5 pr-4">{formatCount(row.sourcesImported)}</td>
                   <td className="py-1.5 pr-4">{formatCount(row.promotionsExtracted)}</td>
                   <td className="py-1.5 pr-4">{formatCount(row.promotionsQualified)}</td>
-                  <td className="py-1.5 pr-4">{formatCount(row.validations)}</td>
+                  {showInternalCosts && (
+                    <td className="py-1.5 pr-4">{formatCount(row.validations)}</td>
+                  )}
                   {showInternalCosts && (
                     <td className="py-1.5 pr-4">{formatGigabytes(row.proxyBytes)}</td>
                   )}
@@ -202,7 +207,7 @@ export default async function GoogleBillingPage({ searchParams }: { searchParams
               ))}
               {report.countries.length === 0 && (
                 <tr>
-                  <td colSpan={showInternalCosts ? 9 : 7} className="py-6 text-center text-faint">
+                  <td colSpan={showInternalCosts ? 9 : 6} className="py-6 text-center text-faint">
                     No Google daily stats in this period.
                   </td>
                 </tr>
@@ -215,7 +220,9 @@ export default async function GoogleBillingPage({ searchParams }: { searchParams
                   <td className="py-2 pr-4">{formatCount(totals.sourcesImported)}</td>
                   <td className="py-2 pr-4">{formatCount(totals.promotionsExtracted)}</td>
                   <td className="py-2 pr-4">{formatCount(totals.promotionsQualified)}</td>
-                  <td className="py-2 pr-4">{formatCount(totals.validations)}</td>
+                  {showInternalCosts && (
+                    <td className="py-2 pr-4">{formatCount(totals.validations)}</td>
+                  )}
                   {showInternalCosts && (
                     <td className="py-2 pr-4">{formatGigabytes(totals.proxyBytes)}</td>
                   )}
