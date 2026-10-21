@@ -42,7 +42,7 @@ export function HelpHint({
       <button
         type="button"
         ref={triggerRef}
-        className="inline-flex h-3.5 w-3.5 shrink-0 cursor-help items-center justify-center rounded-full border border-line bg-card text-[10px] leading-none normal-case text-faint"
+        className="inline-flex h-4 w-4 shrink-0 cursor-help items-center justify-center rounded-full border border-line bg-tint-2 text-[11px] font-semibold leading-none normal-case text-primary-ink transition hover:border-primary hover:bg-primary-tint hover:text-primary"
         aria-label={hint}
         aria-describedby={tooltip ? tipId : undefined}
         onMouseEnter={show}
