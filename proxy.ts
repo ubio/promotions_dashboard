@@ -18,9 +18,18 @@ import {
 // this locally, so both entries are covered by a test rather than by looking.
 const PUBLIC_PREFIXES = ["/fonts/", "/icon.svg", "/favicon.ico"];
 
+// The Lens feed authenticates itself with a bearer token rather than a session
+// cookie, so the session redirect below would turn every call into a 307 to
+// /login. Exact match, never a prefix: this opens one route, not /api/lens/*.
+// The route itself answers nobody unless LENS_FEED_TOKEN is set.
+const LENS_FEED_PATH = "/api/lens/validations";
+
 export async function proxy(req: NextRequest) {
   const path = req.nextUrl.pathname;
   if (PUBLIC_PREFIXES.some((prefix) => path.startsWith(prefix))) {
+    return NextResponse.next();
+  }
+  if (path === LENS_FEED_PATH) {
     return NextResponse.next();
   }
   const viewAs = req.cookies.get(VIEW_AS_COOKIE)?.value;
