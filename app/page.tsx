@@ -1,8 +1,8 @@
 import Link from "next/link";
 import { StackedSeriesChart, VALIDATION_OUTCOME_SERIES, ValidationSplitBar } from "@/components/charts";
 import { redirectIfPortalUser, requireInternalSession } from "@/lib/auth";
-import { TableHeaderLabel } from "@/components/HelpHint";
-import { REPORT_COLUMN_HINTS } from "@/lib/report-column-hints";
+import { HelpHint, TableHeaderLabel } from "@/components/HelpHint";
+import { OVERVIEW_HINTS, REPORT_COLUMN_HINTS } from "@/lib/report-column-hints";
 import OverviewCustomerSelect from "@/components/OverviewCustomerSelect";
 import {
   getReport,
@@ -26,12 +26,14 @@ function Tile({
   sub,
   href,
   newBadge,
+  hint,
 }: {
   label: string;
   value: string;
   sub?: React.ReactNode;
   href: string;
   newBadge?: boolean;
+  hint?: string;
 }) {
   return (
     <Link
@@ -40,6 +42,7 @@ function Tile({
     >
       <p className="flex items-center gap-1.5 text-xs uppercase tracking-wide text-faint">
         {label}
+        {hint && <HelpHint hint={hint} placement="below" />}
         {newBadge && (
           <span className="rounded bg-ok-bg px-1 py-px text-[10px] font-medium normal-case tracking-normal text-ok/60">
             new
@@ -111,24 +114,28 @@ export default async function Overview({ searchParams }: { searchParams: Promise
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
         <Tile
           label="Records received"
+          hint={OVERVIEW_HINTS.recordsReceived}
           value={formatCount(t.imported)}
           sub={<Delta current={t.imported} previous={p.imported} />}
           href={`/reports?${qs}`}
         />
         <Tile
           label="Promotions sent to client"
+          hint={OVERVIEW_HINTS.promotionsSentToClient}
           value={formatCount(t.sentBack)}
           sub={<Delta current={t.sentBack} previous={p.sentBack} />}
           href={`/reports?${qs}`}
         />
         <Tile
           label="LLM cost"
+          hint={OVERVIEW_HINTS.llmCost}
           value={formatCost(t.cost)}
           sub={<Delta current={t.cost} previous={p.cost} />}
           href={`/reports?${qs}`}
         />
         <Tile
           label="Revenue estimate"
+          hint={OVERVIEW_HINTS.revenueEstimate}
           value={t.revenue == null ? "—" : `$${t.revenue.toFixed(2)}`}
           sub={ratesConfigured() ? "promotions sent × client rate" : "set CLIENT_VALIDATION_RATES"}
           href={`/reports?${qs}`}
@@ -138,18 +145,21 @@ export default async function Overview({ searchParams }: { searchParams: Promise
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
         <Tile
           label="Validation runs"
+          hint={OVERVIEW_HINTS.validationRuns}
           value={formatCount(t.runs)}
           sub={<Delta current={t.runs} previous={p.runs} />}
           href={`/validations/runs?${qs}`}
         />
         <Tile
           label="Validation Results Reached"
+          hint={OVERVIEW_HINTS.resultsReached}
           value={successRate == null ? "—" : `${successRate.toFixed(0)}%`}
           sub={`${formatCount(t.resolved)} of ${formatCount(t.runs)} runs reached a result`}
           href={`/validations/runs?${qs}`}
         />
         <Tile
           label="Unique validations"
+          hint={OVERVIEW_HINTS.uniqueValidations}
           value={formatCount(uniqueValidations.uniqueValidations)}
           sub={
             <Delta
@@ -162,6 +172,7 @@ export default async function Overview({ searchParams }: { searchParams: Promise
         />
         <Tile
           label="Unique results reached"
+          hint={OVERVIEW_HINTS.uniqueResultsReached}
           value={uniqueReachedPct == null ? "—" : `${uniqueReachedPct.toFixed(0)}%`}
           sub={`${formatCount(uniqueValidations.uniqueResolved)} of ${formatCount(uniqueValidations.uniqueValidations)} promotions reached a result`}
           href={`/validations/runs?${qs}`}

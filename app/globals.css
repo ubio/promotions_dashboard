@@ -3,6 +3,7 @@
    from ubio/oss-os packages/ui — see the header of each file. */
 @import "./oss/fonts.css";
 @import "./oss/theme.css";
+@import "./oss/workspace.css";
 
 /* Hand the OSS tokens to Tailwind so ordinary utilities resolve to them:
    text-ink, bg-card, border-line, text-primary and so on. */
@@ -202,4 +203,52 @@ tr:has(.pending-promotion-outcome:focus-visible) {
   left: auto;
   right: 0;
   transform: none;
+}
+
+/* The shared sidebar's own box comes from the @oss-os/ui Sidebar component,
+   which isn't installed here — workspace.css only styles its innards. These
+   are those few rules, written from the same tokens so the shell matches. */
+.oss-sidebar {
+  width: var(--oss-sidebar-width);
+  flex: none;
+  display: flex;
+  flex-direction: column;
+  background: var(--oss-sidebar-bg);
+  border-right: 1px solid var(--oss-line);
+}
+.oss-sidebar [data-slot="sidebar-content"] {
+  flex: 1;
+  overflow-y: auto;
+}
+.oss-sidebar [data-slot="sidebar-menu-button"] {
+  display: flex;
+  align-items: center;
+  color: var(--oss-text);
+  text-decoration: none;
+}
+.oss-sidebar .brand {
+  color: var(--oss-ink);
+}
+.oss-sidebar .brand span {
+  color: var(--oss-muted);
+  text-transform: uppercase;
+  font-weight: 600;
+}
+
+/* A page that wants the full width (wide tables) opts out of the inset. */
+.page-content:has([data-full-width]) {
+  padding-left: 16px;
+  padding-right: 16px;
+}
+
+@media (max-width: 860px) {
+  .oss-sidebar {
+    display: none;
+  }
+  .workarea {
+    width: 100%;
+  }
+  .page-content {
+    padding: 20px 16px;
+  }
 }

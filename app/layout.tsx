@@ -1,15 +1,77 @@
 import type { Metadata } from "next";
-import Link from "next/link";
-import { Logo } from "@/components/Logo";
+import { Sidebar, type NavGroup } from "@/components/Sidebar";
 import { getPreviewClientId, getSessionUser } from "@/lib/auth";
 import { GOOGLE_BILLING_PATH, GOOGLE_CLIENT_ID } from "@/lib/client-portal-path";
-import { isAuthDisabled } from "@/lib/session";
+import { isAuthDisabled, type SessionUser } from "@/lib/session";
 import "./globals.css";
 
 export const metadata: Metadata = {
   title: "UBIO Promotions",
   description: "UBIO promotions vertical — jobs, promotions and validation evidence",
 };
+
+// Grouped the way the rest of the suite groups: a label says what the group is
+// for, so seven flat links become four short lists you can scan.
+const INTERNAL_NAV: NavGroup[] = [
+  { label: "Today", items: [{ href: "/", label: "Overview" }] },
+  {
+    label: "Validations",
+    items: [
+      { href: "/validations/runs", label: "Runs" },
+      { href: "/reports", label: "Reports" },
+      { href: "/stats/clients", label: "Stats", match: "/stats" },
+    ],
+  },
+  { label: "Promotions", items: [{ href: "/promotions/extracted", label: "Extracted" }] },
+  { label: "Billing", items: [{ href: GOOGLE_BILLING_PATH, label: "Google" }] },
+  { label: "Preview", items: [{ href: "/portal/preview", label: "Client view", match: "/portal" }] },
+];
+
+const CLIENT_NAV: NavGroup[] = [
+  {
+    label: "Your offers",
+    items: [
+      { href: "/portal", label: "Overview" },
+      { href: "/portal/promotions", label: "Offers" },
+    ],
+  },
+];
+
+const GOOGLE_CLIENT_NAV: NavGroup[] = [
+  { label: "Billing", items: [{ href: GOOGLE_BILLING_PATH, label: "Billing" }] },
+];
+
+function initials(user: SessionUser): string {
+  const source = user.name?.trim() || user.email;
+  const parts = source.split(/[\s.@]+/).filter(Boolean);
+  return (parts[0]?.[0] ?? "?").concat(parts[1]?.[0] ?? "").toUpperCase();
+}
+
+function SidebarFooter({ user, clientId }: { user: SessionUser; clientId?: string }) {
+  return (
+    <div className="user-block">
+      <span className="avatar">{initials(user)}</span>
+      <span className="min-w-0">
+        <strong>{user.name || user.email}</strong>
+        <small>{clientId ? `${clientId} · client view` : "Read-only"}</small>
+      </span>
+      {isAuthDisabled() ? (
+        <span className="ml-auto rounded bg-warn-bg px-2 py-0.5 text-xs text-warn">
+          auth off
+        </span>
+      ) : (
+        <form action="/api/auth/logout" method="post" className="ml-auto">
+          <button
+            className="rounded px-2 py-1 text-xs text-muted hover:bg-tint hover:text-ink"
+            title="Sign out"
+          >
+            Sign out
+          </button>
+        </form>
+      )}
+    </div>
+  );
+}
 
 export default async function RootLayout({
   children,
@@ -22,96 +84,46 @@ export default async function RootLayout({
     previewingClientId === GOOGLE_CLIENT_ID ||
     (user?.role === "client" && user.clientId === GOOGLE_CLIENT_ID);
   const clientView = user?.role === "client" || Boolean(previewingClientId);
-  const home = googleClientView ? GOOGLE_BILLING_PATH : clientView ? "/portal" : "/";
+  const clientId = user?.role === "client" ? user.clientId : (previewingClientId ?? undefined);
+
+  const groups = googleClientView
+    ? GOOGLE_CLIENT_NAV
+    : clientView
+      ? CLIENT_NAV
+      : INTERNAL_NAV;
+
   return (
     <html lang="en" className="h-full antialiased">
-      <body className="min-h-full flex flex-col font-sans">
-        {previewingClientId && (
-          <div className="flex flex-wrap items-center justify-center gap-3 border-b border-warn-line bg-warn-bg px-4 py-1.5 text-xs font-medium text-warn">
-            <span>
-              Previewing the client view as <strong>{previewingClientId}</strong> — this is what
-              they see
-            </span>
-            <a href="/api/view-as" className="rounded border border-warn-line px-2 py-0.5 hover:bg-warn-line/40">
-              Exit preview
-            </a>
-          </div>
-        )}
+      <body className="min-h-full font-sans">
         {/* Signed out (i.e. /login) shows no chrome at all — the nav names our
             internal pages, which is more than a stranger at the door should see. */}
-        {user && (
-        <header className="border-b border-line bg-card text-ink">
-          <div className="w-full px-4 py-3 flex flex-wrap items-center gap-x-6 gap-y-1.5">
-            <Link href={home}>
-              <Logo />
-            </Link>
-            <nav className="flex flex-wrap gap-x-4 gap-y-1 text-sm text-muted">
-              {googleClientView ? (
-                <Link href={GOOGLE_BILLING_PATH} className="hover:text-ink">
-                  Billing
-                </Link>
-              ) : clientView ? (
-                <>
-                  <Link href="/portal" className="hover:text-ink">
-                    Overview
-                  </Link>
-                  <Link href="/portal/promotions" className="hover:text-ink">
-                    Offers
-                  </Link>
-                </>
-              ) : (
-                <>
-                  <Link href="/" className="hover:text-ink">
-                    Overview
-                  </Link>
-                  <Link href="/billing/google" className="hover:text-ink">
-                    Google billing
-                  </Link>
-                  <Link href="/reports" className="hover:text-ink">
-                    Reports
-                  </Link>
-                  <Link href="/validations/runs" className="hover:text-ink">
-                    Validations
-                  </Link>
-                  <Link href="/stats/clients" className="hover:text-ink">
-                    Stats
-                  </Link>
-                  <Link href="/promotions/extracted" className="hover:text-ink">
-                    Extracted
-                  </Link>
-                  <Link href="/portal/preview" className="text-faint hover:text-ink">
-                    Client view
-                  </Link>
-                </>
+        {user ? (
+          <div className="flex min-h-screen">
+            <Sidebar
+              groups={groups}
+              footer={<SidebarFooter user={user} clientId={clientId} />}
+            />
+            <div className="workarea flex min-h-screen flex-col">
+              {previewingClientId && (
+                <div className="flex flex-wrap items-center justify-center gap-3 border-b border-warn-line bg-warn-bg px-4 py-1.5 text-xs font-medium text-warn">
+                  <span>
+                    Previewing the client view as <strong>{previewingClientId}</strong> — this is
+                    what they see
+                  </span>
+                  <a
+                    href="/api/view-as"
+                    className="rounded border border-warn-line px-2 py-0.5 hover:bg-warn-line/40"
+                  >
+                    Exit preview
+                  </a>
+                </div>
               )}
-            </nav>
-            <div className="ml-auto flex items-center gap-3 text-xs text-muted">
-              {user.role === "client" ? (
-                <span className="rounded bg-primary-tint px-2 py-0.5 font-medium text-primary-ink">
-                  {user.clientId} · client view
-                </span>
-              ) : (
-                <span className="hidden sm:inline text-faint">read-only</span>
-              )}
-              {isAuthDisabled() ? (
-                <span className="rounded bg-warn-bg px-2 py-0.5 text-warn">auth disabled</span>
-              ) : (
-                user && (
-                  <>
-                    <span className="hidden sm:inline text-text-2">{user.email}</span>
-                    <form action="/api/auth/logout" method="post">
-                      <button className="rounded border border-line px-2 py-1 hover:bg-tint hover:text-ink">
-                        Sign out
-                      </button>
-                    </form>
-                  </>
-                )
-              )}
+              <div className="page-content flex-1">{children}</div>
             </div>
           </div>
-        </header>
+        ) : (
+          <main className="mx-auto w-full max-w-7xl px-4 py-6">{children}</main>
         )}
-        <main className="mx-auto w-full max-w-7xl px-4 py-6 flex-1">{children}</main>
       </body>
     </html>
   );
