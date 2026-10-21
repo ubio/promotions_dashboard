@@ -1,9 +1,11 @@
 import GoogleBillingFilterBar from "@/components/google/GoogleBillingFilterBar";
 import { requireGoogleBillingSession } from "@/lib/auth";
+import { HelpHint, TableHeaderLabel } from "@/components/HelpHint";
 import { formatCount } from "@/lib/format";
 import {
   GBP_PER_EXPORTED_PROMOTION,
   GBP_TO_USD,
+  GOOGLE_BILLING_HINTS,
   GOOGLE_CONTRACT_BUDGET_GBP,
   budgetUsedPercent,
   describeGoogleBillingPeriod,
@@ -44,14 +46,19 @@ function Tile({
   label,
   value,
   sub,
+  hint,
 }: {
   label: string;
   value: string;
   sub?: string;
+  hint?: string;
 }) {
   return (
     <div className="rounded-lg border border-line bg-card px-4 py-3">
-      <p className="text-xs uppercase tracking-wide text-faint">{label}</p>
+      <p className="flex items-center gap-1.5 text-xs uppercase tracking-wide text-faint">
+        {label}
+        {hint && <HelpHint hint={hint} placement="below" />}
+      </p>
       <p className="mt-1 text-2xl font-semibold text-ink">{value}</p>
       {sub && <p className="text-xs text-muted">{sub}</p>}
     </div>
@@ -69,7 +76,10 @@ function BudgetSlider({ promotionsSent }: { promotionsSent: number }) {
   return (
     <section className="rounded-lg border border-line bg-card p-4">
       <div className="mb-3 flex flex-wrap items-baseline justify-between gap-2">
-        <h2 className="text-sm font-semibold text-text">Contract budget</h2>
+        <h2 className="flex items-center gap-1.5 text-sm font-semibold text-text">
+          Contract budget
+          <HelpHint hint={GOOGLE_BILLING_HINTS.contractBudget} placement="below" />
+        </h2>
         <p className="text-sm text-muted [font-variant-numeric:tabular-nums]">
           {formatGbp(spentGbp)} of {formatGbp(GOOGLE_CONTRACT_BUDGET_GBP)}
           <span className="text-faint"> ({formatUsd(spentUsd)})</span>
@@ -131,26 +141,26 @@ export default async function GoogleBillingPage({ searchParams }: { searchParams
 
       <div className="space-y-3">
         <Tile
-          label="Promotion sources"
+          label="Promotion sources" hint={GOOGLE_BILLING_HINTS.sources}
           value={formatCount(totals.sourcesImported)}
           sub="SKU URLs imported"
         />
         <div className={`grid grid-cols-1 gap-3 ${showInternalCosts ? "md:grid-cols-4" : "md:grid-cols-3"}`}>
-          <Tile label="Promotions extracted" value={formatCount(totals.promotionsExtracted)} />
+          <Tile label="Promotions extracted" hint={GOOGLE_BILLING_HINTS.extracted} value={formatCount(totals.promotionsExtracted)} />
           <Tile
-            label="Promotions qualified"
+            label="Promotions qualified" hint={GOOGLE_BILLING_HINTS.qualified}
             value={formatCount(totals.promotionsQualified)}
             sub={shareOfExtracted(totals.promotionsQualified, totals.promotionsExtracted)}
           />
           {showInternalCosts && (
             <Tile
-              label="Promotions validated"
+              label="Promotions validated" hint={GOOGLE_BILLING_HINTS.validated}
               value={formatCount(totals.validations)}
               sub={shareOfQualified(totals.validations, totals.promotionsQualified)}
             />
           )}
           <Tile
-            label="Valid - Sent"
+            label="Valid - Sent" hint={GOOGLE_BILLING_HINTS.sent}
             value={formatCount(totals.promotionsSent)}
             sub={shareOfQualified(totals.promotionsSent, totals.promotionsQualified)}
           />
@@ -158,12 +168,12 @@ export default async function GoogleBillingPage({ searchParams }: { searchParams
         <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
           {showInternalCosts && (
             <>
-              <Tile label="Proxy" value={formatGigabytes(totals.proxyBytes)} sub="traffic used" />
-              <Tile label="LLM cost" value={formatUsd(totals.llmCostUsd)} sub="USD" />
+              <Tile label="Proxy" hint={GOOGLE_BILLING_HINTS.proxy} value={formatGigabytes(totals.proxyBytes)} sub="traffic used" />
+              <Tile label="LLM cost" hint={GOOGLE_BILLING_HINTS.llmCost} value={formatUsd(totals.llmCostUsd)} sub="USD" />
             </>
           )}
           <Tile
-            label="Export cost"
+            label="Export cost" hint={GOOGLE_BILLING_HINTS.exportCost}
             value={formatUsd(exportCostUsd(totals.promotionsSent))}
             sub={`(${formatGbp(exportCostGbp(totals.promotionsSent))})`}
           />
@@ -176,15 +186,15 @@ export default async function GoogleBillingPage({ searchParams }: { searchParams
           <table className="min-w-full text-sm [font-variant-numeric:tabular-nums]">
             <thead className="text-left text-xs uppercase text-muted">
               <tr>
-                <th className="py-1 pr-4">Country</th>
-                <th className="py-1 pr-4">Sources</th>
-                <th className="py-1 pr-4">Extracted</th>
-                <th className="py-1 pr-4">Qualified</th>
-                {showInternalCosts && <th className="py-1 pr-4">Validated</th>}
-                {showInternalCosts && <th className="py-1 pr-4">Proxy</th>}
-                <th className="py-1 pr-4">Exported</th>
-                {showInternalCosts && <th className="py-1 pr-4">LLM cost</th>}
-                <th className="py-1">Export cost</th>
+                <th className="py-1 pr-4"><TableHeaderLabel label="Country" hint={GOOGLE_BILLING_HINTS.country} /></th>
+                <th className="py-1 pr-4"><TableHeaderLabel label="Sources" hint={GOOGLE_BILLING_HINTS.sources} /></th>
+                <th className="py-1 pr-4"><TableHeaderLabel label="Extracted" hint={GOOGLE_BILLING_HINTS.extracted} /></th>
+                <th className="py-1 pr-4"><TableHeaderLabel label="Qualified" hint={GOOGLE_BILLING_HINTS.qualified} /></th>
+                {showInternalCosts && <th className="py-1 pr-4"><TableHeaderLabel label="Validated" hint={GOOGLE_BILLING_HINTS.validated} /></th>}
+                {showInternalCosts && <th className="py-1 pr-4"><TableHeaderLabel label="Proxy" hint={GOOGLE_BILLING_HINTS.proxy} /></th>}
+                <th className="py-1 pr-4"><TableHeaderLabel label="Exported" hint={GOOGLE_BILLING_HINTS.sent} /></th>
+                {showInternalCosts && <th className="py-1 pr-4"><TableHeaderLabel label="LLM cost" hint={GOOGLE_BILLING_HINTS.llmCost} /></th>}
+                <th className="py-1"><TableHeaderLabel label="Export cost" hint={GOOGLE_BILLING_HINTS.exportCost} /></th>
               </tr>
             </thead>
             <tbody className="divide-y divide-rule">

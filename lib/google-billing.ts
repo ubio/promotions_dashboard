@@ -289,3 +289,22 @@ export async function getGoogleBilling(filters: GoogleBillingFilters): Promise<G
   const span = spanRow?.from && spanRow.to ? { from: spanRow.from, to: spanRow.to } : null;
   return { countries, totals: totalsFrom(countries), span };
 }
+
+// Shown beside each figure on /billing/google. Google sees this page as their
+// client view, so the wording is for them: what the number counts and how it
+// relates to the one before it in the funnel. The internal-only figures are
+// marked so they are never shown in the client view.
+export const GOOGLE_BILLING_HINTS = {
+  contractBudget: `Spend against the ${formatGbp(GOOGLE_CONTRACT_BUDGET_GBP)} contract. Only promotions sent back are charged for, so extraction and checking do not draw it down. The bar shows what is left.`,
+  sources: "SKU URLs imported from your feed. One source is one product page we visited.",
+  extracted:
+    "Offers we found on those pages. Higher than the number of pages, because a page often carries more than one offer.",
+  qualified:
+    "Offers meeting the Google promotion criteria — structure, benefit type and conditions. Offers that do not qualify are never sent.",
+  validated: "Qualified offers we ran a check on. Internal figure.",
+  sent: "Offers we checked, found valid, and sent back to you. These are the ones charged for.",
+  proxy: "Network traffic used running the checks. Internal figure.",
+  llmCost: "What we spent with the language-model providers on these checks. Internal figure.",
+  exportCost: `Charged at ${formatGbp(GBP_PER_EXPORTED_PROMOTION)} per promotion sent back, shown in USD at a fixed rate of ${GBP_TO_USD}.`,
+  country: "The locale of the imported URL, not where the merchant is based.",
+} as const;
