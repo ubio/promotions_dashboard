@@ -1,6 +1,6 @@
-// Mirrors promotions-service Stat schema (collection `stats`).
-// One document per (clientId, merchantId). Daily buckets live in last30Days
-// (rolling 30 days + a few future slots). Closed days are rolled into monthlyStats.
+// Mirrors promotions-service daily stats (collection `ziffDavisDailyStats`).
+// One document per (clientId, merchantId, date). Month and all-time totals
+// are sums of those days. Google is stored separately in `googleDailyStats`.
 
 export interface PromotionStats {
   receivedPromotions: number;

@@ -11,18 +11,20 @@ import {
   utcToday,
 } from "./stats-model";
 
-interface StatDoc {
+interface DailyStatDoc {
   _id: string;
   clientId: string;
   merchantId: string;
   merchantDomain: string;
   merchantName?: string;
-  last30Days: Array<PeriodStatsCounters & { date: string; finalized?: boolean }>;
-  monthlyStats: Array<PeriodStatsCounters & { yearMonth: string }>;
+  date: string;
+  finalized?: boolean;
+  promotionsStats?: PeriodStatsCounters["promotionsStats"];
+  validationsStats?: PeriodStatsCounters["validationsStats"];
 }
 
 function statsColl() {
-  return db().collection<StatDoc>("stats");
+  return db().collection<DailyStatDoc>("ziffDavisDailyStats");
 }
 
 export interface ClientPeriodRow extends PeriodStatsCounters {
@@ -61,50 +63,25 @@ const ACTIVITY_MATCH: Document = {
   ],
 };
 
-function periodSumGroup(prefix: string): Document {
+function periodSumGroup(): Document {
+  const sum = (path: string) => ({ $sum: { $ifNull: [`$${path}`, 0] } });
   return {
-    receivedPromotions: { $sum: { $ifNull: [`$${prefix}.promotionsStats.receivedPromotions`, 0] } },
-    promotionsExportedToCsv: {
-      $sum: { $ifNull: [`$${prefix}.promotionsStats.promotionsExportedToCsv`, 0] },
-    },
-    totalPromotionsCount: {
-      $sum: { $ifNull: [`$${prefix}.promotionsStats.totalPromotionsCount`, 0] },
-    },
-    promotionsClientFacingCount: {
-      $sum: { $ifNull: [`$${prefix}.promotionsStats.clientFacingCount`, 0] },
-    },
-    promotionsLeftForDebugCount: {
-      $sum: { $ifNull: [`$${prefix}.promotionsStats.leftForDebugCount`, 0] },
-    },
-    cannotValidateCount: {
-      $sum: { $ifNull: [`$${prefix}.promotionsStats.cannotValidateCount`, 0] },
-    },
-    merchantAutomationIssuesCount: {
-      $sum: { $ifNull: [`$${prefix}.promotionsStats.merchantAutomationIssuesCount`, 0] },
-    },
-    totalValidationsCount: {
-      $sum: { $ifNull: [`$${prefix}.validationsStats.totalValidationsCount`, 0] },
-    },
-    totalValidationsCost: {
-      $sum: { $ifNull: [`$${prefix}.validationsStats.totalValidationsCost`, 0] },
-    },
-    conclusionsCount: { $sum: { $ifNull: [`$${prefix}.validationsStats.conclusionsCount`, 0] } },
-    validationsClientFacingCount: {
-      $sum: { $ifNull: [`$${prefix}.validationsStats.clientFacingCount`, 0] },
-    },
-    validationsLeftForDebugCount: {
-      $sum: { $ifNull: [`$${prefix}.validationsStats.leftForDebugCount`, 0] },
-    },
-    errorsCount: { $sum: { $ifNull: [`$${prefix}.validationsStats.errorsCount`, 0] } },
-    automationFailuresCount: {
-      $sum: { $ifNull: [`$${prefix}.validationsStats.automationFailuresCount`, 0] },
-    },
-    botDetectionValidationCount: {
-      $sum: { $ifNull: [`$${prefix}.validationsStats.botDetectionValidationCount`, 0] },
-    },
-    merchantWebsiteIssuesCount: {
-      $sum: { $ifNull: [`$${prefix}.validationsStats.merchantWebsiteIssuesCount`, 0] },
-    },
+    receivedPromotions: sum("promotionsStats.receivedPromotions"),
+    promotionsExportedToCsv: sum("promotionsStats.promotionsExportedToCsv"),
+    totalPromotionsCount: sum("promotionsStats.totalPromotionsCount"),
+    promotionsClientFacingCount: sum("promotionsStats.clientFacingCount"),
+    promotionsLeftForDebugCount: sum("promotionsStats.leftForDebugCount"),
+    cannotValidateCount: sum("promotionsStats.cannotValidateCount"),
+    merchantAutomationIssuesCount: sum("promotionsStats.merchantAutomationIssuesCount"),
+    totalValidationsCount: sum("validationsStats.totalValidationsCount"),
+    totalValidationsCost: sum("validationsStats.totalValidationsCost"),
+    conclusionsCount: sum("validationsStats.conclusionsCount"),
+    validationsClientFacingCount: sum("validationsStats.clientFacingCount"),
+    validationsLeftForDebugCount: sum("validationsStats.leftForDebugCount"),
+    errorsCount: sum("validationsStats.errorsCount"),
+    automationFailuresCount: sum("validationsStats.automationFailuresCount"),
+    botDetectionValidationCount: sum("validationsStats.botDetectionValidationCount"),
+    merchantWebsiteIssuesCount: sum("validationsStats.merchantWebsiteIssuesCount"),
   };
 }
 
@@ -137,84 +114,22 @@ function projectNestedCounters(extra: Document = {}): Document {
   };
 }
 
-function periodBuckets(period: StatsPeriod): Document[] {
-  if (period.granularity === "all") {
-    // Finalized months plus any still-open days in the rolling window.
-    return [
-      { $unwind: "$monthlyStats" },
-      { $set: { period: "$monthlyStats" } },
-      {
-        $unionWith: {
-          coll: "stats",
-          pipeline: [
-            { $unwind: "$last30Days" },
-            { $match: { "last30Days.finalized": { $ne: true } } },
-            { $set: { period: "$last30Days" } },
-          ],
-        },
-      },
-    ];
-  }
+function dateClause(period: StatsPeriod): Document | undefined {
   if (period.granularity === "day") {
-    return [
-      { $unwind: "$last30Days" },
-      { $match: { "last30Days.date": period.date } },
-      { $set: { period: "$last30Days" } },
-    ];
+    return { date: period.date };
   }
-  const yearMonth = period.yearMonth;
-  return [
-    { $unwind: "$monthlyStats" },
-    { $match: { "monthlyStats.yearMonth": yearMonth } },
-    { $set: { period: "$monthlyStats" } },
-    {
-      $unionWith: {
-        coll: "stats",
-        pipeline: [
-          { $unwind: "$last30Days" },
-          {
-            $match: {
-              "last30Days.date": { $gte: `${yearMonth}-01`, $lte: `${yearMonth}-31` },
-              "last30Days.finalized": { $ne: true },
-            },
-          },
-          { $set: { period: "$last30Days" } },
-        ],
-      },
-    },
-  ];
+  if (period.granularity === "month") {
+    return { date: { $gte: `${period.yearMonth}-01`, $lte: `${period.yearMonth}-31` } };
+  }
+  return undefined;
 }
 
-function isUnionWithStage(
-  stage: Document
-): stage is { $unionWith: { coll: string; pipeline: Document[] } } {
-  if (!("$unionWith" in stage)) return false;
-  const union = stage.$unionWith;
-  return (
-    typeof union === "object" &&
-    union != null &&
-    "coll" in union &&
-    "pipeline" in union &&
-    Array.isArray(union.pipeline)
-  );
-}
-
-function withIdentityMatch(match: Filter<StatDoc>, pipeline: Document[]): Document[] {
-  if (Object.keys(match).length === 0) return pipeline;
-  const prefixed: Document[] = [{ $match: match }];
-  for (const stage of pipeline) {
-    if (isUnionWithStage(stage)) {
-      prefixed.push({
-        $unionWith: {
-          coll: stage.$unionWith.coll,
-          pipeline: [{ $match: match }, ...stage.$unionWith.pipeline],
-        },
-      });
-    } else {
-      prefixed.push(stage);
-    }
-  }
-  return prefixed;
+function scopeStage(match: Filter<DailyStatDoc>, period?: StatsPeriod): Document[] {
+  const filter: Document = { ...match };
+  const date = period ? dateClause(period) : undefined;
+  if (date) Object.assign(filter, date);
+  if (Object.keys(filter).length === 0) return [];
+  return [{ $match: filter }];
 }
 
 function merchantStatusStages(status: MerchantHighlight | undefined): Document[] {
@@ -265,15 +180,15 @@ export async function getClientPeriodRows(
   opts: { q?: string; page?: number } = {}
 ): Promise<Paged<ClientPeriodRow>> {
   const page = opts.page ?? 1;
-  const match: Filter<StatDoc> = {};
+  const match: Filter<DailyStatDoc> = {};
   if (opts.q) match.clientId = opts.q;
-  const pipeline = withIdentityMatch(match, [
-    ...periodBuckets(period),
+  const pipeline = [
+    ...scopeStage(match, period),
     {
       $group: {
         _id: "$clientId",
         merchantIds: { $addToSet: "$merchantId" },
-        ...periodSumGroup("period"),
+        ...periodSumGroup(),
       },
     },
     projectNestedCounters({
@@ -285,7 +200,7 @@ export async function getClientPeriodRows(
       { "validationsStats.totalValidationsCount": -1, "promotionsStats.receivedPromotions": -1, clientId: 1 },
       page
     ),
-  ]);
+  ];
   const [result] = await statsColl().aggregate<FacetResult<ClientPeriodRow>>(pipeline).toArray();
   const paged = pagedFromFacet(result, page);
   return { ...paged, items: paged.items.map(hydrateCounters) };
@@ -296,20 +211,20 @@ export async function getMerchantPeriodRows(
   opts: { q?: string; page?: number; status?: MerchantHighlight } = {}
 ): Promise<Paged<MerchantPeriodRow>> {
   const page = opts.page ?? 1;
-  const match: Filter<StatDoc> = {};
+  const match: Filter<DailyStatDoc> = {};
   if (opts.q) {
     const rx = { $regex: escapeRegex(opts.q), $options: "i" };
     match.$or = [{ merchantDomain: rx }, { merchantName: rx }, { merchantId: opts.q }];
   }
-  const pipeline = withIdentityMatch(match, [
-    ...periodBuckets(period),
+  const pipeline = [
+    ...scopeStage(match, period),
     {
       $group: {
         _id: "$merchantId",
         merchantDomain: { $last: "$merchantDomain" },
         merchantName: { $last: "$merchantName" },
         clientIds: { $addToSet: "$clientId" },
-        ...periodSumGroup("period"),
+        ...periodSumGroup(),
       },
     },
     projectNestedCounters({
@@ -324,7 +239,7 @@ export async function getMerchantPeriodRows(
       { "validationsStats.totalValidationsCount": -1, "promotionsStats.receivedPromotions": -1, merchantDomain: 1 },
       page
     ),
-  ]);
+  ];
   const [result] = await statsColl().aggregate<FacetResult<MerchantPeriodRow>>(pipeline).toArray();
   const paged = pagedFromFacet(result, page);
   return { ...paged, items: paged.items.map(hydrateCounters) };
@@ -332,30 +247,33 @@ export async function getMerchantPeriodRows(
 
 export async function getPeriodTotals(
   period: StatsPeriod,
-  match: Filter<StatDoc> = {}
+  match: Filter<DailyStatDoc> = {}
 ): Promise<PeriodStatsCounters> {
-  const pipeline = withIdentityMatch(match, [
-    ...periodBuckets(period),
-    { $group: { _id: null, ...periodSumGroup("period") } },
+  const pipeline = [
+    ...scopeStage(match, period),
+    { $group: { _id: null, ...periodSumGroup() } },
     projectNestedCounters(),
-  ]);
+  ];
   const [row] = await statsColl().aggregate<PeriodStatsCounters>(pipeline).toArray();
   return completePeriodStats(row);
 }
 
 export async function getDailySeries(
-  match: Filter<StatDoc> = {}
+  match: Filter<DailyStatDoc> = {}
 ): Promise<DatedPeriodRow[]> {
   const { from, to } = last30DateRange();
   const pipeline: Document[] = [
-    ...(Object.keys(match).length ? [{ $match: match }] : []),
-    { $unwind: "$last30Days" },
-    { $match: { "last30Days.date": { $gte: from, $lte: to } } },
+    {
+      $match: {
+        ...match,
+        date: { $gte: from, $lte: to },
+      },
+    },
     {
       $group: {
-        _id: "$last30Days.date",
-        finalized: { $min: { $cond: [{ $eq: ["$last30Days.finalized", true] }, 1, 0] } },
-        ...periodSumGroup("last30Days"),
+        _id: "$date",
+        finalized: { $min: { $cond: [{ $eq: ["$finalized", true] }, 1, 0] } },
+        ...periodSumGroup(),
       },
     },
     projectNestedCounters({
@@ -375,36 +293,20 @@ export async function getDailySeries(
 }
 
 export async function getMonthlySeries(
-  match: Filter<StatDoc> = {}
+  match: Filter<DailyStatDoc> = {}
 ): Promise<MonthlyPeriodRow[]> {
   const todayMonth = utcToday().slice(0, 7);
-  const pipeline = withIdentityMatch(match, [
-    { $unwind: "$monthlyStats" },
-    { $set: { period: "$monthlyStats", yearMonth: "$monthlyStats.yearMonth" } },
-    {
-      $unionWith: {
-        coll: "stats",
-        pipeline: [
-          { $unwind: "$last30Days" },
-          { $match: { "last30Days.finalized": { $ne: true } } },
-          {
-            $set: {
-              period: "$last30Days",
-              yearMonth: { $substrBytes: ["$last30Days.date", 0, 7] },
-            },
-          },
-        ],
-      },
-    },
+  const pipeline: Document[] = [
+    ...scopeStage(match),
     {
       $group: {
-        _id: "$yearMonth",
-        ...periodSumGroup("period"),
+        _id: { $substrBytes: ["$date", 0, 7] },
+        ...periodSumGroup(),
       },
     },
     projectNestedCounters({ yearMonth: "$_id" }),
     { $sort: { yearMonth: 1 } },
-  ]);
+  ];
   const rows = await statsColl().aggregate<MonthlyPeriodRow>(pipeline).toArray();
   return rows
     .filter((row) => row.yearMonth && row.yearMonth <= todayMonth)
@@ -415,15 +317,15 @@ export async function getClientMerchantBreakdown(
   clientId: string,
   period: StatsPeriod
 ): Promise<MerchantPeriodRow[]> {
-  const pipeline = withIdentityMatch({ clientId }, [
-    ...periodBuckets(period),
+  const pipeline = [
+    ...scopeStage({ clientId }, period),
     {
       $group: {
         _id: "$merchantId",
         merchantDomain: { $last: "$merchantDomain" },
         merchantName: { $last: "$merchantName" },
         clientIds: { $addToSet: "$clientId" },
-        ...periodSumGroup("period"),
+        ...periodSumGroup(),
       },
     },
     projectNestedCounters({
@@ -440,7 +342,7 @@ export async function getClientMerchantBreakdown(
         merchantDomain: 1,
       },
     },
-  ]);
+  ];
   const rows = await statsColl().aggregate<MerchantPeriodRow>(pipeline).toArray();
   return rows.map(hydrateCounters);
 }
@@ -449,13 +351,13 @@ export async function getMerchantClientBreakdown(
   merchantId: string,
   period: StatsPeriod
 ): Promise<ClientPeriodRow[]> {
-  const pipeline = withIdentityMatch({ merchantId }, [
-    ...periodBuckets(period),
+  const pipeline = [
+    ...scopeStage({ merchantId }, period),
     {
       $group: {
         _id: "$clientId",
         merchantIds: { $addToSet: "$merchantId" },
-        ...periodSumGroup("period"),
+        ...periodSumGroup(),
       },
     },
     projectNestedCounters({
@@ -470,7 +372,7 @@ export async function getMerchantClientBreakdown(
         clientId: 1,
       },
     },
-  ]);
+  ];
   const rows = await statsColl().aggregate<ClientPeriodRow>(pipeline).toArray();
   return rows.map(hydrateCounters);
 }
@@ -508,16 +410,14 @@ export async function getClientNames(): Promise<Map<string, string>> {
 
 export async function isDayFinalized(
   date: string,
-  match: Filter<StatDoc> = {}
+  match: Filter<DailyStatDoc> = {}
 ): Promise<boolean> {
   const pipeline: Document[] = [
-    ...(Object.keys(match).length ? [{ $match: match }] : []),
-    { $unwind: "$last30Days" },
-    { $match: { "last30Days.date": date } },
+    ...scopeStage(match, { granularity: "day", date, yearMonth: date.slice(0, 7) }),
     {
       $group: {
         _id: null,
-        finalized: { $min: { $cond: [{ $eq: ["$last30Days.finalized", true] }, 1, 0] } },
+        finalized: { $min: { $cond: [{ $eq: ["$finalized", true] }, 1, 0] } },
         count: { $sum: 1 },
       },
     },
@@ -561,8 +461,8 @@ function merchantFlagsFromRow(row: MerchantFlags): MerchantFlags {
   };
 }
 
-// Stats rows come from the `stats` collection, which carries no merchant
-// status. Fetch the flags separately so the list can show bot detection.
+// Daily stat rows carry no merchant status. Fetch the flags separately so the
+// list can show bot detection.
 export async function getMerchantFlags(
   merchantIds: string[]
 ): Promise<Map<string, MerchantFlags>> {

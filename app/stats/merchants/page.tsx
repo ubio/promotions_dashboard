@@ -43,7 +43,7 @@ export default async function MerchantStatsPage({ searchParams }: { searchParams
       <div>
         <h1 className="text-xl font-semibold">Merchant stats</h1>
         <p className="text-sm text-muted">
-          Counters from the stats collection, rolled up across every client for each merchant.
+          Daily counters, rolled up across every client for each merchant.
         </p>
       </div>
 

@@ -1,8 +1,9 @@
 // Reporting layer for arbitrary date ranges.
 //
-// Source is `validationLogs` rather than Michael's pre-aggregated `stats`
-// collection: stats keeps only a rolling 30 days of daily buckets plus monthly
-// rollups, while reports need any range back to the first run (2026-05-21).
+// Source is `validationLogs` rather than `ziffDavisDailyStats`.
+// Daily stats are one document per client, merchant, and day, and that is
+// what the stats screens sum as promotions received. Reports count validation
+// runs over any range back to the first run (2026-05-21).
 // The collection is small (~3k docs), so aggregating live is cheap.
 import type { Document, Filter } from "mongodb";
 import { db } from "./mongo";
