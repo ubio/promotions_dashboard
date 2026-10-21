@@ -85,6 +85,10 @@ export class OpsClient {
     return this.post<ResetResult>("/Ops/resetNonClientFacingValidations/single", { promotionId });
   }
 
+  async resetValidation(promotionId: string): Promise<ResetResult> {
+    return this.post<ResetResult>("/Ops/resetValidation", { promotionId });
+  }
+
   async markMerchantBotDetected(merchantId: string): Promise<MerchantBotDetectionResult> {
     return this.post<MerchantBotDetectionResult>("/Ops/merchants/markBotDetected", { merchantId });
   }

@@ -1,6 +1,7 @@
 import Link from "next/link";
 import Badge from "@/components/Badge";
 import ReportsFilterBar from "@/components/reports/ReportsFilterBar";
+import ResetValidationLink from "@/components/ops/ResetValidationLink";
 import { LocalValidateLink, PromotionIdLink } from "@/components/TodayPromotionLinks";
 import { BrowserCell, BrowserSequence, ProxyTypeCell } from "@/components/ValidationRunSetup";
 import {
@@ -153,6 +154,7 @@ export default async function RunsPage({ searchParams }: { searchParams: Promise
               <th className="px-3 py-2">Proxy type</th>
               <th className="px-3 py-2">Promotion</th>
               <th className="px-3 py-2">Validate</th>
+              <th className="px-3 py-2">Reset</th>
               <th className="px-3 py-2">Outcome</th>
               <th className="px-3 py-2">Fail Codes</th>
               <th className="px-3 py-2">LLM cost</th>
@@ -192,6 +194,13 @@ export default async function RunsPage({ searchParams }: { searchParams: Promise
                   <td className="whitespace-nowrap px-3 py-2">
                     <LocalValidateLink id={r.promotionId} />
                   </td>
+                  <td className="whitespace-nowrap px-3 py-2">
+                    <ResetValidationLink
+                      promotionId={r.promotionId}
+                      domain={r.domain}
+                      clientId={r.clientId}
+                    />
+                  </td>
                   <td className="px-3 py-2">
                     <Badge variant={outcome}>
                       {OUTCOME_LABEL[outcome].toLowerCase()}
@@ -227,7 +236,7 @@ export default async function RunsPage({ searchParams }: { searchParams: Promise
             })}
             {items.length === 0 && (
               <tr>
-                <td colSpan={12} className="px-3 py-8 text-center text-faint">
+                <td colSpan={13} className="px-3 py-8 text-center text-faint">
                   No validations match this selection.
                 </td>
               </tr>
