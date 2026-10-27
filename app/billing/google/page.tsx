@@ -165,19 +165,17 @@ export default async function GoogleBillingPage({ searchParams }: { searchParams
             sub={shareOfQualified(totals.promotionsSent, totals.promotionsQualified)}
           />
         </div>
-        <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
-          {showInternalCosts && (
-            <>
-              <Tile label="Proxy" hint={GOOGLE_BILLING_HINTS.proxy} value={formatGigabytes(totals.proxyBytes)} sub="traffic used" />
-              <Tile label="LLM cost" hint={GOOGLE_BILLING_HINTS.llmCost} value={formatUsd(totals.llmCostUsd)} sub="USD" />
-            </>
-          )}
-          <Tile
-            label="Export cost" hint={GOOGLE_BILLING_HINTS.exportCost}
-            value={formatUsd(exportCostUsd(totals.promotionsSent))}
-            sub={`(${formatGbp(exportCostGbp(totals.promotionsSent))})`}
-          />
-        </div>
+        {showInternalCosts && (
+          <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
+            <Tile label="Proxy" hint={GOOGLE_BILLING_HINTS.proxy} value={formatGigabytes(totals.proxyBytes)} sub="traffic used" />
+            <Tile label="LLM cost" hint={GOOGLE_BILLING_HINTS.llmCost} value={formatUsd(totals.llmCostUsd)} sub="USD" />
+            <Tile
+              label="Export cost" hint={GOOGLE_BILLING_HINTS.exportCost}
+              value={formatUsd(exportCostUsd(totals.promotionsSent))}
+              sub={`(${formatGbp(exportCostGbp(totals.promotionsSent))})`}
+            />
+          </div>
+        )}
       </div>
 
       <section className="rounded-lg border border-line bg-card p-4">
@@ -194,7 +192,7 @@ export default async function GoogleBillingPage({ searchParams }: { searchParams
                 {showInternalCosts && <th className="py-1 pr-4"><TableHeaderLabel label="Proxy" hint={GOOGLE_BILLING_HINTS.proxy} /></th>}
                 <th className="py-1 pr-4"><TableHeaderLabel label="Exported" hint={GOOGLE_BILLING_HINTS.sent} /></th>
                 {showInternalCosts && <th className="py-1 pr-4"><TableHeaderLabel label="LLM cost" hint={GOOGLE_BILLING_HINTS.llmCost} /></th>}
-                <th className="py-1"><TableHeaderLabel label="Export cost" hint={GOOGLE_BILLING_HINTS.exportCost} /></th>
+                {showInternalCosts && <th className="py-1"><TableHeaderLabel label="Export cost" hint={GOOGLE_BILLING_HINTS.exportCost} /></th>}
               </tr>
             </thead>
             <tbody className="divide-y divide-rule">
@@ -212,12 +210,14 @@ export default async function GoogleBillingPage({ searchParams }: { searchParams
                   )}
                   <td className="py-1.5 pr-4">{formatCount(row.promotionsSent)}</td>
                   {showInternalCosts && <td className="py-1.5 pr-4">{formatUsd(row.llmCostUsd)}</td>}
-                  <td className="whitespace-nowrap py-1.5">{formatExportCost(row.promotionsSent)}</td>
+                  {showInternalCosts && (
+                    <td className="whitespace-nowrap py-1.5">{formatExportCost(row.promotionsSent)}</td>
+                  )}
                 </tr>
               ))}
               {report.countries.length === 0 && (
                 <tr>
-                  <td colSpan={showInternalCosts ? 9 : 6} className="py-6 text-center text-faint">
+                  <td colSpan={showInternalCosts ? 9 : 5} className="py-6 text-center text-faint">
                     No Google daily stats in this period.
                   </td>
                 </tr>
@@ -238,7 +238,9 @@ export default async function GoogleBillingPage({ searchParams }: { searchParams
                   )}
                   <td className="py-2 pr-4">{formatCount(totals.promotionsSent)}</td>
                   {showInternalCosts && <td className="py-2 pr-4">{formatUsd(totals.llmCostUsd)}</td>}
-                  <td className="whitespace-nowrap py-2">{formatExportCost(totals.promotionsSent)}</td>
+                  {showInternalCosts && (
+                    <td className="whitespace-nowrap py-2">{formatExportCost(totals.promotionsSent)}</td>
+                  )}
                 </tr>
               </tfoot>
             )}
@@ -246,11 +248,13 @@ export default async function GoogleBillingPage({ searchParams }: { searchParams
         </div>
       </section>
 
-      <p className="text-xs text-faint">
-        Export cost is {formatGbp(GBP_PER_EXPORTED_PROMOTION)} per promotion sent back, calculated in
-        GBP and shown in USD at a fixed rate of {GBP_TO_USD} ({formatUsd(GBP_TO_USD)} per £1).
-        {showInternalCosts && " LLM cost is the validation spend already stored in USD."}
-      </p>
+      {showInternalCosts && (
+        <p className="text-xs text-faint">
+          Export cost is {formatGbp(GBP_PER_EXPORTED_PROMOTION)} per promotion sent back, calculated in
+          GBP and shown in USD at a fixed rate of {GBP_TO_USD} ({formatUsd(GBP_TO_USD)} per £1). LLM
+          cost is the validation spend already stored in USD.
+        </p>
+      )}
     </div>
   );
 }

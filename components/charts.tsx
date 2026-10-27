@@ -361,43 +361,90 @@ export function ValidityBar({
   );
 }
 
+export interface RatePoint {
+  date: string;
+  // Null when the day has no denominator, so the line breaks instead of plotting 0%.
+  rate: number | null;
+  detail?: string;
+}
+
+interface PlottedRate {
+  x: number;
+  y: number;
+  date: string;
+  rate: number;
+  detail?: string;
+}
+
+function rateLinePath(points: Array<PlottedRate | null>): string {
+  const commands: string[] = [];
+  let drawing = false;
+  for (const point of points) {
+    if (point == null) {
+      drawing = false;
+      continue;
+    }
+    commands.push(`${drawing ? "L" : "M"}${point.x.toFixed(1)},${point.y.toFixed(1)}`);
+    drawing = true;
+  }
+  return commands.join(" ");
+}
+
+function rateHint(point: RatePoint, emptyLabel: string, rateLabel: string): string {
+  const day = shortDate(point.date);
+  if (point.rate == null) {
+    return point.detail ? `${day}\n${point.detail}` : `${day}\n${emptyLabel}`;
+  }
+  const pct = `${(point.rate * 100).toFixed(1)}% ${rateLabel}`;
+  return point.detail ? `${day}\n${pct}\n${point.detail}` : `${day}\n${pct}`;
+}
+
 export function RateLineChart({
   data,
-  ariaLabel = "Conclusions rate per day",
+  ariaLabel,
+  emptyLabel = "No data",
+  rateLabel = "rate",
+  color = BLUE,
 }: {
-  data: { date: string; rate: number | null }[];
-  ariaLabel?: string;
+  data: RatePoint[];
+  ariaLabel: string;
+  emptyLabel?: string;
+  rateLabel?: string;
+  color?: string;
 }) {
+  if (data.length === 0) return <p className="text-sm text-faint">No daily data in the last 30 days.</p>;
   const slot = PLOT_W / data.length;
-  const y = (rate: number) => PAD.top + PLOT_H * (1 - rate);
-  const points = data
-    .map((d, i) => (d.rate == null ? null : { x: PAD.left + slot * (i + 0.5), y: y(d.rate), d }))
-    .filter((p) => p !== null);
-  const path = points.map((p, i) => `${i === 0 ? "M" : "L"}${p.x.toFixed(1)},${p.y.toFixed(1)}`).join(" ");
-  const showDots = points.length <= 45;
+  const yOf = (rate: number) => PAD.top + PLOT_H * (1 - Math.min(1, Math.max(0, rate)));
+  const plotted: Array<PlottedRate | null> = data.map((point, i) => {
+    if (point.rate == null) return null;
+    return {
+      x: PAD.left + slot * (i + 0.5),
+      y: yOf(point.rate),
+      date: point.date,
+      rate: point.rate,
+      detail: point.detail,
+    };
+  });
+  const dots = plotted.filter((point) => point != null);
+  const path = rateLinePath(plotted);
+  const showDots = dots.length <= 45;
 
   return (
     <div className="relative">
     <svg viewBox={`0 0 ${W} ${H}`} className="w-full" role="img" aria-label={ariaLabel}>
       <Grid max={1} format={(v) => `${Math.round(v * 100)}%`} />
-      {path && <path d={path} fill="none" stroke={BLUE} strokeWidth={2} strokeLinejoin="round" />}
-      {points.map((p) => (
-        <g key={p.d.date}>
-          {showDots && <circle cx={p.x} cy={p.y} r={3} fill={BLUE} stroke="var(--oss-card)" strokeWidth={2} />}
-          <circle cx={p.x} cy={p.y} r={8} fill="transparent">
-            <title>{`${shortDate(p.d.date)} — ${Math.round((p.d.rate ?? 0) * 100)}% conclusions`}</title>
+      {path && <path d={path} fill="none" stroke={color} strokeWidth={2} strokeLinejoin="round" />}
+      {dots.map((point) => (
+        <g key={point.date}>
+          {showDots && <circle cx={point.x} cy={point.y} r={3} fill={color} stroke="var(--oss-card)" strokeWidth={2} />}
+          <circle cx={point.x} cy={point.y} r={8} fill="transparent">
+            <title>{rateHint(point, emptyLabel, rateLabel).replaceAll("\n", " — ")}</title>
           </circle>
         </g>
       ))}
       <XTicks dates={data.map((d) => d.date)} />
     </svg>
-    <HoverSlots
-      hints={data.map((d) =>
-        d.rate == null
-          ? `${shortDate(d.date)}\nNo validations`
-          : `${shortDate(d.date)}\n${(d.rate * 100).toFixed(1)}% reached a result`
-      )}
-    />
+    <HoverSlots hints={data.map((point) => rateHint(point, emptyLabel, rateLabel))} />
     </div>
   );
 }
