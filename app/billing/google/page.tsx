@@ -155,8 +155,8 @@ export default async function GoogleBillingPage({ searchParams }: { searchParams
           {showInternalCosts && (
             <Tile
               label="Promotions validated" hint={GOOGLE_BILLING_HINTS.validated}
-              value={formatCount(totals.validations)}
-              sub={shareOfQualified(totals.validations, totals.promotionsQualified)}
+              value={formatCount(totals.promotionsValidated)}
+              sub={shareOfQualified(totals.promotionsValidated, totals.promotionsQualified)}
             />
           )}
           <Tile
@@ -190,7 +190,7 @@ export default async function GoogleBillingPage({ searchParams }: { searchParams
                 <th className="py-1 pr-4"><TableHeaderLabel label="Qualified" hint={GOOGLE_BILLING_HINTS.qualified} /></th>
                 {showInternalCosts && <th className="py-1 pr-4"><TableHeaderLabel label="Validated" hint={GOOGLE_BILLING_HINTS.validated} /></th>}
                 {showInternalCosts && <th className="py-1 pr-4"><TableHeaderLabel label="Proxy" hint={GOOGLE_BILLING_HINTS.proxy} /></th>}
-                <th className="py-1 pr-4"><TableHeaderLabel label="Exported" hint={GOOGLE_BILLING_HINTS.sent} /></th>
+                <th className="py-1 pr-4"><TableHeaderLabel label="Valid - Sent" hint={GOOGLE_BILLING_HINTS.sent} /></th>
                 {showInternalCosts && <th className="py-1 pr-4"><TableHeaderLabel label="LLM cost" hint={GOOGLE_BILLING_HINTS.llmCost} /></th>}
                 {showInternalCosts && <th className="py-1"><TableHeaderLabel label="Export cost" hint={GOOGLE_BILLING_HINTS.exportCost} /></th>}
               </tr>
@@ -203,7 +203,7 @@ export default async function GoogleBillingPage({ searchParams }: { searchParams
                   <td className="py-1.5 pr-4">{formatCount(row.promotionsExtracted)}</td>
                   <td className="py-1.5 pr-4">{formatCount(row.promotionsQualified)}</td>
                   {showInternalCosts && (
-                    <td className="py-1.5 pr-4">{formatCount(row.validations)}</td>
+                    <td className="py-1.5 pr-4">{formatCount(row.promotionsValidated)}</td>
                   )}
                   {showInternalCosts && (
                     <td className="py-1.5 pr-4">{formatGigabytes(row.proxyBytes)}</td>
@@ -231,7 +231,7 @@ export default async function GoogleBillingPage({ searchParams }: { searchParams
                   <td className="py-2 pr-4">{formatCount(totals.promotionsExtracted)}</td>
                   <td className="py-2 pr-4">{formatCount(totals.promotionsQualified)}</td>
                   {showInternalCosts && (
-                    <td className="py-2 pr-4">{formatCount(totals.validations)}</td>
+                    <td className="py-2 pr-4">{formatCount(totals.promotionsValidated)}</td>
                   )}
                   {showInternalCosts && (
                     <td className="py-2 pr-4">{formatGigabytes(totals.proxyBytes)}</td>

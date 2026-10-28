@@ -1,7 +1,9 @@
 // Google billing reads `googleDailyStats` (one document per country and day).
-// The contract prices each exported promotion at a fixed GBP amount and shows
-// that spend in USD at a fixed rate. The rate is the median GBP–USD over the
-// past 10 years, not a live quote.
+// Promotion counts are written by promotions-service on the day the promotion
+// was created: `promotionsValidated` is a conclusion, `promotionsSent` is an
+// export back to Google. The contract prices each sent promotion at a fixed
+// GBP amount and shows that spend in USD at a fixed rate. The rate is the
+// median GBP–USD over the past 10 years, not a live quote.
 import type { Filter } from "mongodb";
 import { GOOGLE_CLIENT_ID } from "./client-portal-path";
 import { db } from "./mongo";
@@ -27,8 +29,8 @@ export interface GoogleBillingTotals {
   sourcesImported: number;
   promotionsExtracted: number;
   promotionsQualified: number;
+  promotionsValidated: number;
   promotionsSent: number;
-  validations: number;
   llmCostUsd: number;
   proxyBytes: number;
 }
@@ -50,6 +52,7 @@ interface GoogleDailyStatDoc {
   sourcesImported?: number;
   promotionsExtracted?: number;
   promotionsQualified?: number;
+  promotionsValidated?: number;
   promotionsSent?: number;
   validationsStats?: {
     totalValidationsCount?: number;
@@ -63,8 +66,8 @@ interface CountryAgg {
   sourcesImported: number;
   promotionsExtracted: number;
   promotionsQualified: number;
+  promotionsValidated: number;
   promotionsSent: number;
-  validations: number;
   llmCostUsd: number;
   proxyBytes: number;
 }
@@ -194,8 +197,8 @@ function emptyTotals(): GoogleBillingTotals {
     sourcesImported: 0,
     promotionsExtracted: 0,
     promotionsQualified: 0,
+    promotionsValidated: 0,
     promotionsSent: 0,
-    validations: 0,
     llmCostUsd: 0,
     proxyBytes: 0,
   };
@@ -218,8 +221,8 @@ function totalsFrom(rows: GoogleBillingCountry[]): GoogleBillingTotals {
       sourcesImported: total.sourcesImported + row.sourcesImported,
       promotionsExtracted: total.promotionsExtracted + row.promotionsExtracted,
       promotionsQualified: total.promotionsQualified + row.promotionsQualified,
+      promotionsValidated: total.promotionsValidated + row.promotionsValidated,
       promotionsSent: total.promotionsSent + row.promotionsSent,
-      validations: total.validations + row.validations,
       llmCostUsd: total.llmCostUsd + row.llmCostUsd,
       proxyBytes: total.proxyBytes + row.proxyBytes,
     };
@@ -244,10 +247,8 @@ export async function getGoogleBilling(filters: GoogleBillingFilters): Promise<G
                 sourcesImported: { $sum: { $ifNull: ["$sourcesImported", 0] } },
                 promotionsExtracted: { $sum: { $ifNull: ["$promotionsExtracted", 0] } },
                 promotionsQualified: { $sum: { $ifNull: ["$promotionsQualified", 0] } },
+                promotionsValidated: { $sum: { $ifNull: ["$promotionsValidated", 0] } },
                 promotionsSent: { $sum: { $ifNull: ["$promotionsSent", 0] } },
-                validations: {
-                  $sum: { $ifNull: ["$validationsStats.totalValidationsCount", 0] },
-                },
                 llmCostUsd: {
                   $sum: { $ifNull: ["$validationsStats.totalValidationsCost", 0] },
                 },
@@ -280,8 +281,8 @@ export async function getGoogleBilling(filters: GoogleBillingFilters): Promise<G
       sourcesImported: row.sourcesImported,
       promotionsExtracted: row.promotionsExtracted,
       promotionsQualified: row.promotionsQualified,
+      promotionsValidated: row.promotionsValidated,
       promotionsSent: row.promotionsSent,
-      validations: row.validations,
       llmCostUsd: row.llmCostUsd,
       proxyBytes: row.proxyBytes,
     }));
@@ -301,8 +302,9 @@ export const GOOGLE_BILLING_HINTS = {
     "Offers we found on those pages. Higher than the number of pages, because a page often carries more than one offer.",
   qualified:
     "Offers meeting the Google promotion criteria for structure, benefit type and conditions. Offers that do not qualify are never sent.",
-  validated: "Qualified offers we ran a check on. Internal figure.",
-  sent: "Offers we checked, found valid, and sent back to you. These are the ones charged for.",
+  validated:
+    "Promotions whose latest check reached a conclusion, whether the offer was valid or not. Counted on the day the promotion was created. Internal figure.",
+  sent: "Promotions we found valid and sent back to you, counted on the day each promotion was created. These are the ones charged for.",
   proxy: "Network traffic used running the checks. Internal figure.",
   llmCost: "What we spent with the language-model providers on these checks. Internal figure.",
   exportCost: `Charged at ${formatGbp(GBP_PER_EXPORTED_PROMOTION)} per promotion sent back, shown in USD at a fixed rate of ${GBP_TO_USD}.`,
