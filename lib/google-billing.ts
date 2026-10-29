@@ -39,8 +39,14 @@ export interface GoogleBillingCountry extends GoogleBillingTotals {
   countryCode: string;
 }
 
+export interface GoogleBillingDay extends GoogleBillingTotals {
+  date: string;
+  countries: GoogleBillingCountry[];
+}
+
 export interface GoogleBillingReport {
   countries: GoogleBillingCountry[];
+  days: GoogleBillingDay[];
   totals: GoogleBillingTotals;
   span: { from: string; to: string } | null;
 }
@@ -61,8 +67,7 @@ interface GoogleDailyStatDoc {
   };
 }
 
-interface CountryAgg {
-  _id: string;
+interface MetricSums {
   sourcesImported: number;
   promotionsExtracted: number;
   promotionsQualified: number;
@@ -72,13 +77,22 @@ interface CountryAgg {
   proxyBytes: number;
 }
 
+interface MetricAgg extends MetricSums {
+  _id: string;
+}
+
+interface DayCountryAgg extends MetricSums {
+  _id: { date: string; countryCode: string };
+}
+
 interface SpanAgg {
   from: string;
   to: string;
 }
 
 interface BillingFacet {
-  countries: CountryAgg[];
+  countries: MetricAgg[];
+  days: DayCountryAgg[];
   span: SpanAgg[];
 }
 
@@ -215,6 +229,18 @@ function matchFor(filters: GoogleBillingFilters): Filter<GoogleDailyStatDoc> {
   return match;
 }
 
+function metricsFrom(row: MetricSums): GoogleBillingTotals {
+  return {
+    sourcesImported: row.sourcesImported,
+    promotionsExtracted: row.promotionsExtracted,
+    promotionsQualified: row.promotionsQualified,
+    promotionsValidated: row.promotionsValidated,
+    promotionsSent: row.promotionsSent,
+    llmCostUsd: row.llmCostUsd,
+    proxyBytes: row.proxyBytes,
+  };
+}
+
 function totalsFrom(rows: GoogleBillingCountry[]): GoogleBillingTotals {
   return rows.reduce<GoogleBillingTotals>((total, row) => {
     return {
@@ -241,23 +267,17 @@ export async function getGoogleBilling(filters: GoogleBillingFilters): Promise<G
       {
         $facet: {
           countries: [
+            { $group: { _id: "$countryCode", ...metricSums() } },
+            { $sort: { _id: 1 } },
+          ],
+          days: [
             {
               $group: {
-                _id: "$countryCode",
-                sourcesImported: { $sum: { $ifNull: ["$sourcesImported", 0] } },
-                promotionsExtracted: { $sum: { $ifNull: ["$promotionsExtracted", 0] } },
-                promotionsQualified: { $sum: { $ifNull: ["$promotionsQualified", 0] } },
-                promotionsValidated: { $sum: { $ifNull: ["$promotionsValidated", 0] } },
-                promotionsSent: { $sum: { $ifNull: ["$promotionsSent", 0] } },
-                llmCostUsd: {
-                  $sum: { $ifNull: ["$validationsStats.totalValidationsCost", 0] },
-                },
-                proxyBytes: {
-                  $sum: { $ifNull: ["$validationsStats.totalProxyBytes", 0] },
-                },
+                _id: { date: "$date", countryCode: "$countryCode" },
+                ...metricSums(),
               },
             },
-            { $sort: { _id: 1 } },
+            { $sort: { "_id.date": -1, "_id.countryCode": 1 } },
           ],
           span: [
             {
@@ -276,19 +296,43 @@ export async function getGoogleBilling(filters: GoogleBillingFilters): Promise<G
 
   const countries = (facet?.countries ?? [])
     .filter((row) => row._id !== "")
-    .map((row) => ({
-      countryCode: row._id,
-      sourcesImported: row.sourcesImported,
-      promotionsExtracted: row.promotionsExtracted,
-      promotionsQualified: row.promotionsQualified,
-      promotionsValidated: row.promotionsValidated,
-      promotionsSent: row.promotionsSent,
-      llmCostUsd: row.llmCostUsd,
-      proxyBytes: row.proxyBytes,
-    }));
+    .map((row) => ({ countryCode: row._id, ...metricsFrom(row) }));
+  const days = daysFrom(facet?.days ?? []);
   const spanRow = facet?.span[0];
   const span = spanRow?.from && spanRow.to ? { from: spanRow.from, to: spanRow.to } : null;
-  return { countries, totals: totalsFrom(countries), span };
+  return { countries, days, totals: totalsFrom(countries), span };
+}
+
+function daysFrom(rows: DayCountryAgg[]): GoogleBillingDay[] {
+  const grouped = new Map<string, GoogleBillingCountry[]>();
+  for (const row of rows) {
+    const date = row._id.date;
+    const countryCode = row._id.countryCode;
+    if (!date || !countryCode) continue;
+    const countries = grouped.get(date) ?? [];
+    countries.push({ countryCode, ...metricsFrom(row) });
+    grouped.set(date, countries);
+  }
+
+  return [...grouped.keys()]
+    .sort((left, right) => (left < right ? 1 : left > right ? -1 : 0))
+    .map((date) => {
+      const countries = grouped.get(date) ?? [];
+      countries.sort((left, right) => left.countryCode.localeCompare(right.countryCode));
+      return { date, countries, ...totalsFrom(countries) };
+    });
+}
+
+function metricSums() {
+  return {
+    sourcesImported: { $sum: { $ifNull: ["$sourcesImported", 0] } },
+    promotionsExtracted: { $sum: { $ifNull: ["$promotionsExtracted", 0] } },
+    promotionsQualified: { $sum: { $ifNull: ["$promotionsQualified", 0] } },
+    promotionsValidated: { $sum: { $ifNull: ["$promotionsValidated", 0] } },
+    promotionsSent: { $sum: { $ifNull: ["$promotionsSent", 0] } },
+    llmCostUsd: { $sum: { $ifNull: ["$validationsStats.totalValidationsCost", 0] } },
+    proxyBytes: { $sum: { $ifNull: ["$validationsStats.totalProxyBytes", 0] } },
+  };
 }
 
 // Shown beside each figure on /billing/google. Google sees this page as their
@@ -309,4 +353,5 @@ export const GOOGLE_BILLING_HINTS = {
   llmCost: "What we spent with the language-model providers on these checks. Internal figure.",
   exportCost: `Charged at ${formatGbp(GBP_PER_EXPORTED_PROMOTION)} per promotion sent back, shown in USD at a fixed rate of ${GBP_TO_USD}.`,
   country: "The locale of the imported URL, not where the merchant is based.",
+  day: "The day these figures were recorded. Each line is that day's total across the selected countries. Promotion counts are for promotions created that day. Expand countries shows the same figures for each country.",
 } as const;

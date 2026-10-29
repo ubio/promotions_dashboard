@@ -1,7 +1,8 @@
 import GoogleBillingFilterBar from "@/components/google/GoogleBillingFilterBar";
+import GoogleBillingDayTable from "@/components/google/GoogleBillingDayTable";
 import { requireGoogleBillingSession } from "@/lib/auth";
 import { HelpHint, TableHeaderLabel } from "@/components/HelpHint";
-import { formatCount } from "@/lib/format";
+import { formatCount, formatUtcDay } from "@/lib/format";
 import {
   GBP_PER_EXPORTED_PROMOTION,
   GBP_TO_USD,
@@ -29,6 +30,41 @@ import {
 export const dynamic = "force-dynamic";
 
 type Search = { [key: string]: string | string[] | undefined };
+
+function billingCells(row: GoogleBillingTotals, showInternalCosts: boolean): string[] {
+  const cells = [
+    formatCount(row.sourcesImported),
+    formatCount(row.promotionsExtracted),
+    formatCount(row.promotionsQualified),
+  ];
+  if (showInternalCosts) cells.push(formatCount(row.promotionsValidated), formatGigabytes(row.proxyBytes));
+  cells.push(formatCount(row.promotionsSent));
+  if (showInternalCosts) cells.push(formatUsd(row.llmCostUsd), formatExportCost(row.promotionsSent));
+  return cells;
+}
+
+function dayHeaders(showInternalCosts: boolean): { label: string; hint: string }[] {
+  const headers: { label: string; hint: string }[] = [
+    { label: "Day", hint: GOOGLE_BILLING_HINTS.day },
+    { label: "Sources", hint: GOOGLE_BILLING_HINTS.sources },
+    { label: "Extracted", hint: GOOGLE_BILLING_HINTS.extracted },
+    { label: "Qualified", hint: GOOGLE_BILLING_HINTS.qualified },
+  ];
+  if (showInternalCosts) {
+    headers.push(
+      { label: "Validated", hint: GOOGLE_BILLING_HINTS.validated },
+      { label: "Proxy", hint: GOOGLE_BILLING_HINTS.proxy },
+    );
+  }
+  headers.push({ label: "Valid - Sent", hint: GOOGLE_BILLING_HINTS.sent });
+  if (showInternalCosts) {
+    headers.push(
+      { label: "LLM cost", hint: GOOGLE_BILLING_HINTS.llmCost },
+      { label: "Export cost", hint: GOOGLE_BILLING_HINTS.exportCost },
+    );
+  }
+  return headers;
+}
 
 function shareOfExtracted(qualified: number, extracted: number): string {
   const share = qualifiedSharePercent(qualified, extracted);
@@ -255,6 +291,21 @@ export default async function GoogleBillingPage({ searchParams }: { searchParams
           cost is the validation spend already stored in USD.
         </p>
       )}
+
+      <GoogleBillingDayTable
+        headers={dayHeaders(showInternalCosts)}
+        days={report.days.map((day) => ({
+          date: day.date,
+          label: formatUtcDay(day.date),
+          cells: billingCells(day, showInternalCosts),
+          countries: day.countries.map((country) => ({
+            code: country.countryCode,
+            label: googleCountryLabel(country.countryCode),
+            cells: billingCells(country, showInternalCosts),
+          })),
+        }))}
+        totals={billingCells(totals, showInternalCosts)}
+      />
     </div>
   );
 }
