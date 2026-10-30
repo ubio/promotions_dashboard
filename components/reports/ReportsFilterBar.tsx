@@ -23,6 +23,7 @@ export default function ReportsFilterBar({
   outcomes,
   selectedClients,
   selectedDomains,
+  resetLabel = "Reset",
 }: {
   action?: string;
   clientIds: string[];
@@ -33,6 +34,7 @@ export default function ReportsFilterBar({
   outcomes: string[];
   selectedClients: string[];
   selectedDomains: string[];
+  resetLabel?: string;
 }) {
   const presets = periodPresets();
   const [periodKey, setPeriodKey] = useState(matchPreset(from, to)?.key ?? "custom");
@@ -141,7 +143,7 @@ export default function ReportsFilterBar({
         <button className="rounded bg-primary px-4 py-1.5 text-sm text-card">Apply</button>
       </noscript>
       <a href={action} className="ml-auto px-1 text-sm text-muted hover:text-text">
-        Reset
+        {resetLabel}
       </a>
     </form>
   );

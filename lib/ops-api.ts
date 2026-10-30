@@ -50,6 +50,43 @@ export async function runOpsResetValidation(promotionId: string) {
   return NextResponse.json(result);
 }
 
+const MAX_RESTART_VALIDATIONS = 100;
+
+export async function runOpsResetValidations(promotionIds: string[]) {
+  await requireInternalSession();
+  if (!isOpsConfigured()) return opsNotConfigured();
+  const unique = [...new Set(promotionIds)];
+  if (unique.length === 0) {
+    return NextResponse.json({ error: "Choose at least one validation" }, { status: 400 });
+  }
+  if (unique.length > MAX_RESTART_VALIDATIONS) {
+    return NextResponse.json({ error: "Too many validations selected" }, { status: 400 });
+  }
+
+  const client = OpsClient.fromEnv();
+  const failed: { promotionId: string; error: string }[] = [];
+  let resetCount = 0;
+  for (const promotionId of unique) {
+    try {
+      await client.resetValidation(promotionId);
+      resetCount += 1;
+    } catch (error) {
+      failed.push({
+        promotionId,
+        error: error instanceof Error ? error.message : "Reset failed",
+      });
+    }
+  }
+
+  if (resetCount === 0) {
+    return NextResponse.json(
+      { error: failed[0]?.error ?? "Reset failed", resetCount, failed },
+      { status: 500 }
+    );
+  }
+  return NextResponse.json({ resetCount, failed });
+}
+
 export async function runMarkMerchantBotDetected(merchantId: string) {
   await requireInternalSession();
   if (!isOpsConfigured()) return opsNotConfigured();

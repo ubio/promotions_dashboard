@@ -1,7 +1,12 @@
 import Link from "next/link";
 import Badge from "@/components/Badge";
 import ReportsFilterBar from "@/components/reports/ReportsFilterBar";
-import ResetValidationLink from "@/components/ops/ResetValidationLink";
+import {
+  RestartValidationCheckbox,
+  RestartValidations,
+  RestartValidationsButton,
+  RestartValidationsSelectAll,
+} from "@/components/ops/RestartValidations";
 import { LocalValidateLink, PromotionIdLink } from "@/components/TodayPromotionLinks";
 import { BrowserCell, BrowserSequence } from "@/components/ValidationRunSetup";
 import {
@@ -83,190 +88,203 @@ export default async function RunsPage({ searchParams }: { searchParams: Promise
     .filter(Boolean)
     .join(" · ");
 
+  const restartRows = items.flatMap((run) =>
+    run.promotionId
+      ? [{ promotionId: run.promotionId, domain: run.domain, clientId: run.clientId }]
+      : []
+  );
+
   return (
-    <div data-full-width className="space-y-4">
-      <div className="flex flex-wrap items-baseline justify-between gap-3">
-        <div>
-          <Link href={`/reports?${backQs}`} className="text-sm text-primary-ink hover:underline">
-            ← Back to report
-          </Link>
-          <h1 className="mt-1 text-xl font-semibold">
-            {formatCount(total)} validation{total === 1 ? "" : "s"}
-          </h1>
-          <p className="text-xs text-muted">
-            {context} · {filters.from} → {filters.to}
-          </p>
-        </div>
-        <a
-          href={`/api/reports/validations?${qs}`}
-          className="rounded border border-line bg-card px-3 py-1.5 text-sm hover:bg-rule"
-        >
-          ↓ Download these (CSV)
-        </a>
-      </div>
-
-      <ReportsFilterBar
-        action={VALIDATION_RUNS_PATH}
-        clientIds={clientIds}
-        domains={domains}
-        from={filters.from}
-        to={filters.to}
-        groupBy={filters.groupBy}
-        outcomes={filters.outcomes ?? []}
-        selectedClients={filters.clientIds ?? []}
-        selectedDomains={filters.domains ?? []}
-      />
-
-      {failCodes.length > 0 && (
-        <div className="rounded-lg border border-line bg-card p-3">
-          <p className="mb-2 text-xs uppercase tracking-wide text-faint">Fail codes</p>
-          <div className="flex flex-wrap gap-1.5">
-            {filters.failCode && (
-              <Link
-                href={failCodeHref()}
-                className="rounded-full bg-primary px-2 py-0.5 text-xs font-medium text-card"
-              >
-                {filters.failCode} ✕
-              </Link>
-            )}
-            {!filters.failCode &&
-              failCodes.map((f) => (
-                <Link
-                  key={f.code}
-                  href={failCodeHref(f.code)}
-                  className="rounded-full bg-rule px-2 py-0.5 font-mono text-xs text-text hover:bg-line"
-                >
-                  {f.code} <span className="text-faint">{f.runs}</span>
-                </Link>
-              ))}
+    <RestartValidations
+      key={items.map((run) => run._id ?? run.promotionId ?? String(run.createdAt)).join("|")}
+      rows={restartRows}
+    >
+      <div data-full-width className="space-y-4">
+        <div className="flex flex-wrap items-baseline justify-between gap-3">
+          <div>
+            <Link href={`/reports?${backQs}`} className="text-sm text-primary-ink hover:underline">
+              ← Back to report
+            </Link>
+            <h1 className="mt-1 text-xl font-semibold">
+              {formatCount(total)} validation{total === 1 ? "" : "s"}
+            </h1>
+            <p className="text-xs text-muted">
+              {context} · {filters.from} → {filters.to}
+            </p>
+          </div>
+          <div className="flex flex-wrap items-center gap-2">
+            <RestartValidationsButton />
+            <a
+              href={`/api/reports/validations?${qs}`}
+              className="rounded border border-line bg-card px-3 py-1.5 text-sm hover:bg-rule"
+            >
+              ↓ Download these (CSV)
+            </a>
           </div>
         </div>
-      )}
 
-      <div className="overflow-x-auto rounded-lg border border-line bg-card">
-        <table className="min-w-full text-sm">
-          <thead className="bg-page text-left text-xs uppercase tracking-wide text-muted">
-            <tr>
-              <th className="px-3 py-2">When</th>
-              <th className="px-3 py-2">Customer</th>
-              <th className="px-3 py-2">Merchant</th>
-              <th className="px-3 py-2">Browser</th>
-              <th className="px-3 py-2">Promotion</th>
-              <th className="px-3 py-2">Validate</th>
-              <th className="px-3 py-2">Reset</th>
-              <th className="px-3 py-2">Outcome</th>
-              <th className="px-3 py-2">Fail Codes</th>
-              <th className="px-3 py-2">LLM cost</th>
-              <th className="px-3 py-2">What happened</th>
-              <th className="px-3 py-2">Evidence</th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-rule">
-            {items.map((r) => {
-              const id = r._id ?? "";
-              const outcome = outcomeOf(r);
-              return (
-                <tr key={id} className="hover:bg-tint">
-                  <td className="whitespace-nowrap px-3 py-2">
-                    <Link
-                      href={`/jobs/validation/${id}?back=${encodeURIComponent(runsHref())}`}
-                      className="text-primary-ink hover:underline"
-                    >
-                      {formatDate(r.createdAt)}
-                    </Link>
-                  </td>
-                  <td className="whitespace-nowrap px-3 py-2">{r.clientId ?? "—"}</td>
-                  <td className="px-3 py-2 font-mono text-xs">{r.domain ?? "—"}</td>
-                  <td className="whitespace-nowrap px-3 py-2">
-                    {r.browsers && r.browsers.length > 0 ? (
-                      <BrowserSequence browsers={r.browsers} />
-                    ) : (
-                      <BrowserCell browser={r.browser || (r.domain ? browsers.get(r.domain) : undefined)} />
-                    )}
-                  </td>
-                  <td className="whitespace-nowrap px-3 py-2">
-                    <PromotionIdLink id={r.promotionId} />
-                  </td>
-                  <td className="whitespace-nowrap px-3 py-2">
-                    <LocalValidateLink id={r.promotionId} />
-                  </td>
-                  <td className="whitespace-nowrap px-3 py-2">
-                    <ResetValidationLink
-                      promotionId={r.promotionId}
-                      domain={r.domain}
-                      clientId={r.clientId}
-                    />
-                  </td>
-                  <td className="px-3 py-2">
-                    <Badge variant={outcome}>
-                      {OUTCOME_LABEL[outcome].toLowerCase()}
-                    </Badge>
-                  </td>
-                  <td className="px-3 py-2">
-                    <div className="flex min-w-36 max-w-52 flex-wrap gap-1">
-                      {(r.failCodes ?? []).map((c) => (
-                        <Badge key={c} variant="code">
-                          {c}
-                        </Badge>
-                      ))}
-                      {(r.failCodes ?? []).length === 0 && "—"}
-                    </div>
-                  </td>
-                  <td className="whitespace-nowrap px-3 py-2 text-text">
-                    {formatCost(sumLlmCosts(r.llmCosts))}
-                  </td>
-                  <td className="min-w-80 max-w-lg px-3 py-2 text-xs text-text">
-                    {truncate(r.reasoning, 200) || "—"}
-                  </td>
-                  <td className="whitespace-nowrap px-3 py-2 text-xs">
-                    {r.screenshot ? (
-                      <a href={r.screenshot} target="_blank" className="text-primary-ink hover:underline">
-                        screenshot
-                      </a>
-                    ) : (
-                      "—"
-                    )}
+        <ReportsFilterBar
+          action={VALIDATION_RUNS_PATH}
+          clientIds={clientIds}
+          domains={domains}
+          from={filters.from}
+          to={filters.to}
+          groupBy={filters.groupBy}
+          outcomes={filters.outcomes ?? []}
+          selectedClients={filters.clientIds ?? []}
+          selectedDomains={filters.domains ?? []}
+          resetLabel="Reset Filters"
+        />
+
+        {failCodes.length > 0 && (
+          <div className="rounded-lg border border-line bg-card p-3">
+            <p className="mb-2 text-xs uppercase tracking-wide text-faint">Fail codes</p>
+            <div className="flex flex-wrap gap-1.5">
+              {filters.failCode && (
+                <Link
+                  href={failCodeHref()}
+                  className="rounded-full bg-primary px-2 py-0.5 text-xs font-medium text-card"
+                >
+                  {filters.failCode} ✕
+                </Link>
+              )}
+              {!filters.failCode &&
+                failCodes.map((f) => (
+                  <Link
+                    key={f.code}
+                    href={failCodeHref(f.code)}
+                    className="rounded-full bg-rule px-2 py-0.5 font-mono text-xs text-text hover:bg-line"
+                  >
+                    {f.code} <span className="text-faint">{f.runs}</span>
+                  </Link>
+                ))}
+            </div>
+          </div>
+        )}
+
+        <div className="overflow-x-auto rounded-lg border border-line bg-card">
+          <table className="min-w-full text-sm">
+            <thead className="bg-page text-left text-xs uppercase tracking-wide text-muted">
+              <tr>
+                <th className="px-3 py-2">When</th>
+                <th className="px-3 py-2">Customer</th>
+                <th className="px-3 py-2">Merchant</th>
+                <th className="px-3 py-2">Browser</th>
+                <th className="px-3 py-2">Promotion</th>
+                <th className="px-3 py-2">Validate</th>
+                <th className="px-3 py-2">
+                  <RestartValidationsSelectAll />
+                </th>
+                <th className="px-3 py-2">Outcome</th>
+                <th className="px-3 py-2">Fail Codes</th>
+                <th className="px-3 py-2">LLM cost</th>
+                <th className="px-3 py-2">What happened</th>
+                <th className="px-3 py-2">Evidence</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-rule">
+              {items.map((r) => {
+                const id = r._id ?? "";
+                const outcome = outcomeOf(r);
+                return (
+                  <tr key={id} className="hover:bg-tint">
+                    <td className="whitespace-nowrap px-3 py-2">
+                      <Link
+                        href={`/jobs/validation/${id}?back=${encodeURIComponent(runsHref())}`}
+                        className="text-primary-ink hover:underline"
+                      >
+                        {formatDate(r.createdAt)}
+                      </Link>
+                    </td>
+                    <td className="whitespace-nowrap px-3 py-2">{r.clientId ?? "—"}</td>
+                    <td className="px-3 py-2 font-mono text-xs">{r.domain ?? "—"}</td>
+                    <td className="whitespace-nowrap px-3 py-2">
+                      {r.browsers && r.browsers.length > 0 ? (
+                        <BrowserSequence browsers={r.browsers} />
+                      ) : (
+                        <BrowserCell browser={r.browser || (r.domain ? browsers.get(r.domain) : undefined)} />
+                      )}
+                    </td>
+                    <td className="whitespace-nowrap px-3 py-2">
+                      <PromotionIdLink id={r.promotionId} />
+                    </td>
+                    <td className="whitespace-nowrap px-3 py-2">
+                      <LocalValidateLink id={r.promotionId} />
+                    </td>
+                    <td className="whitespace-nowrap px-3 py-2">
+                      <RestartValidationCheckbox promotionId={r.promotionId} domain={r.domain} />
+                    </td>
+                    <td className="px-3 py-2">
+                      <Badge variant={outcome}>
+                        {OUTCOME_LABEL[outcome].toLowerCase()}
+                      </Badge>
+                    </td>
+                    <td className="px-3 py-2">
+                      <div className="flex min-w-36 max-w-52 flex-wrap gap-1">
+                        {(r.failCodes ?? []).map((c) => (
+                          <Badge key={c} variant="code">
+                            {c}
+                          </Badge>
+                        ))}
+                        {(r.failCodes ?? []).length === 0 && "—"}
+                      </div>
+                    </td>
+                    <td className="whitespace-nowrap px-3 py-2 text-text">
+                      {formatCost(sumLlmCosts(r.llmCosts))}
+                    </td>
+                    <td className="min-w-80 max-w-lg px-3 py-2 text-xs text-text">
+                      {truncate(r.reasoning, 200) || "—"}
+                    </td>
+                    <td className="whitespace-nowrap px-3 py-2 text-xs">
+                      {r.screenshot ? (
+                        <a href={r.screenshot} target="_blank" className="text-primary-ink hover:underline">
+                          screenshot
+                        </a>
+                      ) : (
+                        "—"
+                      )}
+                    </td>
+                  </tr>
+                );
+              })}
+              {items.length === 0 && (
+                <tr>
+                  <td colSpan={12} className="px-3 py-8 text-center text-faint">
+                    No validations match this selection.
                   </td>
                 </tr>
-              );
-            })}
-            {items.length === 0 && (
-              <tr>
-                <td colSpan={12} className="px-3 py-8 text-center text-faint">
-                  No validations match this selection.
-                </td>
-              </tr>
-            )}
-          </tbody>
-        </table>
-      </div>
-
-      {pages > 1 && (
-        <div className="flex items-center justify-between py-1 text-sm text-text">
-          <span>
-            Page {current} of {pages} · {formatCount(total)} runs
-          </span>
-          <span className="flex gap-2">
-            {current > 1 && (
-              <Link
-                href={runsHref(`&page=${current - 1}`)}
-                className="rounded border border-line bg-card px-3 py-1 hover:bg-rule"
-              >
-                Previous
-              </Link>
-            )}
-            {current < pages && (
-              <Link
-                href={runsHref(`&page=${current + 1}`)}
-                className="rounded border border-line bg-card px-3 py-1 hover:bg-rule"
-              >
-                Next
-              </Link>
-            )}
-          </span>
+              )}
+            </tbody>
+          </table>
         </div>
-      )}
-      {total > RUNS_PAGE_SIZE * pages && <p className="text-xs text-faint">Showing first results.</p>}
-    </div>
+
+        {pages > 1 && (
+          <div className="flex items-center justify-between py-1 text-sm text-text">
+            <span>
+              Page {current} of {pages} · {formatCount(total)} runs
+            </span>
+            <span className="flex gap-2">
+              {current > 1 && (
+                <Link
+                  href={runsHref(`&page=${current - 1}`)}
+                  className="rounded border border-line bg-card px-3 py-1 hover:bg-rule"
+                >
+                  Previous
+                </Link>
+              )}
+              {current < pages && (
+                <Link
+                  href={runsHref(`&page=${current + 1}`)}
+                  className="rounded border border-line bg-card px-3 py-1 hover:bg-rule"
+                >
+                  Next
+                </Link>
+              )}
+            </span>
+          </div>
+        )}
+        {total > RUNS_PAGE_SIZE * pages && <p className="text-xs text-faint">Showing first results.</p>}
+      </div>
+    </RestartValidations>
   );
 }
