@@ -4,6 +4,14 @@
 This version has breaking changes — APIs, conventions, and file structure may all differ from your training data. Read the relevant guide in `node_modules/next/dist/docs/` before writing any code. Heed deprecation notices.
 <!-- END:nextjs-agent-rules -->
 
+# No tests
+
+Never write, add or modify tests, and never run tests (`npm test`, jest, vitest,
+mocha, `node --test` or any variant). `.env` points at the production database,
+and test suites in this project and in `promotions-service` delete data. Verify
+changes with `npx tsc --noEmit` and `npx eslint` only; running tests is left to a
+human. A PreToolUse hook (`.claude/hooks/block-tests.sh`) enforces this.
+
 # Releasing
 
 **One version line.** `package.json` and the git tag are always the same

@@ -7,7 +7,8 @@ import { formatCount } from "@/lib/format";
 
 export const dynamic = "force-dynamic";
 
-const RANGES = [7, 30, 60, 90] as const;
+// Promotions are kept for 30 days (see PROMOTIONS_COLLECTION), so no longer ranges.
+const RANGES = [7, 30] as const;
 
 function Tile({
   label,
