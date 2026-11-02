@@ -31,3 +31,11 @@ before concluding a fix did not work.
 
 If you ever see an open deploy PR for an older tag than production, close it:
 merging it is a silent rollback.
+
+# Related projects
+
+This is the **dashboard** (Next.js UI); it does not own the data. The backend
+API is `promotions-service`, at `../promotions-service`, reached via
+`PROMOTIONS_SERVICE_URL`. When a feature needs new data or endpoints, change
+the API there first and consume it here — don't reimplement backend logic in
+`lib/`.
