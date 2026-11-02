@@ -18,3 +18,8 @@ function getClient(): MongoClient {
 export function db() {
   return getClient().db("Promotions");
 }
+
+// Promotion records for every view. promotions-service keeps `todayPromotions`
+// for one day only (TTL on systemMeta.expiresAt) and mirrors every insert and
+// update into `latestPromotions`, which it retains for 30 days.
+export const PROMOTIONS_COLLECTION = "latestPromotions";

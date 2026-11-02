@@ -1,4 +1,4 @@
-// How a todayPromotions record was created. Mirrors promotions-service
+// How a promotion record was created. Mirrors promotions-service
 // `PromotionOrigin`; the field is optional there and absent on records written
 // before it existed. Only the extraction pipeline sets `extractionLogId`, so an
 // unlabelled record is extracted when it has one and a client import otherwise.

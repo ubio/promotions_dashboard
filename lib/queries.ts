@@ -1,5 +1,5 @@
 import type { Document, Filter } from "mongodb";
-import { db } from "./mongo";
+import { db, PROMOTIONS_COLLECTION } from "./mongo";
 import { escapeRegex, validityVariants } from "./format";
 import { promotionOriginScope } from "./promotion-origin";
 
@@ -108,7 +108,7 @@ export async function getPromotions(f: PromotionFilters) {
   }
   // todayPromotion _ids are random nanoids, so sort by creation time instead;
   // docs missing systemMeta.createdAt (~5%) sort last, _id as a stable tiebreak.
-  return paginate("todayPromotions", filter, f.page ?? 1, { "systemMeta.createdAt": -1, _id: -1 });
+  return paginate(PROMOTIONS_COLLECTION, filter, f.page ?? 1, { "systemMeta.createdAt": -1, _id: -1 });
 }
 
 export async function getValidationJob(id: string) {
@@ -120,11 +120,11 @@ export async function getExtractionJob(id: string) {
 }
 
 export async function getPromotion(id: string) {
-  return coll("todayPromotions").findOne({ _id: id });
+  return coll(PROMOTIONS_COLLECTION).findOne({ _id: id });
 }
 
 export async function getPromotionByUniqId(uniqId: string) {
-  return coll("todayPromotions").findOne({ uniqId });
+  return coll(PROMOTIONS_COLLECTION).findOne({ uniqId });
 }
 
 export async function getValidationsForPromotion(
@@ -256,7 +256,7 @@ export async function getDailyStats(days: number, clientId?: string): Promise<Da
 }
 
 export async function getValidityBreakdown(clientId?: string): Promise<Map<string, number>> {
-  const rows = await coll("todayPromotions")
+  const rows = await coll(PROMOTIONS_COLLECTION)
     .aggregate([
       {
         $match: {
@@ -330,7 +330,7 @@ export async function getClientIds(): Promise<string[]> {
 
 export async function getPromotionClientIds(): Promise<string[]> {
   return (
-    await coll("todayPromotions").distinct("clientId", promotionOriginScope.clientImport())
+    await coll(PROMOTIONS_COLLECTION).distinct("clientId", promotionOriginScope.clientImport())
   ).filter(Boolean) as string[];
 }
 

@@ -1,6 +1,6 @@
 import type { Collection, Document, Filter } from "mongodb";
 import { escapeRegex } from "./format";
-import { db } from "./mongo";
+import { db, PROMOTIONS_COLLECTION } from "./mongo";
 import { type ExtractedOriginFilter, promotionOriginScope } from "./promotion-origin";
 import { PAGE_SIZE, type Paged } from "./queries";
 
@@ -65,7 +65,7 @@ export class ExtractedPromotionsQuery {
   }
 
   private promotions(): Collection<PromoDoc> {
-    return db().collection<PromoDoc>("todayPromotions");
+    return db().collection<PromoDoc>(PROMOTIONS_COLLECTION);
   }
 }
 

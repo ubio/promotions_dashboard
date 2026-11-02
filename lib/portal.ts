@@ -3,7 +3,7 @@
 //
 //  1. Every query is scoped to the caller's clientId — never a parameter the
 //     browser controls.
-//  2. Clients see promotion outcomes from `todayPromotions`, not validation job
+//  2. Clients see promotion outcomes from `latestPromotions`, not validation job
 //     rows from `validationLogs`.
 //  3. Successfully verified = client-facing promotion (promotions-service
 //     TodayPromotionStorage.isClientFacingPromotionExpr): valid, or
@@ -12,7 +12,7 @@
 //  5. No cost fields are selected at all.
 //  6. Only client-imported promotions are shown; extracted ones are internal.
 import type { Document, Filter } from "mongodb";
-import { db } from "./mongo";
+import { db, PROMOTIONS_COLLECTION } from "./mongo";
 import { promotionOriginScope } from "./promotion-origin";
 import { PromotionApplicability, promotionApplicabilityScope } from "./promotion-applicability";
 import {
@@ -26,7 +26,7 @@ import { escapeRegex, normalizeValidity } from "./format";
 type PromoDoc = Document & { _id: string };
 
 function promotions() {
-  return db().collection<PromoDoc>("todayPromotions");
+  return db().collection<PromoDoc>(PROMOTIONS_COLLECTION);
 }
 
 // Plain English for ClientFacingFailCodes only.
