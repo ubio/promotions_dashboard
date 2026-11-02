@@ -3,7 +3,9 @@
 // was created: `promotionsValidated` is a conclusion, `promotionsSent` is an
 // export back to Google. The contract prices each sent promotion at a fixed
 // GBP amount and shows that spend in USD at a fixed rate. The rate is the
-// median GBP–USD over the past 10 years, not a live quote.
+// median GBP–USD over the past 10 years, not a live quote. Each document also
+// carries the Google account (`environment`) it was recorded for; the contract
+// budget is shared by both accounts.
 import type { Filter } from "mongodb";
 import { GOOGLE_CLIENT_ID } from "./client-portal-path";
 import { db } from "./mongo";
@@ -15,6 +17,9 @@ export const GBP_TO_USD = 1.3;
 export const GOOGLE_CONTRACT_BUDGET_GBP = 170_000;
 const BYTES_PER_GB = 1_000_000_000;
 
+export const GOOGLE_ENVIRONMENTS = ["production", "staging"] as const;
+export type GoogleEnvironment = (typeof GOOGLE_ENVIRONMENTS)[number];
+
 const usdFormat = new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" });
 const gbpFormat = new Intl.NumberFormat("en-GB", { style: "currency", currency: "GBP" });
 const regionNames = new Intl.DisplayNames(["en"], { type: "region" });
@@ -23,6 +28,7 @@ export interface GoogleBillingFilters {
   from?: string;
   to?: string;
   countries?: string[];
+  environment?: GoogleEnvironment;
 }
 
 export interface GoogleBillingTotals {
@@ -53,6 +59,7 @@ export interface GoogleBillingReport {
 
 interface GoogleDailyStatDoc {
   clientId: string;
+  environment?: GoogleEnvironment;
   countryCode: string;
   date: string;
   sourcesImported?: number;
@@ -108,6 +115,10 @@ function one(value: string | string[] | undefined): string | undefined {
   return typeof value === "string" && value !== "" ? value : undefined;
 }
 
+function isGoogleEnvironment(value: string | undefined): value is GoogleEnvironment {
+  return GOOGLE_ENVIRONMENTS.some((environment) => environment === value);
+}
+
 function listParam(value: string | string[] | undefined): string[] | undefined {
   if (value == null) return undefined;
   const all = (Array.isArray(value) ? value : [value])
@@ -129,11 +140,17 @@ export function parseGoogleBillingSearch(sp: {
   }
   const countries = listParam(sp.countries);
   if (countries) filters.countries = countries;
+  const environment = one(sp.environment);
+  if (isGoogleEnvironment(environment)) filters.environment = environment;
   return filters;
 }
 
 export function googleBillingHasNarrowing(filters: GoogleBillingFilters): boolean {
-  return Boolean(filters.from || filters.to || filters.countries?.length);
+  return Boolean(filters.from || filters.to || filters.countries?.length || filters.environment);
+}
+
+export function googleEnvironmentLabel(environment: GoogleEnvironment): string {
+  return environment === "production" ? "Production" : "Staging";
 }
 
 export function describeGoogleBillingPeriod(
@@ -225,6 +242,12 @@ function matchFor(filters: GoogleBillingFilters): Filter<GoogleDailyStatDoc> {
   }
   if (filters.countries?.length) {
     match.countryCode = { $in: filters.countries };
+  }
+  if (filters.environment === "production") {
+    // Days recorded before staging existed may carry no environment.
+    match.environment = { $ne: "staging" };
+  } else if (filters.environment) {
+    match.environment = filters.environment;
   }
   return match;
 }
@@ -340,7 +363,7 @@ function metricSums() {
 // relates to the one before it in the funnel. The internal-only figures are
 // marked so they are never shown in the client view.
 export const GOOGLE_BILLING_HINTS = {
-  contractBudget: `Spend against the ${formatGbp(GOOGLE_CONTRACT_BUDGET_GBP)} contract. Only promotions sent back are charged for, so extraction and checking do not draw it down. The bar shows what is left.`,
+  contractBudget: `Spend against the ${formatGbp(GOOGLE_CONTRACT_BUDGET_GBP)} contract, shared by your production and staging accounts. Only promotions sent back are charged for, so extraction and checking do not draw it down. The bar shows what is left.`,
   sources: "SKU URLs imported from your feed. One source is one product page we visited.",
   extracted:
     "Offers we found on those pages. Higher than the number of pages, because a page often carries more than one offer.",

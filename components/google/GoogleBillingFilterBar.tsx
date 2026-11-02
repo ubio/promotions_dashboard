@@ -15,12 +15,16 @@ export default function GoogleBillingFilterBar({
   to,
   countries,
   selectedCountries,
+  environments,
+  selectedEnvironment,
 }: {
   action?: string;
   from: string;
   to: string;
   countries: { value: string; label: string }[];
   selectedCountries: string[];
+  environments: { value: string; label: string }[];
+  selectedEnvironment: string;
 }) {
   const presets = periodPresets();
   const [periodKey, setPeriodKey] = useState(
@@ -112,6 +116,21 @@ export default function GoogleBillingFilterBar({
         searchable={countries.length > 8}
         onCommit={commit}
       />
+
+      <select
+        name="environment"
+        defaultValue={selectedEnvironment}
+        onChange={commit}
+        className={CONTROL}
+        aria-label="Environment"
+      >
+        <option value="">All environments</option>
+        {environments.map((environment) => (
+          <option key={environment.value} value={environment.value}>
+            {environment.label}
+          </option>
+        ))}
+      </select>
 
       <noscript>
         <button className="rounded bg-primary px-4 py-1.5 text-sm text-card">Apply</button>
