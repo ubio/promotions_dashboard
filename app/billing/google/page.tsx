@@ -6,7 +6,6 @@ import { formatCount, formatUtcDay } from "@/lib/format";
 import {
   GBP_PER_EXPORTED_PROMOTION,
   GBP_TO_USD,
-  GOOGLE_ENVIRONMENTS,
   GOOGLE_BILLING_HINTS,
   GOOGLE_CONTRACT_BUDGET_GBP,
   budgetUsedPercent,
@@ -24,7 +23,6 @@ import {
   getGoogleBillingCountries,
   googleBillingHasNarrowing,
   googleCountryLabel,
-  googleEnvironmentLabel,
   parseGoogleBillingSearch,
   type GoogleBillingTotals,
 } from "@/lib/google-billing";
@@ -149,7 +147,7 @@ function BudgetSlider({ promotionsSent }: { promotionsSent: number }) {
         {formatBudgetPercent(percent)} of the {formatGbp(GOOGLE_CONTRACT_BUDGET_GBP)} budget spent
         exporting promotions
         {over ? `, ${formatGbp(spentGbp - GOOGLE_CONTRACT_BUDGET_GBP)} over budget` : ""}. The bar is
-        the budget still left. All time, every country, production and staging together.
+        the budget still left. All time, every country.
       </p>
     </section>
   );
@@ -172,10 +170,7 @@ export default async function GoogleBillingPage({ searchParams }: { searchParams
     <div className="space-y-5">
       <div>
         <h1 className="text-xl font-semibold">Google billing</h1>
-        <p className="text-xs text-muted">
-          {period}
-          {filters.environment ? ` · ${googleEnvironmentLabel(filters.environment)}` : ""}
-        </p>
+        <p className="text-xs text-muted">{period}</p>
       </div>
 
       <GoogleBillingFilterBar
@@ -183,11 +178,6 @@ export default async function GoogleBillingPage({ searchParams }: { searchParams
         to={filters.to ?? ""}
         countries={countryCodes.map((code) => ({ value: code, label: googleCountryLabel(code) }))}
         selectedCountries={filters.countries ?? []}
-        environments={GOOGLE_ENVIRONMENTS.map((environment) => ({
-          value: environment,
-          label: googleEnvironmentLabel(environment),
-        }))}
-        selectedEnvironment={filters.environment ?? ""}
       />
 
       <BudgetSlider promotionsSent={contract.totals.promotionsSent} />
