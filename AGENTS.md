@@ -27,9 +27,11 @@ in one step — so the two can never disagree:
 
 ```bash
 npm version patch        # or minor / major
-git push origin main     # push the commit first, and let it land
-git push origin --tags   # the tag push is what triggers CD
 ```
+
+`preversion` runs lint and typecheck first and aborts the release if either
+fails; `postversion` pushes the current branch and the tags. The tag push is
+what triggers CD.
 
 The tag push builds `eu.gcr.io/automation-cloud-registry/promotions-dashboard`
 and opens an auto-merged deploy PR against `ubio/infrastructure` at

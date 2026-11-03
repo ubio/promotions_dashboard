@@ -6,7 +6,10 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "typecheck": "tsc --noEmit",
+    "preversion": "npm run lint && npm run typecheck",
+    "postversion": "git push origin $(git rev-parse --abbrev-ref HEAD) --tags"
   },
   "dependencies": {
     "google-auth-library": "^10.9.0",
