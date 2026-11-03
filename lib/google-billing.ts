@@ -1,6 +1,10 @@
-// Google billing reads `googleDailyStats` (one document per country and day).
-// Promotion counts are written by promotions-service on the day the promotion
-// was created: `promotionsValidated` is a conclusion, `promotionsSent` is an
+// Google billing reads `googleDailyStats` (one document per country, UTC day
+// and source bundle). A bundle is the Los Angeles day a feed file was imported;
+// promotions and costs carry the bundle of the URL they came from, so one
+// bundle can span two UTC days. Documents from before bundles were tracked
+// carry their own day as the bundle. The page and its period filter group by
+// bundle; the by-day table splits each day by bundle. Promotion counts are
+// written by promotions-service on the day the promotion was created: `promotionsValidated` is a conclusion, `promotionsSent` is an
 // export back to Google. The contract prices each sent promotion at a fixed
 // GBP amount and shows that spend in USD at a fixed rate. The rate is the
 // median GBP–USD over the past 10 years, not a live quote. Each document also
@@ -45,13 +49,20 @@ export interface GoogleBillingCountry extends GoogleBillingTotals {
   countryCode: string;
 }
 
+export interface GoogleBillingBundle extends GoogleBillingTotals {
+  bundleId: string;
+  countries: GoogleBillingCountry[];
+}
+
 export interface GoogleBillingDay extends GoogleBillingTotals {
   date: string;
+  bundleId: string;
   countries: GoogleBillingCountry[];
 }
 
 export interface GoogleBillingReport {
   countries: GoogleBillingCountry[];
+  bundles: GoogleBillingBundle[];
   days: GoogleBillingDay[];
   totals: GoogleBillingTotals;
   span: { from: string; to: string } | null;
@@ -62,6 +73,7 @@ interface GoogleDailyStatDoc {
   environment?: GoogleEnvironment;
   countryCode: string;
   date: string;
+  bundleId?: string;
   sourcesImported?: number;
   promotionsExtracted?: number;
   promotionsQualified?: number;
@@ -88,8 +100,12 @@ interface MetricAgg extends MetricSums {
   _id: string;
 }
 
+interface BundleCountryAgg extends MetricSums {
+  _id: { bundleId: string; countryCode: string };
+}
+
 interface DayCountryAgg extends MetricSums {
-  _id: { date: string; countryCode: string };
+  _id: { date: string; bundleId: string; countryCode: string };
 }
 
 interface SpanAgg {
@@ -99,6 +115,7 @@ interface SpanAgg {
 
 interface BillingFacet {
   countries: MetricAgg[];
+  bundles: BundleCountryAgg[];
   days: DayCountryAgg[];
   span: SpanAgg[];
 }
@@ -238,7 +255,8 @@ function emptyTotals(): GoogleBillingTotals {
 function matchFor(filters: GoogleBillingFilters): Filter<GoogleDailyStatDoc> {
   const match: Filter<GoogleDailyStatDoc> = { clientId: GOOGLE_CLIENT_ID };
   if (filters.from && filters.to) {
-    match.date = { $gte: filters.from, $lte: filters.to };
+    const range = { $gte: filters.from, $lte: filters.to };
+    match.$or = [{ bundleId: range }, { bundleId: { $exists: false }, date: range }];
   }
   if (filters.countries?.length) {
     match.countryCode = { $in: filters.countries };
@@ -293,21 +311,28 @@ export async function getGoogleBilling(filters: GoogleBillingFilters): Promise<G
             { $group: { _id: "$countryCode", ...metricSums() } },
             { $sort: { _id: 1 } },
           ],
-          days: [
+          bundles: [
             {
               $group: {
-                _id: { date: "$date", countryCode: "$countryCode" },
+                _id: { bundleId: bundleIdExpr(), countryCode: "$countryCode" },
                 ...metricSums(),
               },
             },
-            { $sort: { "_id.date": -1, "_id.countryCode": 1 } },
+          ],
+          days: [
+            {
+              $group: {
+                _id: { date: "$date", bundleId: bundleIdExpr(), countryCode: "$countryCode" },
+                ...metricSums(),
+              },
+            },
           ],
           span: [
             {
               $group: {
                 _id: null,
-                from: { $min: "$date" },
-                to: { $max: "$date" },
+                from: { $min: bundleIdExpr() },
+                to: { $max: bundleIdExpr() },
               },
             },
             { $project: { _id: 0, from: 1, to: 1 } },
@@ -320,30 +345,50 @@ export async function getGoogleBilling(filters: GoogleBillingFilters): Promise<G
   const countries = (facet?.countries ?? [])
     .filter((row) => row._id !== "")
     .map((row) => ({ countryCode: row._id, ...metricsFrom(row) }));
-  const days = daysFrom(facet?.days ?? []);
+  const bundles = groupByCountry(facet?.bundles ?? [], (id) => id.bundleId).map(
+    ({ key, countries, totals }) => ({ bundleId: key[0], countries, ...totals })
+  );
+  const days = groupByCountry(facet?.days ?? [], (id) => id.date, (id) => id.bundleId).map(
+    ({ key, countries, totals }) => ({ date: key[0], bundleId: key[1], countries, ...totals })
+  );
   const spanRow = facet?.span[0];
   const span = spanRow?.from && spanRow.to ? { from: spanRow.from, to: spanRow.to } : null;
-  return { countries, days, totals: totalsFrom(countries), span };
+  return { countries, bundles, days, totals: totalsFrom(countries), span };
 }
 
-function daysFrom(rows: DayCountryAgg[]): GoogleBillingDay[] {
-  const grouped = new Map<string, GoogleBillingCountry[]>();
+function bundleIdExpr() {
+  return { $ifNull: ["$bundleId", "$date"] };
+}
+
+// Groups per-country rows under their key parts, newest key first.
+function groupByCountry<Id extends { countryCode: string }>(
+  rows: (MetricSums & { _id: Id })[],
+  ...parts: ((id: Id) => string)[]
+): { key: string[]; countries: GoogleBillingCountry[]; totals: GoogleBillingTotals }[] {
+  const grouped = new Map<string, { key: string[]; countries: GoogleBillingCountry[] }>();
   for (const row of rows) {
-    const date = row._id.date;
+    const key = parts.map((part) => part(row._id));
     const countryCode = row._id.countryCode;
-    if (!date || !countryCode) continue;
-    const countries = grouped.get(date) ?? [];
-    countries.push({ countryCode, ...metricsFrom(row) });
-    grouped.set(date, countries);
+    if (key.some((value) => !value) || !countryCode) continue;
+    const mapKey = key.join("\0");
+    const group = grouped.get(mapKey) ?? { key, countries: [] };
+    group.countries.push({ countryCode, ...metricsFrom(row) });
+    grouped.set(mapKey, group);
   }
 
-  return [...grouped.keys()]
-    .sort((left, right) => (left < right ? 1 : left > right ? -1 : 0))
-    .map((date) => {
-      const countries = grouped.get(date) ?? [];
+  return [...grouped.values()]
+    .sort((left, right) => compareKeysNewestFirst(left.key, right.key))
+    .map(({ key, countries }) => {
       countries.sort((left, right) => left.countryCode.localeCompare(right.countryCode));
-      return { date, countries, ...totalsFrom(countries) };
+      return { key, countries, totals: totalsFrom(countries) };
     });
+}
+
+function compareKeysNewestFirst(left: string[], right: string[]): number {
+  for (let index = 0; index < left.length; index += 1) {
+    if (left[index] !== right[index]) return left[index] < right[index] ? 1 : -1;
+  }
+  return 0;
 }
 
 function metricSums() {
@@ -376,5 +421,7 @@ export const GOOGLE_BILLING_HINTS = {
   llmCost: "What we spent with the language-model providers on these checks. Internal figure.",
   exportCost: `Charged at ${formatGbp(GBP_PER_EXPORTED_PROMOTION)} per promotion sent back, shown in USD at a fixed rate of ${GBP_TO_USD}.`,
   country: "The locale of the imported URL, not where the merchant is based.",
-  day: "The day these figures were recorded. Each line is that day's total across the selected countries. Promotion counts are for promotions created that day. Expand countries shows the same figures for each country.",
+  bundle:
+    "The feed the SKU URLs came from, named by the Los Angeles day we imported it. Promotions, checks and costs count under the feed of the URL they came from, even when the work finished the next day. Each line is that feed's total across the selected countries. Expand countries shows the same figures for each country.",
+  day: "The UTC day these figures were recorded, split by the feed they belong to. A feed imported late in the Los Angeles afternoon usually appears on two UTC days. Promotion counts are for promotions created that day. Expand countries shows the same figures for each country.",
 } as const;

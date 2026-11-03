@@ -1,5 +1,5 @@
 import GoogleBillingFilterBar from "@/components/google/GoogleBillingFilterBar";
-import GoogleBillingDayTable from "@/components/google/GoogleBillingDayTable";
+import GoogleBillingGroupTable from "@/components/google/GoogleBillingGroupTable";
 import { requireGoogleBillingSession } from "@/lib/auth";
 import { HelpHint, TableHeaderLabel } from "@/components/HelpHint";
 import { formatCount, formatUtcDay } from "@/lib/format";
@@ -45,9 +45,12 @@ function billingCells(row: GoogleBillingTotals, showInternalCosts: boolean): str
   return cells;
 }
 
-function dayHeaders(showInternalCosts: boolean): { label: string; hint: string }[] {
+function groupHeaders(
+  leading: { label: string; hint: string }[],
+  showInternalCosts: boolean
+): { label: string; hint: string }[] {
   const headers: { label: string; hint: string }[] = [
-    { label: "Day", hint: GOOGLE_BILLING_HINTS.day },
+    ...leading,
     { label: "Sources", hint: GOOGLE_BILLING_HINTS.sources },
     { label: "Extracted", hint: GOOGLE_BILLING_HINTS.extracted },
     { label: "Qualified", hint: GOOGLE_BILLING_HINTS.qualified },
@@ -66,6 +69,10 @@ function dayHeaders(showInternalCosts: boolean): { label: string; hint: string }
     );
   }
   return headers;
+}
+
+function bundleLabel(bundleId: string): string {
+  return /^\d{4}-\d{2}-\d{2}$/.test(bundleId) ? formatUtcDay(bundleId) : bundleId;
 }
 
 function shareOfExtracted(qualified: number, extracted: number): string {
@@ -302,19 +309,42 @@ export default async function GoogleBillingPage({ searchParams }: { searchParams
         </p>
       )}
 
-      <GoogleBillingDayTable
-        headers={dayHeaders(showInternalCosts)}
-        days={report.days.map((day) => ({
-          date: day.date,
-          label: formatUtcDay(day.date),
-          cells: billingCells(day, showInternalCosts),
-          countries: day.countries.map((country) => ({
+      <GoogleBillingGroupTable
+        title="By bundle"
+        headers={groupHeaders([{ label: "Bundle", hint: GOOGLE_BILLING_HINTS.bundle }], showInternalCosts)}
+        rows={report.bundles.map((bundle) => ({
+          key: bundle.bundleId,
+          label: bundleLabel(bundle.bundleId),
+          cells: billingCells(bundle, showInternalCosts),
+          countries: bundle.countries.map((country) => ({
             code: country.countryCode,
             label: googleCountryLabel(country.countryCode),
             cells: billingCells(country, showInternalCosts),
           })),
         }))}
         totals={billingCells(totals, showInternalCosts)}
+      />
+
+      <GoogleBillingGroupTable
+        title="By day"
+        headers={groupHeaders(
+          [
+            { label: "Day", hint: GOOGLE_BILLING_HINTS.day },
+            { label: "Bundle", hint: GOOGLE_BILLING_HINTS.bundle },
+          ],
+          showInternalCosts
+        )}
+        rows={report.days.map((day) => ({
+          key: `${day.date}|${day.bundleId}`,
+          label: formatUtcDay(day.date),
+          cells: [bundleLabel(day.bundleId), ...billingCells(day, showInternalCosts)],
+          countries: day.countries.map((country) => ({
+            code: country.countryCode,
+            label: googleCountryLabel(country.countryCode),
+            cells: ["", ...billingCells(country, showInternalCosts)],
+          })),
+        }))}
+        totals={["", ...billingCells(totals, showInternalCosts)]}
       />
     </div>
   );

@@ -3,17 +3,17 @@
 import { Fragment, useState } from "react";
 import { TableHeaderLabel } from "@/components/HelpHint";
 
-interface DayCountryRow {
+interface CountryRow {
   code: string;
   label: string;
   cells: string[];
 }
 
-interface DayRow {
-  date: string;
+interface GroupRow {
+  key: string;
   label: string;
   cells: string[];
-  countries: DayCountryRow[];
+  countries: CountryRow[];
 }
 
 function valueClass(index: number, count: number, pad: string): string {
@@ -21,22 +21,25 @@ function valueClass(index: number, count: number, pad: string): string {
   return `whitespace-nowrap ${pad} ${gap}`.trim();
 }
 
-export default function GoogleBillingDayTable({
+// One line per group (a bundle, or a day and bundle) with its countries folded underneath.
+export default function GoogleBillingGroupTable({
+  title,
   headers,
-  days,
+  rows,
   totals,
 }: {
+  title: string;
   headers: { label: string; hint: string }[];
-  days: DayRow[];
+  rows: GroupRow[];
   totals: string[];
 }) {
   const [countriesOpen, setCountriesOpen] = useState(false);
-  const hasCountries = days.some((day) => day.countries.length > 0);
+  const hasCountries = rows.some((row) => row.countries.length > 0);
 
   return (
     <section className="rounded-lg border border-line bg-card p-4">
       <div className="mb-3 flex items-center justify-between gap-3">
-        <h2 className="text-sm font-semibold text-text">By day</h2>
+        <h2 className="text-sm font-semibold text-text">{title}</h2>
         {hasCountries && (
           <button
             type="button"
@@ -60,18 +63,18 @@ export default function GoogleBillingDayTable({
             </tr>
           </thead>
           <tbody>
-            {days.map((day) => (
-              <Fragment key={day.date}>
+            {rows.map((row) => (
+              <Fragment key={row.key}>
                 <tr className="border-t border-line font-medium text-ink">
-                  <td className="whitespace-nowrap py-1.5 pr-4">{day.label}</td>
-                  {day.cells.map((cell, index) => (
-                    <td key={headers[index + 1].label} className={valueClass(index, day.cells.length, "py-1.5")}>
+                  <td className="whitespace-nowrap py-1.5 pr-4">{row.label}</td>
+                  {row.cells.map((cell, index) => (
+                    <td key={headers[index + 1].label} className={valueClass(index, row.cells.length, "py-1.5")}>
                       {cell}
                     </td>
                   ))}
                 </tr>
                 {countriesOpen &&
-                  day.countries.map((country) => (
+                  row.countries.map((country) => (
                     <tr key={country.code} className="text-muted">
                       <td className="whitespace-nowrap py-1 pl-4 pr-4">{country.label}</td>
                       {country.cells.map((cell, index) => (
@@ -83,7 +86,7 @@ export default function GoogleBillingDayTable({
                   ))}
               </Fragment>
             ))}
-            {days.length === 0 && (
+            {rows.length === 0 && (
               <tr>
                 <td colSpan={headers.length} className="py-6 text-center text-faint">
                   No Google daily stats in this period.
@@ -91,7 +94,7 @@ export default function GoogleBillingDayTable({
               </tr>
             )}
           </tbody>
-          {days.length > 0 && (
+          {rows.length > 0 && (
             <tfoot className="border-t border-line font-semibold text-ink">
               <tr>
                 <td className="py-2 pr-4">Total</td>
