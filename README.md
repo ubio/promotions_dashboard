@@ -164,7 +164,7 @@ from promotions sent to the client, not from validation runs.
 - `/stats` — pipeline counters and daily charts from job logs, with client and merchant
   rollups from the `stats` collection
 - `/stats/bot-detection` — merchants flagged for bot detection after repeated validation failures
-- `/stats/client-files` — CSV imports from S3 and promotions exports to the client bucket
+- `/stats/client-files` — CSV imports from client buckets and promotions exports back to them, with turnaround
 - `/jobs/validation/[id]` — full validation job: result, reasoning, promotion under
   validation, screenshot/video evidence, LLM costs, raw JSON
 - `/jobs/extraction/[id]` — full extraction job: visited URLs, promotions found, raw JSON

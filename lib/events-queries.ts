@@ -115,22 +115,31 @@ export async function getClientCsvEvents(f: ClientCsvEventFilters): Promise<Page
   return paginateEvents("clientCsvEvents", filter, f.page ?? 1, "createdAt");
 }
 
-function csvImportTurnaroundKey(bundleId: string, dataType: string): string {
-  return `${bundleId}\t${dataType}`;
+interface CsvImportKey {
+  bundleId: string;
+  dataType: string;
+  countryCode?: string;
 }
 
-function csvImportKeyFromEvent(event: Document): { bundleId: string; dataType: string } | null {
+function csvImportTurnaroundKey({ bundleId, dataType, countryCode }: CsvImportKey): string {
+  return `${bundleId}\t${dataType}\t${countryCode ?? ""}`;
+}
+
+function csvImportKeyFromEvent(event: Document): CsvImportKey | null {
   if (event.eventType !== "client-record-import") return null;
   const bundleId = event.bundleId;
   const dataType = event.dataType;
   if (typeof bundleId !== "string" || !bundleId || typeof dataType !== "string" || !dataType) {
     return null;
   }
-  return { bundleId, dataType };
+  const countryCode = typeof event.countryCode === "string" ? event.countryCode : undefined;
+  return { bundleId, dataType, countryCode };
 }
 
-// Matching promotions-export createdAt for the same bundle + data type, so an
-// import row can show how long that file took to come back to the client.
+// Matching promotions-export createdAt for the same bundle + data type + country
+// (Google bundles are days shared by every locale; ZiffDavis events have no
+// country), so an import row can show how long that file took to come back to
+// the client.
 export async function getCsvImportDeliveredAt(items: Document[]): Promise<Map<string, number>> {
   const bundleIds = [
     ...new Set(
@@ -142,11 +151,11 @@ export async function getCsvImportDeliveredAt(items: Document[]): Promise<Map<st
   ];
   if (bundleIds.length === 0) return new Map();
   const rows = await clientCsvColl()
-    .aggregate<{ _id: { bundleId: string; dataType: string }; deliveredAt: number }>([
+    .aggregate<{ _id: CsvImportKey; deliveredAt: number }>([
       { $match: { eventType: "promotions-export", bundleId: { $in: bundleIds } } },
       {
         $group: {
-          _id: { bundleId: "$bundleId", dataType: "$dataType" },
+          _id: { bundleId: "$bundleId", dataType: "$dataType", countryCode: "$countryCode" },
           deliveredAt: { $max: "$createdAt" },
         },
       },
@@ -155,7 +164,7 @@ export async function getCsvImportDeliveredAt(items: Document[]): Promise<Map<st
   return new Map(
     rows
       .filter((r) => r._id.bundleId && r._id.dataType && r.deliveredAt)
-      .map((r) => [csvImportTurnaroundKey(r._id.bundleId, r._id.dataType), r.deliveredAt])
+      .map((r) => [csvImportTurnaroundKey(r._id), r.deliveredAt])
   );
 }
 
@@ -166,7 +175,7 @@ export function csvImportTurnaroundMs(
   const key = csvImportKeyFromEvent(event);
   const createdAt = event.createdAt;
   if (!key || typeof createdAt !== "number") return null;
-  const delivered = deliveredAt.get(csvImportTurnaroundKey(key.bundleId, key.dataType));
+  const delivered = deliveredAt.get(csvImportTurnaroundKey(key));
   if (delivered == null || delivered < createdAt) return null;
   return delivered - createdAt;
 }

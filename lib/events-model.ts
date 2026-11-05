@@ -47,6 +47,7 @@ export interface ClientCsvEvent {
   createdAt: number;
   createdAtDate: string;
   recordCount?: number;
+  countryCode?: string;
 }
 
 export const CLIENT_CSV_EVENT_TYPES: ClientCsvEventType[] = [

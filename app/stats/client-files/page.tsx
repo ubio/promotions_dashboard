@@ -43,7 +43,7 @@ export default async function ClientFilesStatsPage({
       <div>
         <h1 className="text-xl font-semibold">Client files</h1>
         <p className="text-sm text-muted">
-          Audit log of CSV imports from S3 and promotions exports to the client bucket.
+          Audit log of CSV imports from client buckets and promotions exports back to them.
         </p>
       </div>
 
@@ -111,6 +111,7 @@ export default async function ClientFilesStatsPage({
               <th className="px-3 py-2">Bundle id</th>
               <th className="px-3 py-2">Bundle date</th>
               <th className="px-3 py-2">Data type</th>
+              <th className="px-3 py-2">Country</th>
               <th className="px-3 py-2">Records</th>
               <th className="px-3 py-2">Turnaround</th>
             </tr>
@@ -136,6 +137,7 @@ export default async function ClientFilesStatsPage({
                 <td className="px-3 py-2">
                   <Badge variant="code">{event.dataType}</Badge>
                 </td>
+                <td className="whitespace-nowrap px-3 py-2">{event.countryCode ?? "—"}</td>
                 <td className="px-3 py-2">{formatCount(event.recordCount)}</td>
                 <td className="whitespace-nowrap px-3 py-2 font-medium">
                   {formatDuration(csvImportTurnaroundMs(event, deliveredAt))}
@@ -144,7 +146,7 @@ export default async function ClientFilesStatsPage({
             ))}
             {result.items.length === 0 && (
               <tr>
-                <td colSpan={9} className="px-3 py-8 text-center text-faint">
+                <td colSpan={10} className="px-3 py-8 text-center text-faint">
                   No CSV events match these filters.
                 </td>
               </tr>
