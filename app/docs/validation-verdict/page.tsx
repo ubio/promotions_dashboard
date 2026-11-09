@@ -1,16 +1,6 @@
 import { Diagram } from "@/components/docs/Diagram";
+import validationVerdictDiagram from "@/components/docs/diagrams/validation-verdict";
 import { DocHeader, DocTable } from "@/components/docs/DocParts";
-
-const VERDICT = `
-flowchart LR
-    L[New validationLog<br/>stored] --> S{successes<br/>≥ N?}
-    S -- yes --> V[isValid = true]
-    S -- no --> F{fails<br/>≥ N?}
-    F -- yes --> I[isValid = false]
-    F -- no --> M{total<br/>< MAX?}
-    M -- yes --> R[isValid = null<br/>re-queued]
-    M -- no --> X[isValid = null<br/>gave up]
-`;
 
 export default function ValidationVerdictPage() {
   return (
@@ -57,7 +47,7 @@ export default function ValidationVerdictPage() {
         <code>MAX_VALIDATIONS_PER_PROMOTION</code>. Successes and fails count conclusions only, while
         the total counts every log, errors included.
       </p>
-      <Diagram chart={VERDICT} />
+      <Diagram svg={validationVerdictDiagram} />
       <ul>
         <li>
           The verdict is written to <code>todayPromotions</code>, <code>latestPromotions</code> and{" "}

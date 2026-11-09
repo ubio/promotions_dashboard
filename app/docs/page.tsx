@@ -1,33 +1,7 @@
 import Link from "next/link";
 import { Diagram } from "@/components/docs/Diagram";
+import overviewDiagram from "@/components/docs/diagrams/overview";
 import { DocHeader, DocTable } from "@/components/docs/DocParts";
-
-const OVERVIEW = `
-flowchart LR
-    subgraph Clients
-        G[(Google GCS bucket)]
-        ZD[(Ziff Davis S3 bucket)]
-    end
-
-    API[promotions-service<br/>API + periodic tasks]
-    DB[(MongoDB<br/>Promotions DB)]
-    A3[A3 platform<br/>extract / validate workflows]
-    UI[promotions_dashboard<br/>Next.js]
-    BQ[(BigQuery / Sheets)]
-    Lens[Lens]
-
-    G -- promotion sources --> API
-    ZD -- promotion CSVs --> API
-    API -- createJob --> A3
-    A3 -- signed webhook --> API
-    API <--> DB
-    API -- validated promotions --> G
-    API -- validated promotions --> ZD
-    API -- logs & promotions --> BQ
-    UI -- read only --> DB
-    UI -- Ops actions --> API
-    Lens -- daily counts --> UI
-`;
 
 export default function DocsOverviewPage() {
   return (
@@ -63,7 +37,7 @@ export default function DocsOverviewPage() {
         ]}
       />
 
-      <Diagram chart={OVERVIEW} />
+      <Diagram svg={overviewDiagram} />
 
       <h2>Pages</h2>
       <ol>

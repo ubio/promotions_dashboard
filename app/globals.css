@@ -333,17 +333,3 @@ tr:has(.pending-promotion-outcome:focus-visible) {
   max-width: 100%;
   height: auto;
 }
-
-.docs-diagram-loading {
-  min-height: 8rem;
-  align-items: center;
-  font-size: 0.75rem;
-  color: var(--oss-faint);
-}
-
-.docs-diagram-source {
-  justify-content: flex-start;
-  font-family: var(--oss-font-mono);
-  font-size: 0.75rem;
-  white-space: pre;
-}

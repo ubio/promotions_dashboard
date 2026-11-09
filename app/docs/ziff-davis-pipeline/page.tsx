@@ -1,17 +1,6 @@
 import { Diagram } from "@/components/docs/Diagram";
+import ziffDavisPipelineDiagram from "@/components/docs/diagrams/ziff-davis-pipeline";
 import { DocHeader } from "@/components/docs/DocParts";
-
-const PIPELINE = `
-flowchart LR
-    S3[(ZD S3 bucket<br/>request/)] -->|ImportFilesListForZDTask| ZS[(zdSources)]
-    ZS -->|ImportPromotionsForZDTask| CR[(clientPromotionRecords)]
-    CR -->|ConvertPromotionsTask<br/>+ LLM fills gaps| TP[(todayPromotions<br/>+ promotions)]
-    TP -->|EnqueuePromotionValidationTask| VA[A3 validate-promotions]
-    VA -->|/A3/validationFinished| VL[(validationLogs)]
-    VL -->|verdict| TP
-    TP -->|ExportPromotionsToAwsBucketTask| OUT[(ZD S3 bucket<br/>results)]
-    ZS -.->|Slack notify| SL[Slack]
-`;
 
 export default function ZiffDavisPipelinePage() {
   return (
@@ -25,7 +14,7 @@ export default function ZiffDavisPipelinePage() {
         ZD files come in two types: <strong>site-wide</strong> and <strong>SKU-specific</strong>{" "}
         promotions.
       </p>
-      <Diagram chart={PIPELINE} />
+      <Diagram svg={ziffDavisPipelineDiagram} />
 
       <h2>Steps</h2>
       <ol>

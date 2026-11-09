@@ -1,18 +1,7 @@
 import Link from "next/link";
 import { Diagram } from "@/components/docs/Diagram";
+import dashboardDiagram from "@/components/docs/diagrams/dashboard";
 import { Callout, DocHeader, DocTable } from "@/components/docs/DocParts";
-
-const DATA_FLOW = `
-flowchart LR
-    U[Internal user] -->|Google sign-in| D[Dashboard]
-    C[Client user] -->|Google sign-in<br/>client allowlist| P[Client portal /portal]
-    P --- D
-    D -->|read| DB[(MongoDB<br/>latestPromotions · validationLogs ·<br/>extractionLogs · merchants · stats)]
-    D -->|"Ops endpoints + OPS_SECRET"| API[promotions-service]
-    API --> DB
-    L[Lens] -->|bearer token| F["/api/lens/validations<br/>daily counts only"]
-    F --> D
-`;
 
 export default function DashboardDocPage() {
   return (
@@ -34,7 +23,7 @@ export default function DashboardDocPage() {
           <strong>Writes / actions</strong> go to the API Ops endpoints with <code>OPS_SECRET</code>.
         </li>
       </ul>
-      <Diagram chart={DATA_FLOW} />
+      <Diagram svg={dashboardDiagram} />
 
       <h2>Sections</h2>
       <DocTable

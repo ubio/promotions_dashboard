@@ -1,31 +1,6 @@
 import { Diagram } from "@/components/docs/Diagram";
+import a3IntegrationDiagram from "@/components/docs/diagrams/a3-integration";
 import { DocHeader, DocTable } from "@/components/docs/DocParts";
-
-const LIFECYCLE = `
-sequenceDiagram
-    autonumber
-    participant Task as Enqueue task (every 1 min)
-    participant DB as MongoDB
-    participant A3 as A3 Job API
-    participant WF as A3 workflow run
-    participant Hook as API webhook
-
-    Task->>DB: claim next item (set lockId)
-    Task->>A3: POST /Job/createJob (idempotencyKey, labels, inputs)
-    alt created
-        A3-->>Task: jobId
-        Task->>DB: lockId = jobId
-    else queue full (429)
-        Task->>DB: release claim, stop batch
-    else already in flight (409)
-        Task->>DB: keep lock
-    end
-    A3->>WF: run in browser
-    WF-->>A3: outputs
-    A3->>Hook: POST /A3/... (signed)
-    Hook->>Hook: verify x-a3-signature
-    Hook->>DB: store log, update promotion (idempotent by jobId)
-`;
 
 export default function A3IntegrationPage() {
   return (
@@ -69,7 +44,7 @@ export default function A3IntegrationPage() {
 
       <h2>Job lifecycle (push model)</h2>
       <p>The API pushes work to A3, and A3 calls the API back when it finishes.</p>
-      <Diagram chart={LIFECYCLE} />
+      <Diagram svg={a3IntegrationDiagram} />
 
       <h2>Key points</h2>
       <ul>

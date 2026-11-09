@@ -1,22 +1,6 @@
 import { Diagram } from "@/components/docs/Diagram";
+import architectureDiagram from "@/components/docs/diagrams/architecture";
 import { DocHeader, DocTable } from "@/components/docs/DocParts";
-
-const API_SHAPE = `
-flowchart TB
-    subgraph API[promotions-service]
-        direction TB
-        R[Routers<br/>A3Webhook · Ops · Merchant ·<br/>Extraction · Validation]
-        T[Periodic tasks<br/>import · convert · enqueue ·<br/>export · stats]
-        S[Services]
-        ST[Storage classes]
-        R --> S
-        T --> S
-        S --> ST
-    end
-    ST --> DB[(MongoDB)]
-    S --> A3[A3 Job API]
-    S --> EXT[(GCS · S3 · BigQuery · Sheets · Slack)]
-`;
 
 export default function ArchitecturePage() {
   return (
@@ -35,7 +19,7 @@ export default function ArchitecturePage() {
           flags): import, convert, enqueue A3 jobs, export, refresh stats.
         </li>
       </ul>
-      <Diagram chart={API_SHAPE} />
+      <Diagram svg={architectureDiagram} />
 
       <h3>Main periodic tasks</h3>
       <DocTable

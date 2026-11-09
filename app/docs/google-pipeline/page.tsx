@@ -1,19 +1,7 @@
 import Link from "next/link";
 import { Diagram } from "@/components/docs/Diagram";
+import googlePipelineDiagram from "@/components/docs/diagrams/google-pipeline";
 import { DocHeader } from "@/components/docs/DocParts";
-
-const PIPELINE = `
-flowchart LR
-    GCS[(Google GCS<br/>source bundles)] -->|ImportPromotionSourcesTask| PS[(promotionSources)]
-    PS -->|EnqueuePromotionExtractionTask| EX[A3 extract-promotions]
-    EX -->|/A3/jobFinished| EL[(extractionLogs)]
-    EX -->|promotions found| TP[(todayPromotions<br/>+ promotions)]
-    TP -->|EnqueuePromotionValidationTask| VA[A3 validate-promotions]
-    VA -->|/A3/validationFinished| VL[(validationLogs)]
-    VL -->|verdict| TP
-    TP -->|ExportPromotionsToBucketTask| OUT[(Google GCS<br/>results CSV)]
-    TP -->|ExportDataReportsTask| REP[(Transformation reports)]
-`;
 
 export default function GooglePipelinePage() {
   return (
@@ -28,7 +16,7 @@ export default function GooglePipelinePage() {
         <code>FEATURE_GOOGLE_EXPORT_ENABLED</code> (export). Locales come from <code>LOCALES</code>{" "}
         (default <code>de_DE,fr_FR,ja_JP</code>).
       </p>
-      <Diagram chart={PIPELINE} />
+      <Diagram svg={googlePipelineDiagram} />
 
       <h2>Steps</h2>
       <ol>
