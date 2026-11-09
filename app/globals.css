@@ -203,3 +203,147 @@ tr:has(.pending-promotion-outcome:focus-visible) {
   right: 0;
   transform: none;
 }
+
+/* Docs pages (/docs). Long-form text on top of the OSS tokens; Tailwind's
+   preflight strips heading, list and table styles, so they are set here. */
+.docs-prose {
+  color: var(--oss-text);
+  font-size: 0.875rem;
+  line-height: 1.65;
+}
+
+.docs-prose > * + * {
+  margin-top: 0.875rem;
+}
+
+.docs-prose h2 {
+  margin-top: 2rem;
+  padding-bottom: 0.375rem;
+  border-bottom: 1px solid var(--oss-line);
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--oss-ink);
+}
+
+.docs-prose h3 {
+  margin-top: 1.5rem;
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--oss-ink);
+}
+
+.docs-prose header + h2 {
+  margin-top: 0;
+}
+
+.docs-prose ul,
+.docs-prose ol {
+  padding-left: 1.25rem;
+}
+
+.docs-prose ul {
+  list-style: disc;
+}
+
+.docs-prose ol {
+  list-style: decimal;
+}
+
+.docs-prose li + li,
+.docs-prose li > ul,
+.docs-prose li > ol {
+  margin-top: 0.3rem;
+}
+
+.docs-prose li::marker {
+  color: var(--oss-faint);
+}
+
+.docs-prose strong {
+  font-weight: 600;
+  color: var(--oss-ink);
+}
+
+.docs-prose a {
+  color: var(--oss-primary-ink);
+}
+
+.docs-prose a:hover {
+  text-decoration: underline;
+}
+
+.docs-prose code {
+  border-radius: 0.25rem;
+  background: var(--oss-tint-2);
+  padding: 0.1em 0.35em;
+  font-family: var(--oss-font-mono);
+  font-size: 0.8em;
+  color: var(--oss-ink);
+}
+
+.docs-table {
+  overflow-x: auto;
+}
+
+.docs-table table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.8125rem;
+}
+
+.docs-table th {
+  border-bottom: 1px solid var(--oss-line);
+  padding: 0.375rem 1rem 0.375rem 0;
+  text-align: left;
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  color: var(--oss-muted);
+}
+
+.docs-table td {
+  border-bottom: 1px solid var(--oss-rule);
+  padding: 0.5rem 1rem 0.5rem 0;
+  vertical-align: top;
+}
+
+.docs-table tr:last-child td {
+  border-bottom: 0;
+}
+
+.docs-callout {
+  border-left: 3px solid var(--oss-primary-ink);
+  border-radius: 0 0.375rem 0.375rem 0;
+  background: var(--oss-primary-tint);
+  padding: 0.625rem 0.875rem;
+  color: var(--oss-primary-ink);
+}
+
+.docs-diagram {
+  display: flex;
+  justify-content: center;
+  overflow-x: auto;
+  border: 1px solid var(--oss-line);
+  border-radius: 0.5rem;
+  background: var(--oss-bg);
+  padding: 1rem;
+}
+
+.docs-diagram svg {
+  max-width: 100%;
+  height: auto;
+}
+
+.docs-diagram-loading {
+  min-height: 8rem;
+  align-items: center;
+  font-size: 0.75rem;
+  color: var(--oss-faint);
+}
+
+.docs-diagram-source {
+  justify-content: flex-start;
+  font-family: var(--oss-font-mono);
+  font-size: 0.75rem;
+  white-space: pre;
+}

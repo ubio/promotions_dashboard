@@ -79,6 +79,9 @@ export default async function RootLayout({
                   <Link href="/promotions/extracted" className="hover:text-ink">
                     Extracted
                   </Link>
+                  <Link href="/docs" className="hover:text-ink">
+                    Docs
+                  </Link>
                   <Link href="/portal/preview" className="text-faint hover:text-ink">
                     Client view
                   </Link>
