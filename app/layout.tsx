@@ -64,26 +64,32 @@ export default async function RootLayout({
                   <Link href="/" className="hover:text-ink">
                     Overview
                   </Link>
-                  <Link href="/billing/google" className="hover:text-ink">
-                    Google billing
-                  </Link>
                   <Link href="/reports" className="hover:text-ink">
                     Reports
-                  </Link>
-                  <Link href="/validations/runs" className="hover:text-ink">
-                    Validations
                   </Link>
                   <Link href="/stats/clients" className="hover:text-ink">
                     Stats
                   </Link>
                   <Link href="/promotions/extracted" className="hover:text-ink">
-                    Extracted
+                    Extractions
+                  </Link>
+                  <Link href="/validations/runs" className="hover:text-ink">
+                    Validations
+                  </Link>
+                  <span aria-hidden className="w-px self-stretch bg-line" />
+                  <Link href="/billing/google" className="hover:text-ink">
+                    Google billing
+                  </Link>
+                  {/* Placeholder until the Ziff Davis billing page exists. */}
+                  <a href="#" className="hover:text-ink">
+                    Ziff Davis billing
+                  </a>
+                  <span aria-hidden className="w-px self-stretch bg-line" />
+                  <Link href="/portal/preview" className="text-faint hover:text-ink">
+                    Client view
                   </Link>
                   <Link href="/docs" className="hover:text-ink">
                     Docs
-                  </Link>
-                  <Link href="/portal/preview" className="text-faint hover:text-ink">
-                    Client view
                   </Link>
                 </>
               )}

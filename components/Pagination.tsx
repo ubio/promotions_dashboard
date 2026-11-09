@@ -6,13 +6,18 @@ export default function Pagination({
   total,
   basePath,
   params,
+  prefetchAdjacent = false,
 }: {
   page: number;
   pages: number;
   total: number;
   basePath: string;
   params: Record<string, string | undefined>;
+  // Fully prefetch the previous and next pages (dynamic pages are otherwise not
+  // prefetched), so paging renders from the client cache instead of waiting.
+  prefetchAdjacent?: boolean;
 }) {
+  const prefetch = prefetchAdjacent ? true : undefined;
   const href = (p: number) => {
     const sp = new URLSearchParams();
     for (const [k, v] of Object.entries(params)) if (v) sp.set(k, v);
@@ -27,14 +32,14 @@ export default function Pagination({
       </span>
       <div className="flex gap-2">
         {page > 1 ? (
-          <Link href={href(page - 1)} className="rounded border border-line bg-card px-3 py-1 hover:bg-page">
+          <Link href={href(page - 1)} prefetch={prefetch} className="rounded border border-line bg-card px-3 py-1 hover:bg-page">
             ← Prev
           </Link>
         ) : (
           <span className="rounded border border-line px-3 py-1 text-faint">← Prev</span>
         )}
         {page < pages ? (
-          <Link href={href(page + 1)} className="rounded border border-line bg-card px-3 py-1 hover:bg-page">
+          <Link href={href(page + 1)} prefetch={prefetch} className="rounded border border-line bg-card px-3 py-1 hover:bg-page">
             Next →
           </Link>
         ) : (

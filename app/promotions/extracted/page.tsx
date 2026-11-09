@@ -178,7 +178,7 @@ export default async function ExtractedPromotionsPage({
           </tbody>
         </table>
       </div>
-      <Pagination page={result.page} pages={result.pages} total={result.total} basePath={BASE_PATH} params={params} />
+      <Pagination page={result.page} pages={result.pages} total={result.total} basePath={BASE_PATH} params={params} prefetchAdjacent />
     </div>
   );
 }
