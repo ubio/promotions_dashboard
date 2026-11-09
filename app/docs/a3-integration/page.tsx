@@ -49,7 +49,7 @@ export default function A3IntegrationPage() {
       <h2>Key points</h2>
       <ul>
         <li>
-          <strong>Batching</strong>: each tick sends up to <code>A3_*_BATCH_SIZE</code> (default 25) jobs
+          <strong>Batching</strong>: each tick sends up to 200 extraction or 25 validation jobs
           and stops early when A3&apos;s queue is full.
         </li>
         <li>

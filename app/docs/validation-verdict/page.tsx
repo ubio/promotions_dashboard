@@ -42,10 +42,10 @@ export default function ValidationVerdictPage() {
 
       <h2>Verdict rules</h2>
       <p>
-        All logs for the promotion are counted. <strong>N</strong> is{" "}
-        <code>VALIDATION_NEEDED_FOR_CONCLUSION</code> and <strong>MAX</strong> is{" "}
-        <code>MAX_VALIDATIONS_PER_PROMOTION</code>. Successes and fails count conclusions only, while
-        the total counts every log, errors included.
+        All logs for the promotion are counted. <strong>N</strong> is the number of matching
+        conclusions needed for a verdict and <strong>MAX</strong> is the cap on validations per
+        promotion. Successes and fails count conclusions only, while the total counts every log,
+        errors included.
       </p>
       <Diagram svg={validationVerdictDiagram} />
       <ul>
@@ -69,7 +69,7 @@ export default function ValidationVerdictPage() {
               A <code>BOT_DETECTION</code> fail first makes the next attempt use a different browser.
             </li>
             <li>
-              After <code>MAX_BOT_DETECTION_BEFORE_MARKING</code> hits, the merchant is marked
+              After repeated hits, the merchant is marked
               bot-detected and its pending promotions are suspended. The event goes to{" "}
               <code>merchantBotDetectionEvents</code>.
             </li>

@@ -11,11 +11,6 @@ export default function GooglePipelinePage() {
         lead="Google provides product URLs. We extract the promotions from each page, validate them, and export the results back to Google."
       />
 
-      <p>
-        Enabled by <code>FEATURE_GOOGLE_HANDLERS_ENABLED</code> (import + extraction) and{" "}
-        <code>FEATURE_GOOGLE_EXPORT_ENABLED</code> (export). Locales come from <code>LOCALES</code>{" "}
-        (default <code>de_DE,fr_FR,ja_JP</code>).
-      </p>
       <Diagram svg={googlePipelineDiagram} />
 
       <h2>Steps</h2>

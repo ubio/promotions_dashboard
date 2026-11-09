@@ -20,7 +20,7 @@ export default function DashboardDocPage() {
           <strong>Reads</strong> go straight to MongoDB (read-only, secondary preferred).
         </li>
         <li>
-          <strong>Writes / actions</strong> go to the API Ops endpoints with <code>OPS_SECRET</code>.
+          <strong>Writes / actions</strong> go to the API Ops endpoints.
         </li>
       </ul>
       <Diagram svg={dashboardDiagram} />
@@ -74,7 +74,6 @@ export default function DashboardDocPage() {
       <DocTable
         head={["UI action", "API endpoint"]}
         rows={[
-          ["Export spreadsheets", <code key="e">POST /Ops/exportSpreadsheets</code>],
           [
             "Reset validations (bulk / single)",
             <>

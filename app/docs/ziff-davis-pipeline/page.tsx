@@ -36,15 +36,13 @@ export default function ZiffDavisPipelinePage() {
               validation not allowed.
             </li>
           </ul>
-          Enabled by <code>FEATURE_CLIENT_PROMOTIONS_CONVERTER_ENABLED</code>.
         </li>
         <li>
           <strong>Validate</strong>: the shared validation flow.
         </li>
         <li>
-          <strong>Export</strong>: write validated results back to S3 (
-          <code>FEATURE_PROMOTIONS_TO_AWS_BUCKET_EXPORTER_ENABLED</code>).{" "}
-          <code>WarnZdExportGapTask</code> raises an alert when exports stop.
+          <strong>Export</strong>: write validated results back to S3. An alert is raised when exports
+          stop.
         </li>
       </ol>
     </>

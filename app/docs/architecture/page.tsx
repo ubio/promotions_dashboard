@@ -5,7 +5,7 @@ import { DocHeader, DocTable } from "@/components/docs/DocParts";
 export default function ArchitecturePage() {
   return (
     <>
-      <DocHeader title="1. Architecture" lead="How the API is built, where data lives, and how the parts authenticate." />
+      <DocHeader title="1. Architecture" lead="How the API is built and where data lives." />
 
       <h2>promotions-service (API)</h2>
       <p>One Node.js process with two halves:</p>
@@ -15,54 +15,37 @@ export default function ArchitecturePage() {
           extraction and validation endpoints.
         </li>
         <li>
-          <strong>Periodic tasks</strong> (enabled by <code>RUN_TASKS_ON_START</code>, and per-feature
-          flags): import, convert, enqueue A3 jobs, export, refresh stats.
+          <strong>Periodic tasks</strong>: import, convert, enqueue A3 jobs, export, refresh stats.
         </li>
       </ul>
       <Diagram svg={architectureDiagram} />
 
       <h3>Main periodic tasks</h3>
       <DocTable
-        head={["Task", "Default interval", "Purpose"]}
+        head={["Purpose", "Interval"]}
         rows={[
-          [<code key="t">ImportPromotionSourcesTask</code>, "15 min", "Google: pull source bundles from GCS"],
+          ["Google: pull source bundles from GCS", "15 min"],
           [
-            <code key="t">EnqueuePromotionExtractionTask</code>,
-            "1 min",
             <>
               Google: send sources to A3 <code>extract-promotions</code>
             </>,
-          ],
-          [
-            <>
-              <code>ImportFilesListForZDTask</code> / <code>ImportPromotionsForZDTask</code>
-            </>,
-            "1 h / 15 min",
-            "ZD: find new S3 files, import rows",
-          ],
-          [<code key="t">ConvertPromotionsTask</code>, "1 min", "ZD: client record → Ubio promotion (LLM fills gaps)"],
-          [
-            <code key="t">EnqueuePromotionValidationTask</code>,
             "1 min",
+          ],
+          ["Google: export results to GCS", "1 h"],
+          ["Google: export data reports to GCS", "30 min"],
+          ["ZD: find new S3 files", "1 h"],
+          ["ZD: import rows from new files", "15 min"],
+          ["ZD: client record → Ubio promotion (LLM fills gaps)", "100 ms"],
+          ["ZD: export results to S3", "15 min"],
+          ["ZD: alert when exports stop", "2 h"],
+          [
             <>
               All clients: send promotions to A3 <code>validate-promotions</code>
             </>,
+            "1 min",
           ],
-          [
-            <code key="t">RetryInternalValidationFailuresTask</code>,
-            "15 min",
-            "Re-queue validations that failed for internal reasons",
-          ],
-          [<code key="t">ExportPromotionsToBucketTask</code>, "1 h", "Google: export results to GCS"],
-          [<code key="t">ExportPromotionsToAwsBucketTask</code>, "12 h", "ZD: export results to S3"],
-          [
-            <>
-              <code>Export*ToBQTask</code>, <code>Export*ToSheetTask</code>
-            </>,
-            "15 min – 1 day",
-            "Analytics / debugging exports",
-          ],
-          [<code key="t">RefreshDailyStatsTask</code>, "15 min", "Pre-aggregated stats for the dashboard"],
+          ["Re-queue validations that failed for internal reasons", "15 min"],
+          ["Pre-aggregated stats for the dashboard", "15 min"],
         ]}
       />
 
@@ -107,40 +90,6 @@ export default function ArchitecturePage() {
               <code>googleDailyStats</code>, <code>ziffDavisDailyStats</code>, <code>clientCsvEvents</code>
             </>,
             "Stats and events for the dashboard",
-          ],
-        ]}
-      />
-
-      <h2>Security between parts</h2>
-      <DocTable
-        head={["Link", "Auth"]}
-        rows={[
-          [
-            <>
-              API → A3 <code>createJob</code>
-            </>,
-            <>
-              Bearer <code>A3_API_TOKEN</code>
-            </>,
-          ],
-          [
-            "A3 → API webhooks",
-            <>
-              HMAC signature in <code>x-a3-signature</code> over the raw body
-            </>,
-          ],
-          [
-            "Dashboard → API Ops",
-            <>
-              Shared <code>OPS_SECRET</code>
-            </>,
-          ],
-          ["User → Dashboard", "Google sign-in (internal domains or client-portal allowlist)"],
-          [
-            "Lens → Dashboard feed",
-            <>
-              Bearer <code>LENS_FEED_TOKEN</code>
-            </>,
           ],
         ]}
       />
