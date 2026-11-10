@@ -6,21 +6,20 @@
 // bundle; the by-day table splits each day by bundle. Promotion counts are
 // written by promotions-service on the day the promotion was created: `promotionsValidated` is a conclusion, `promotionsSent` is an
 // export back to Google. The contract prices each sent promotion at a fixed
-// GBP amount and shows that spend in USD at a fixed rate. The rate is the
-// median GBP–USD over the past 10 years, not a live quote.
+// GBP amount; the page shows every money figure in the selected currency (see
+// billing-currency.ts).
 import type { Filter } from "mongodb";
 import { GOOGLE_CLIENT_ID } from "./client-portal-path";
 import { db } from "./mongo";
 import { matchPreset } from "@/components/reports/PeriodPresets";
+import { GBP_TO_USD, formatGbp, formatGbpIn, type BillingCurrency } from "./billing-currency";
 
 export { GOOGLE_CLIENT_ID };
+export * from "./billing-currency";
 export const GBP_PER_EXPORTED_PROMOTION = 0.33;
-export const GBP_TO_USD = 1.3;
 export const GOOGLE_CONTRACT_BUDGET_GBP = 170_000;
 const BYTES_PER_GB = 1_000_000_000;
 
-const usdFormat = new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" });
-const gbpFormat = new Intl.NumberFormat("en-GB", { style: "currency", currency: "GBP" });
 const regionNames = new Intl.DisplayNames(["en"], { type: "region" });
 
 export interface GoogleBillingFilters {
@@ -173,24 +172,12 @@ export function googleCountryLabel(code: string): string {
   return `${name} (${code})`;
 }
 
-export function formatUsd(amount: number): string {
-  return usdFormat.format(amount);
-}
-
-export function formatGbp(amount: number): string {
-  return gbpFormat.format(amount);
-}
-
 export function exportCostGbp(promotionsSent: number): number {
   return promotionsSent * GBP_PER_EXPORTED_PROMOTION;
 }
 
-export function exportCostUsd(promotionsSent: number): number {
-  return exportCostGbp(promotionsSent) * GBP_TO_USD;
-}
-
-export function formatExportCost(promotionsSent: number): string {
-  return `${formatUsd(exportCostUsd(promotionsSent))} (${formatGbp(exportCostGbp(promotionsSent))})`;
+export function formatBudgetSpent(promotionsSent: number, currency: BillingCurrency): string {
+  return formatGbpIn(exportCostGbp(promotionsSent), currency);
 }
 
 export function budgetUsedPercent(spentGbp: number): number {
@@ -384,21 +371,28 @@ function metricSums() {
 // client view, so the wording is for them: what the number counts and how it
 // relates to the one before it in the funnel. The internal-only figures are
 // marked so they are never shown in the client view.
-export const GOOGLE_BILLING_HINTS = {
-  contractBudget: `Spend against the ${formatGbp(GOOGLE_CONTRACT_BUDGET_GBP)} contract. Only promotions sent back are charged for, so extraction and checking do not draw it down. The bar shows what is left.`,
-  sources: "SKU URLs imported from your feed. One source is one product page we visited.",
-  extracted:
-    "Offers we found on those pages. Higher than the number of pages, because a page often carries more than one offer.",
-  qualified:
-    "Offers meeting the Google promotion criteria for structure, benefit type and conditions. Offers that do not qualify are never sent.",
-  validated:
-    "Promotions whose latest check reached a conclusion, whether the offer was valid or not. Counted on the day the promotion was created. Internal figure.",
-  sent: "Promotions we found valid and sent back to you, counted on the day each promotion was created. These are the ones charged for.",
-  proxy: "Network traffic used running the checks. Internal figure.",
-  llmCost: "What we spent with the language-model providers on these checks. Internal figure.",
-  exportCost: `Charged at ${formatGbp(GBP_PER_EXPORTED_PROMOTION)} per promotion sent back, shown in USD at a fixed rate of ${GBP_TO_USD}.`,
-  country: "The locale of the imported URL, not where the merchant is based.",
-  bundle:
-    "The feed the SKU URLs came from, named by the Los Angeles day we imported it. Promotions, checks and costs count under the feed of the URL they came from, even when the work finished the next day. Each line is that feed's total across the selected countries. Expand countries shows the same figures for each country.",
-  day: "The UTC day these figures were recorded, split by the feed they belong to. A feed imported late in the Los Angeles afternoon usually appears on two UTC days. Promotion counts are for promotions created that day. Expand countries shows the same figures for each country.",
-} as const;
+export function googleBillingHints(currency: BillingCurrency) {
+  return {
+    contractBudget: `Spend against the ${formatGbpIn(GOOGLE_CONTRACT_BUDGET_GBP, currency)} contract. Only promotions sent back are charged for, so extraction and checking do not draw it down. The bar shows what is left.`,
+    sources: "SKU URLs imported from your feed. One source is one product page we visited.",
+    extracted:
+      "Offers we found on those pages. Higher than the number of pages, because a page often carries more than one offer.",
+    qualified:
+      "Offers meeting the Google promotion criteria for structure, benefit type and conditions. Offers that do not qualify are never sent.",
+    validated:
+      "Promotions whose latest check reached a conclusion, whether the offer was valid or not. Counted on the day the promotion was created. Internal figure.",
+    sent: "Promotions we found valid and sent back to you, counted on the day each promotion was created. These are the ones charged for.",
+    proxy: "Network traffic used running the checks. Internal figure.",
+    llmCost: "What we spent with the language-model providers on these checks. Internal figure.",
+    budgetSpent:
+      currency === "GBP"
+        ? `Charged at ${formatGbp(GBP_PER_EXPORTED_PROMOTION)} per promotion sent back.`
+        : `Charged at ${formatGbp(GBP_PER_EXPORTED_PROMOTION)} per promotion sent back, shown in ${currency} at a fixed rate of ${GBP_TO_USD} USD per £1.`,
+    country: "The locale of the imported URL, not where the merchant is based.",
+    bundle:
+      "The feed the SKU URLs came from, named by the Los Angeles day we imported it. Promotions, checks and costs count under the feed of the URL they came from, even when the work finished the next day. Each line is that feed's total across the selected countries. Expand countries shows the same figures for each country.",
+    day: "The UTC day these figures were recorded, split by the feed they belong to. A feed imported late in the Los Angeles afternoon usually appears on two UTC days. Promotion counts are for promotions created that day. Expand countries shows the same figures for each country.",
+  } as const;
+}
+
+export type GoogleBillingHints = ReturnType<typeof googleBillingHints>;

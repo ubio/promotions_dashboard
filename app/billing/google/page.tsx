@@ -6,19 +6,23 @@ import { formatCount, formatUtcDay } from "@/lib/format";
 import {
   GBP_PER_EXPORTED_PROMOTION,
   GBP_TO_USD,
-  GOOGLE_BILLING_HINTS,
   GOOGLE_CONTRACT_BUDGET_GBP,
   budgetUsedPercent,
   describeGoogleBillingPeriod,
   exportCostGbp,
-  exportCostUsd,
   formatBudgetPercent,
-  formatExportCost,
+  formatBudgetSpent,
   formatGbp,
+  formatGbpIn,
   formatGigabytes,
   formatSharePercent,
   formatUsd,
+  formatUsdIn,
+  googleBillingHints,
+  parseBillingCurrency,
   qualifiedSharePercent,
+  type BillingCurrency,
+  type GoogleBillingHints,
   getGoogleBilling,
   getGoogleBillingCountries,
   googleBillingHasNarrowing,
@@ -31,7 +35,11 @@ export const dynamic = "force-dynamic";
 
 type Search = { [key: string]: string | string[] | undefined };
 
-function billingCells(row: GoogleBillingTotals, showInternalCosts: boolean): string[] {
+function billingCells(
+  row: GoogleBillingTotals,
+  showInternalCosts: boolean,
+  currency: BillingCurrency
+): string[] {
   const cells = [
     formatCount(row.sourcesImported),
     formatCount(row.promotionsExtracted),
@@ -39,31 +47,32 @@ function billingCells(row: GoogleBillingTotals, showInternalCosts: boolean): str
   ];
   if (showInternalCosts) cells.push(formatCount(row.promotionsValidated), formatGigabytes(row.proxyBytes));
   cells.push(formatCount(row.promotionsSent));
-  if (showInternalCosts) cells.push(formatUsd(row.llmCostUsd), formatExportCost(row.promotionsSent));
+  if (showInternalCosts) cells.push(formatUsdIn(row.llmCostUsd, currency), formatBudgetSpent(row.promotionsSent, currency));
   return cells;
 }
 
 function groupHeaders(
   leading: { label: string; hint: string }[],
-  showInternalCosts: boolean
+  showInternalCosts: boolean,
+  hints: GoogleBillingHints
 ): { label: string; hint: string }[] {
   const headers: { label: string; hint: string }[] = [
     ...leading,
-    { label: "Sources", hint: GOOGLE_BILLING_HINTS.sources },
-    { label: "Extracted", hint: GOOGLE_BILLING_HINTS.extracted },
-    { label: "Qualified", hint: GOOGLE_BILLING_HINTS.qualified },
+    { label: "Sources", hint: hints.sources },
+    { label: "Extracted", hint: hints.extracted },
+    { label: "Qualified", hint: hints.qualified },
   ];
   if (showInternalCosts) {
     headers.push(
-      { label: "Validated", hint: GOOGLE_BILLING_HINTS.validated },
-      { label: "Proxy", hint: GOOGLE_BILLING_HINTS.proxy },
+      { label: "Validated", hint: hints.validated },
+      { label: "Proxy", hint: hints.proxy },
     );
   }
-  headers.push({ label: "Valid - Sent", hint: GOOGLE_BILLING_HINTS.sent });
+  headers.push({ label: "Valid - Sent", hint: hints.sent });
   if (showInternalCosts) {
     headers.push(
-      { label: "LLM cost", hint: GOOGLE_BILLING_HINTS.llmCost },
-      { label: "Export cost", hint: GOOGLE_BILLING_HINTS.exportCost },
+      { label: "LLM cost", hint: hints.llmCost },
+      { label: "Budget spent", hint: hints.budgetSpent },
     );
   }
   return headers;
@@ -108,9 +117,17 @@ function Tile({
   );
 }
 
-function BudgetSlider({ promotionsSent }: { promotionsSent: number }) {
+function BudgetSlider({
+  promotionsSent,
+  currency,
+  hint,
+}: {
+  promotionsSent: number;
+  currency: BillingCurrency;
+  hint: string;
+}) {
+  const money = (amountGbp: number) => formatGbpIn(amountGbp, currency);
   const spentGbp = exportCostGbp(promotionsSent);
-  const spentUsd = exportCostUsd(promotionsSent);
   const percent = budgetUsedPercent(spentGbp);
   const over = spentGbp > GOOGLE_CONTRACT_BUDGET_GBP;
   const remainingGbp = Math.max(0, GOOGLE_CONTRACT_BUDGET_GBP - spentGbp);
@@ -121,11 +138,10 @@ function BudgetSlider({ promotionsSent }: { promotionsSent: number }) {
       <div className="mb-3 flex flex-wrap items-baseline justify-between gap-2">
         <h2 className="flex items-center gap-1.5 text-sm font-semibold text-text">
           Contract budget
-          <HelpHint hint={GOOGLE_BILLING_HINTS.contractBudget} placement="below" />
+          <HelpHint hint={hint} placement="below" />
         </h2>
         <p className="text-sm text-muted [font-variant-numeric:tabular-nums]">
-          {formatGbp(spentGbp)} of {formatGbp(GOOGLE_CONTRACT_BUDGET_GBP)}
-          <span className="text-faint"> ({formatUsd(spentUsd)})</span>
+          {money(spentGbp)} of {money(GOOGLE_CONTRACT_BUDGET_GBP)}
         </p>
       </div>
       <div
@@ -135,7 +151,7 @@ function BudgetSlider({ promotionsSent }: { promotionsSent: number }) {
         aria-valuemin={0}
         aria-valuemax={GOOGLE_CONTRACT_BUDGET_GBP}
         aria-valuenow={remainingGbp}
-        aria-valuetext={`${formatGbp(remainingGbp)} remaining of ${formatGbp(GOOGLE_CONTRACT_BUDGET_GBP)}`}
+        aria-valuetext={`${money(remainingGbp)} remaining of ${money(GOOGLE_CONTRACT_BUDGET_GBP)}`}
       >
         <div className="absolute inset-y-0 left-0 rounded-full bg-ok" style={{ width: `${remaining}%` }} />
         <div
@@ -144,9 +160,9 @@ function BudgetSlider({ promotionsSent }: { promotionsSent: number }) {
         />
       </div>
       <p className="mt-3 text-xs text-muted">
-        {formatBudgetPercent(percent)} of the {formatGbp(GOOGLE_CONTRACT_BUDGET_GBP)} budget spent
+        {formatBudgetPercent(percent)} of the {money(GOOGLE_CONTRACT_BUDGET_GBP)} budget spent
         exporting promotions
-        {over ? `, ${formatGbp(spentGbp - GOOGLE_CONTRACT_BUDGET_GBP)} over budget` : ""}. The bar is
+        {over ? `, ${money(spentGbp - GOOGLE_CONTRACT_BUDGET_GBP)} over budget` : ""}. The bar is
         the budget still left. All time, every country.
       </p>
     </section>
@@ -156,7 +172,10 @@ function BudgetSlider({ promotionsSent }: { promotionsSent: number }) {
 export default async function GoogleBillingPage({ searchParams }: { searchParams: Promise<Search> }) {
   const { clientView } = await requireGoogleBillingSession();
   const showInternalCosts = !clientView;
-  const filters = parseGoogleBillingSearch(await searchParams);
+  const search = await searchParams;
+  const filters = parseGoogleBillingSearch(search);
+  const currency = parseBillingCurrency(search.currency);
+  const hints = googleBillingHints(currency);
   const contractPromise = googleBillingHasNarrowing(filters) ? getGoogleBilling({}) : null;
   const [report, countryCodes] = await Promise.all([
     getGoogleBilling(filters),
@@ -178,44 +197,49 @@ export default async function GoogleBillingPage({ searchParams }: { searchParams
         to={filters.to ?? ""}
         countries={countryCodes.map((code) => ({ value: code, label: googleCountryLabel(code) }))}
         selectedCountries={filters.countries ?? []}
+        currency={currency}
       />
 
-      <BudgetSlider promotionsSent={contract.totals.promotionsSent} />
+      <BudgetSlider
+        promotionsSent={contract.totals.promotionsSent}
+        currency={currency}
+        hint={hints.contractBudget}
+      />
 
       <div className="space-y-3">
         <Tile
-          label="Promotion sources" hint={GOOGLE_BILLING_HINTS.sources}
+          label="Promotion sources" hint={hints.sources}
           value={formatCount(totals.sourcesImported)}
           sub="SKU URLs imported"
         />
         <div className={`grid grid-cols-1 gap-3 ${showInternalCosts ? "md:grid-cols-4" : "md:grid-cols-3"}`}>
-          <Tile label="Promotions extracted" hint={GOOGLE_BILLING_HINTS.extracted} value={formatCount(totals.promotionsExtracted)} />
+          <Tile label="Promotions extracted" hint={hints.extracted} value={formatCount(totals.promotionsExtracted)} />
           <Tile
-            label="Promotions qualified" hint={GOOGLE_BILLING_HINTS.qualified}
+            label="Promotions qualified" hint={hints.qualified}
             value={formatCount(totals.promotionsQualified)}
             sub={shareOfExtracted(totals.promotionsQualified, totals.promotionsExtracted)}
           />
           {showInternalCosts && (
             <Tile
-              label="Promotions validated" hint={GOOGLE_BILLING_HINTS.validated}
+              label="Promotions validated" hint={hints.validated}
               value={formatCount(totals.promotionsValidated)}
               sub={shareOfQualified(totals.promotionsValidated, totals.promotionsQualified)}
             />
           )}
           <Tile
-            label="Valid - Sent" hint={GOOGLE_BILLING_HINTS.sent}
+            label="Valid - Sent" hint={hints.sent}
             value={formatCount(totals.promotionsSent)}
             sub={shareOfQualified(totals.promotionsSent, totals.promotionsQualified)}
           />
         </div>
         {showInternalCosts && (
           <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
-            <Tile label="Proxy" hint={GOOGLE_BILLING_HINTS.proxy} value={formatGigabytes(totals.proxyBytes)} sub="traffic used" />
-            <Tile label="LLM cost" hint={GOOGLE_BILLING_HINTS.llmCost} value={formatUsd(totals.llmCostUsd)} sub="USD" />
+            <Tile label="Proxy" hint={hints.proxy} value={formatGigabytes(totals.proxyBytes)} sub="traffic used" />
+            <Tile label="LLM cost" hint={hints.llmCost} value={formatUsdIn(totals.llmCostUsd, currency)} sub={currency} />
             <Tile
-              label="Export cost" hint={GOOGLE_BILLING_HINTS.exportCost}
-              value={formatUsd(exportCostUsd(totals.promotionsSent))}
-              sub={`(${formatGbp(exportCostGbp(totals.promotionsSent))})`}
+              label="Budget spent" hint={hints.budgetSpent}
+              value={formatBudgetSpent(totals.promotionsSent, currency)}
+              sub={currency}
             />
           </div>
         )}
@@ -227,15 +251,15 @@ export default async function GoogleBillingPage({ searchParams }: { searchParams
           <table className="min-w-full text-sm [font-variant-numeric:tabular-nums]">
             <thead className="text-left text-xs uppercase text-muted">
               <tr>
-                <th className="py-1 pr-4"><TableHeaderLabel label="Country" hint={GOOGLE_BILLING_HINTS.country} /></th>
-                <th className="py-1 pr-4"><TableHeaderLabel label="Sources" hint={GOOGLE_BILLING_HINTS.sources} /></th>
-                <th className="py-1 pr-4"><TableHeaderLabel label="Extracted" hint={GOOGLE_BILLING_HINTS.extracted} /></th>
-                <th className="py-1 pr-4"><TableHeaderLabel label="Qualified" hint={GOOGLE_BILLING_HINTS.qualified} /></th>
-                {showInternalCosts && <th className="py-1 pr-4"><TableHeaderLabel label="Validated" hint={GOOGLE_BILLING_HINTS.validated} /></th>}
-                {showInternalCosts && <th className="py-1 pr-4"><TableHeaderLabel label="Proxy" hint={GOOGLE_BILLING_HINTS.proxy} /></th>}
-                <th className="py-1 pr-4"><TableHeaderLabel label="Valid - Sent" hint={GOOGLE_BILLING_HINTS.sent} /></th>
-                {showInternalCosts && <th className="py-1 pr-4"><TableHeaderLabel label="LLM cost" hint={GOOGLE_BILLING_HINTS.llmCost} /></th>}
-                {showInternalCosts && <th className="py-1"><TableHeaderLabel label="Export cost" hint={GOOGLE_BILLING_HINTS.exportCost} /></th>}
+                <th className="py-1 pr-4"><TableHeaderLabel label="Country" hint={hints.country} /></th>
+                <th className="py-1 pr-4"><TableHeaderLabel label="Sources" hint={hints.sources} /></th>
+                <th className="py-1 pr-4"><TableHeaderLabel label="Extracted" hint={hints.extracted} /></th>
+                <th className="py-1 pr-4"><TableHeaderLabel label="Qualified" hint={hints.qualified} /></th>
+                {showInternalCosts && <th className="py-1 pr-4"><TableHeaderLabel label="Validated" hint={hints.validated} /></th>}
+                {showInternalCosts && <th className="py-1 pr-4"><TableHeaderLabel label="Proxy" hint={hints.proxy} /></th>}
+                <th className="py-1 pr-4"><TableHeaderLabel label="Valid - Sent" hint={hints.sent} /></th>
+                {showInternalCosts && <th className="py-1 pr-4"><TableHeaderLabel label="LLM cost" hint={hints.llmCost} /></th>}
+                {showInternalCosts && <th className="py-1"><TableHeaderLabel label="Budget spent" hint={hints.budgetSpent} /></th>}
               </tr>
             </thead>
             <tbody className="divide-y divide-rule">
@@ -252,9 +276,9 @@ export default async function GoogleBillingPage({ searchParams }: { searchParams
                     <td className="py-1.5 pr-4">{formatGigabytes(row.proxyBytes)}</td>
                   )}
                   <td className="py-1.5 pr-4">{formatCount(row.promotionsSent)}</td>
-                  {showInternalCosts && <td className="py-1.5 pr-4">{formatUsd(row.llmCostUsd)}</td>}
+                  {showInternalCosts && <td className="py-1.5 pr-4">{formatUsdIn(row.llmCostUsd, currency)}</td>}
                   {showInternalCosts && (
-                    <td className="whitespace-nowrap py-1.5">{formatExportCost(row.promotionsSent)}</td>
+                    <td className="whitespace-nowrap py-1.5">{formatBudgetSpent(row.promotionsSent, currency)}</td>
                   )}
                 </tr>
               ))}
@@ -280,9 +304,9 @@ export default async function GoogleBillingPage({ searchParams }: { searchParams
                     <td className="py-2 pr-4">{formatGigabytes(totals.proxyBytes)}</td>
                   )}
                   <td className="py-2 pr-4">{formatCount(totals.promotionsSent)}</td>
-                  {showInternalCosts && <td className="py-2 pr-4">{formatUsd(totals.llmCostUsd)}</td>}
+                  {showInternalCosts && <td className="py-2 pr-4">{formatUsdIn(totals.llmCostUsd, currency)}</td>}
                   {showInternalCosts && (
-                    <td className="whitespace-nowrap py-2">{formatExportCost(totals.promotionsSent)}</td>
+                    <td className="whitespace-nowrap py-2">{formatBudgetSpent(totals.promotionsSent, currency)}</td>
                   )}
                 </tr>
               </tfoot>
@@ -293,48 +317,53 @@ export default async function GoogleBillingPage({ searchParams }: { searchParams
 
       {showInternalCosts && (
         <p className="text-xs text-faint">
-          Export cost is {formatGbp(GBP_PER_EXPORTED_PROMOTION)} per promotion sent back, calculated in
-          GBP and shown in USD at a fixed rate of {GBP_TO_USD} ({formatUsd(GBP_TO_USD)} per £1). LLM
-          cost is the validation spend already stored in USD.
+          Budget spent is {formatGbp(GBP_PER_EXPORTED_PROMOTION)} per promotion sent back, calculated
+          in GBP. LLM cost is the validation spend, stored in USD. Figures are shown in {currency},
+          converting at a fixed rate of {GBP_TO_USD} ({formatUsd(GBP_TO_USD)} per £1).
         </p>
       )}
 
       <GoogleBillingGroupTable
         title="By bundle"
-        headers={groupHeaders([{ label: "Bundle", hint: GOOGLE_BILLING_HINTS.bundle }], showInternalCosts)}
+        headers={groupHeaders(
+          [{ label: "Bundle", hint: hints.bundle }],
+          showInternalCosts,
+          hints
+        )}
         rows={report.bundles.map((bundle) => ({
           key: bundle.bundleId,
           label: bundleLabel(bundle.bundleId),
-          cells: billingCells(bundle, showInternalCosts),
+          cells: billingCells(bundle, showInternalCosts, currency),
           countries: bundle.countries.map((country) => ({
             code: country.countryCode,
             label: googleCountryLabel(country.countryCode),
-            cells: billingCells(country, showInternalCosts),
+            cells: billingCells(country, showInternalCosts, currency),
           })),
         }))}
-        totals={billingCells(totals, showInternalCosts)}
+        totals={billingCells(totals, showInternalCosts, currency)}
       />
 
       <GoogleBillingGroupTable
         title="By day"
         headers={groupHeaders(
           [
-            { label: "Day", hint: GOOGLE_BILLING_HINTS.day },
-            { label: "Bundle", hint: GOOGLE_BILLING_HINTS.bundle },
+            { label: "Day", hint: hints.day },
+            { label: "Bundle", hint: hints.bundle },
           ],
-          showInternalCosts
+          showInternalCosts,
+          hints
         )}
         rows={report.days.map((day) => ({
           key: `${day.date}|${day.bundleId}`,
           label: formatUtcDay(day.date),
-          cells: [bundleLabel(day.bundleId), ...billingCells(day, showInternalCosts)],
+          cells: [bundleLabel(day.bundleId), ...billingCells(day, showInternalCosts, currency)],
           countries: day.countries.map((country) => ({
             code: country.countryCode,
             label: googleCountryLabel(country.countryCode),
-            cells: ["", ...billingCells(country, showInternalCosts)],
+            cells: ["", ...billingCells(country, showInternalCosts, currency)],
           })),
         }))}
-        totals={["", ...billingCells(totals, showInternalCosts)]}
+        totals={["", ...billingCells(totals, showInternalCosts, currency)]}
       />
     </div>
   );

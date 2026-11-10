@@ -3,6 +3,11 @@
 import { useCallback, useRef, useState } from "react";
 import MultiSelect from "@/components/reports/MultiSelect";
 import { matchPreset, periodPresets } from "@/components/reports/PeriodPresets";
+import {
+  BILLING_CURRENCIES,
+  DEFAULT_BILLING_CURRENCY,
+  type BillingCurrency,
+} from "@/lib/billing-currency";
 
 const CONTROL =
   "rounded border border-line bg-card px-2 py-1.5 text-sm text-ink hover:bg-page";
@@ -15,12 +20,14 @@ export default function GoogleBillingFilterBar({
   to,
   countries,
   selectedCountries,
+  currency,
 }: {
   action?: string;
   from: string;
   to: string;
   countries: { value: string; label: string }[];
   selectedCountries: string[];
+  currency: BillingCurrency;
 }) {
   const presets = periodPresets();
   const [periodKey, setPeriodKey] = useState(
@@ -113,10 +120,27 @@ export default function GoogleBillingFilterBar({
         onCommit={commit}
       />
 
+      <select
+        name="currency"
+        defaultValue={currency}
+        onChange={commit}
+        className={`${CONTROL} ml-auto`}
+        aria-label="Currency"
+      >
+        {BILLING_CURRENCIES.map((code) => (
+          <option key={code} value={code}>
+            {code}
+          </option>
+        ))}
+      </select>
+
       <noscript>
         <button className="rounded bg-primary px-4 py-1.5 text-sm text-card">Apply</button>
       </noscript>
-      <a href={action} className="ml-auto px-1 text-sm text-muted hover:text-text">
+      <a
+        href={currency === DEFAULT_BILLING_CURRENCY ? action : `${action}?currency=${currency}`}
+        className="px-1 text-sm text-muted hover:text-text"
+      >
         Reset
       </a>
     </form>
