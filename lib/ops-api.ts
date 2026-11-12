@@ -18,6 +18,27 @@ export async function runOpsExport() {
   return NextResponse.json(result);
 }
 
+export async function runOpsExtractionStatus() {
+  await requireInternalSession();
+  if (!isOpsConfigured()) return opsNotConfigured();
+  const result = await OpsClient.fromEnv().extractionStatus();
+  return NextResponse.json(result);
+}
+
+export async function runOpsStopExtraction() {
+  await requireInternalSession();
+  if (!isOpsConfigured()) return opsNotConfigured();
+  const result = await OpsClient.fromEnv().stopExtraction();
+  return NextResponse.json(result);
+}
+
+export async function runOpsRestartExtraction() {
+  await requireInternalSession();
+  if (!isOpsConfigured()) return opsNotConfigured();
+  const result = await OpsClient.fromEnv().restartExtraction();
+  return NextResponse.json(result);
+}
+
 export async function runOpsResetCandidates(page: number, pageSize: number) {
   await requireInternalSession();
   if (!isOpsConfigured()) return opsNotConfigured();

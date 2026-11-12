@@ -47,6 +47,23 @@ export interface MerchantBotDetectionResult {
   };
 }
 
+export interface ExtractionStatus {
+  notLocked: number;
+  stopped: number;
+  failed: number;
+}
+
+export interface StopExtractionResult {
+  lockId: string;
+  stoppedCount: number;
+}
+
+export interface RestartExtractionResult {
+  restartedCount: number;
+  stoppedCount: number;
+  failedCount: number;
+}
+
 export class OpsClient {
   private baseUrl: string;
   private secret: string;
@@ -67,6 +84,18 @@ export class OpsClient {
 
   async exportSpreadsheets(): Promise<ExportResult> {
     return this.post<ExportResult>("/Ops/exportSpreadsheets");
+  }
+
+  async extractionStatus(): Promise<ExtractionStatus> {
+    return this.get<ExtractionStatus>("/Ops/extraction/status");
+  }
+
+  async stopExtraction(): Promise<StopExtractionResult> {
+    return this.post<StopExtractionResult>("/Ops/extraction/stop");
+  }
+
+  async restartExtraction(): Promise<RestartExtractionResult> {
+    return this.post<RestartExtractionResult>("/Ops/extraction/restart");
   }
 
   async listResetCandidates(page: number, pageSize = 25): Promise<ResetCandidatesPage> {

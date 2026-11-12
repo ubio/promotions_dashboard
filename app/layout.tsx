@@ -76,6 +76,9 @@ export default async function RootLayout({
                   <Link href="/validations/runs" className="hover:text-ink">
                     Validations
                   </Link>
+                  <Link href="/ops" className="hover:text-ink">
+                    Ops
+                  </Link>
                   <span aria-hidden className="w-px self-stretch bg-line" />
                   <Link href="/billing/google" className="hover:text-ink">
                     Google billing
