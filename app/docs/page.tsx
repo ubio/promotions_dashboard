@@ -3,6 +3,14 @@ import { Diagram } from "@/components/docs/Diagram";
 import overviewDiagram from "@/components/docs/diagrams/overview";
 import { DocHeader, DocTable } from "@/components/docs/DocParts";
 
+function RepoLink({ repo }: { repo: string }) {
+  return (
+    <a href={`https://github.com/ubio/${repo}`} target="_blank" rel="noopener noreferrer">
+      <code>{repo}</code>
+    </a>
+  );
+}
+
 export default function DocsOverviewPage() {
   return (
     <>
@@ -16,12 +24,14 @@ export default function DocsOverviewPage() {
         rows={[
           [
             <strong key="p">promotions-service (API)</strong>,
-            <code key="r">promotions-service</code>,
+            <RepoLink key="r" repo="promotion-service" />,
             "Owns the data. Imports client data, queues A3 jobs, receives results, decides verdicts, exports.",
           ],
           [
             <strong key="p">A3 platform</strong>,
             <>
+              <RepoLink repo="a3-project-google-shopping" />
+              <br />
               A3 project <code>promotion-extraction-google</code>
             </>,
             <>
@@ -31,7 +41,7 @@ export default function DocsOverviewPage() {
           ],
           [
             <strong key="p">promotions_dashboard (UI)</strong>,
-            <code key="r">promotions_dashboard</code>,
+            <RepoLink key="r" repo="promotions_dashboard" />,
             "This app. Internal ops and the client portal. Reads MongoDB, calls the API for ops actions.",
           ],
         ]}

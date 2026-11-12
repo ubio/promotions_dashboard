@@ -170,13 +170,12 @@ export default function ExtractionControls({
           description={
             <>
               <p>
-                Puts every source that is still waiting for extraction on hold, so no new extraction jobs are sent to
-                A3. Jobs that are already running finish normally.
+                Stop any promotions sources currently imported from being sent to A3 Platform.
+                Newly imported promotions will be sent to A3 Platform though.
               </p>
               <p>
                 Use this when extractions are failing across the board (a broken script, a proxy or A3 outage) and new
-                jobs would only fail too. The Google export does not wait for stopped sources: it ships what has
-                been extracted, and stopped sources go out in a later export once restarted.
+                jobs would only fail too. The Google export will ships what has been extracted.
               </p>
             </>
           }
@@ -192,8 +191,7 @@ export default function ExtractionControls({
           description={
             <>
               <p>
-                Sends back to the queue every source stopped with the button above, plus every source whose
-                extraction job failed. They are picked up again on the next scheduled run.
+                Reset lockIds for all promotion sources marked by `Stop extraction` button and with failed extraction jobs.
               </p>
               <p>Use this once the underlying problem is fixed.</p>
             </>
