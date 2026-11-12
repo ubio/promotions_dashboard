@@ -31,12 +31,9 @@ export default function DocsOverviewPage() {
             <strong key="p">A3 platform</strong>,
             <>
               <RepoLink repo="a3-project-google-shopping" />
-              <br />
-              A3 project <code>promotion-extraction-google</code>
             </>,
             <>
-              Runs browser + LLM workflows on merchant sites: <code>extract-promotions</code>,{" "}
-              <code>validate-promotions</code>.
+              Store old SCW version of workflows and current Platform versions. Use it in pair with A3 MCP.
             </>,
           ],
           [
