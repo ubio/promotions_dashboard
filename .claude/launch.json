@@ -5,7 +5,6 @@
       "name": "promotions-dashboard",
       "runtimeExecutable": "npm",
       "runtimeArgs": ["run", "dev"],
-      "cwd": "/Users/danielparry/promotions_dashboard",
       "port": 3000
     }
   ]

@@ -18,6 +18,9 @@ type LogDoc = Document & { _id: string };
 // from timing stats rather than poisoning the averages.
 export const MAX_PLAUSIBLE_DURATION_MS = 86_400_000;
 
+// The first validation run; "all time" report ranges start here.
+export const FIRST_REPORT_DATE = "2026-05-21";
+
 const plausibleTime = {
   $and: [
     { $gt: ["$time", 0] },

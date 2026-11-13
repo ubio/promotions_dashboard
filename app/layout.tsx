@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { Logo } from "@/components/Logo";
 import { getPreviewClientId, getSessionUser } from "@/lib/auth";
-import { GOOGLE_BILLING_PATH, GOOGLE_CLIENT_ID } from "@/lib/client-portal-path";
+import { GOOGLE_BILLING_PATH, GOOGLE_CLIENT_ID, ZIFF_DAVIS_BILLING_PATH } from "@/lib/client-portal-path";
 import { isAuthDisabled } from "@/lib/session";
 import "./globals.css";
 
@@ -83,10 +83,9 @@ export default async function RootLayout({
                   <Link href="/billing/google" className="hover:text-ink">
                     Google billing
                   </Link>
-                  {/* Placeholder until the Ziff Davis billing page exists. */}
-                  <a href="#" className="hover:text-ink">
+                  <Link href={ZIFF_DAVIS_BILLING_PATH} className="hover:text-ink">
                     Ziff Davis billing
-                  </a>
+                  </Link>
                   <span aria-hidden className="w-px self-stretch bg-line" />
                   <Link href="/portal/preview" className="text-faint hover:text-ink">
                     Client view

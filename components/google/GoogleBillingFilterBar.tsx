@@ -25,9 +25,11 @@ export default function GoogleBillingFilterBar({
   action?: string;
   from: string;
   to: string;
-  countries: { value: string; label: string }[];
-  selectedCountries: string[];
-  currency: BillingCurrency;
+  // Omitted on pages without a country split (Ziff Davis billing).
+  countries?: { value: string; label: string }[];
+  selectedCountries?: string[];
+  // Omitted on pages whose money is USD only.
+  currency?: BillingCurrency;
 }) {
   const presets = periodPresets();
   const [periodKey, setPeriodKey] = useState(
@@ -110,36 +112,40 @@ export default function GoogleBillingFilterBar({
         </>
       )}
 
-      <MultiSelect
-        name="countries"
-        options={countries}
-        selected={selectedCountries}
-        allLabel="All countries"
-        noun="countries"
-        searchable={countries.length > 8}
-        onCommit={commit}
-      />
+      {countries && (
+        <MultiSelect
+          name="countries"
+          options={countries}
+          selected={selectedCountries ?? []}
+          allLabel="All countries"
+          noun="countries"
+          searchable={countries.length > 8}
+          onCommit={commit}
+        />
+      )}
 
-      <select
-        name="currency"
-        defaultValue={currency}
-        onChange={commit}
-        className={`${CONTROL} ml-auto`}
-        aria-label="Currency"
-      >
-        {BILLING_CURRENCIES.map((code) => (
-          <option key={code} value={code}>
-            {code}
-          </option>
-        ))}
-      </select>
+      {currency && (
+        <select
+          name="currency"
+          defaultValue={currency}
+          onChange={commit}
+          className={`${CONTROL} ml-auto`}
+          aria-label="Currency"
+        >
+          {BILLING_CURRENCIES.map((code) => (
+            <option key={code} value={code}>
+              {code}
+            </option>
+          ))}
+        </select>
+      )}
 
       <noscript>
         <button className="rounded bg-primary px-4 py-1.5 text-sm text-card">Apply</button>
       </noscript>
       <a
-        href={currency === DEFAULT_BILLING_CURRENCY ? action : `${action}?currency=${currency}`}
-        className="px-1 text-sm text-muted hover:text-text"
+        href={!currency || currency === DEFAULT_BILLING_CURRENCY ? action : `${action}?currency=${currency}`}
+        className={`px-1 text-sm text-muted hover:text-text ${currency ? "" : "ml-auto"}`}
       >
         Reset
       </a>

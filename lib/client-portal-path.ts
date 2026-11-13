@@ -5,6 +5,10 @@
 export const GOOGLE_CLIENT_ID = "Google";
 export const GOOGLE_BILLING_PATH = "/billing/google";
 
+// Ziff Davis billing is internal only; their client view is the offers portal.
+export const ZIFF_DAVIS_CLIENT_ID = "ZiffDavis";
+export const ZIFF_DAVIS_BILLING_PATH = "/billing/ziff-davis";
+
 // Where a signed-in client (or an internal user previewing one) is sent.
 export function clientHome(clientId: string | undefined): string {
   if (clientId === GOOGLE_CLIENT_ID) return GOOGLE_BILLING_PATH;
