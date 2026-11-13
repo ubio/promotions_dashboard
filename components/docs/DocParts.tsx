@@ -38,3 +38,11 @@ export function DocTable({ head, rows }: { head: string[]; rows: React.ReactNode
 export function Callout({ children }: { children: React.ReactNode }) {
   return <div className="docs-callout">{children}</div>;
 }
+
+export function CodeBlock({ children }: { children: string }) {
+  return (
+    <pre className="docs-code">
+      <code>{children.trim()}</code>
+    </pre>
+  );
+}

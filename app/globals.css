@@ -311,6 +311,21 @@ tr:has(.pending-promotion-outcome:focus-visible) {
   border-bottom: 0;
 }
 
+.docs-code {
+  overflow-x: auto;
+  border: 1px solid var(--oss-line);
+  border-radius: 0.5rem;
+  background: var(--oss-tint-2);
+  padding: 0.75rem 1rem;
+  font-size: 0.875rem;
+  line-height: 1.5;
+}
+
+.docs-prose .docs-code code {
+  background: transparent;
+  padding: 0;
+}
+
 .docs-callout {
   border-left: 3px solid var(--oss-primary-ink);
   border-radius: 0 0.375rem 0.375rem 0;

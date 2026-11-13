@@ -13,6 +13,7 @@ export const DOC_PAGES = [
   { href: "/docs/ziff-davis-pipeline", label: "Ziff Davis pipeline" },
   { href: "/docs/validation-verdict", label: "Validation verdict" },
   { href: "/docs/dashboard", label: "Dashboard" },
+  { href: "/docs/cheatsheet", label: "Cheatsheet" },
 ];
 
 function useCurrentIndex(): number {
