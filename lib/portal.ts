@@ -46,9 +46,20 @@ export function reasonLabel(code: string): string {
   return REASON_LABELS[code] ?? code;
 }
 
-function portalReason(failCodes: string[], reasoning: string | undefined): string {
+// Reasoning is written for us, not for the client: it names our tooling, our
+// models and our stack traces. Only a client-facing run — one that reached the
+// offer and judged it — has reasoning that is about the offer at all. Anything
+// else gets the plain sentence, and the finding column names the category.
+function portalReason(
+  failCodes: string[],
+  reasoning: string | undefined,
+  clientFacing: boolean
+): string {
   if (failCodes.includes("LLM_COST_LIMIT")) {
     return "Workflow timeout";
+  }
+  if (!clientFacing) {
+    return "We could not complete this check";
   }
   return reasoning ?? "—";
 }
@@ -281,8 +292,14 @@ function toPortalPromotion(r: Document): PortalPromotion {
     applicability: promotionApplicabilityScope.of(r),
     productIds: promotionApplicabilityScope.productIds(r),
     outcome: verified ? "verified" : "validation_issues",
-    validityStatus: r.validityStatus ? normalizeValidity(r.validityStatus) : null,
-    reason: portalReason(failCodes, reasoning),
+    // Only a client-facing run produced a verdict on the offer. The upstream
+    // service still writes validityStatus "invalid" when a run failed for our
+    // own reasons — a page that never loaded, a UI we could not drive, a login
+    // wall — so passing it through told the client their offer was invalid on
+    // the strength of a check that never reached it. No verdict, no badge.
+    validityStatus:
+      verified && r.validityStatus ? normalizeValidity(r.validityStatus) : null,
+    reason: portalReason(failCodes, reasoning, verified),
     finding: verified
       ? validityStatus === "valid"
         ? "—"
